@@ -1,0 +1,434 @@
+/* ══════════════════════════════════════════════════════════════
+   LoginPage — scrolling product grid + dark login overlay
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Root ──────────────────────────────────────────────────── */
+.root {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #0a0806;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LEFT PANEL — animated product grid
+   ══════════════════════════════════════════════════════════════ */
+
+.left {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 3-column grid with even spacing */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 0 24px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* Each column scrolls upward */
+.column {
+  position: relative;
+  overflow: hidden;
+}
+
+.columnInner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: scrollUp 40s linear infinite;
+}
+
+/* Columns 2 & 4 scroll slower + offset */
+.columnSlow .columnInner {
+  animation: scrollUp 55s linear infinite;
+  animation-delay: -8s;
+}
+
+@keyframes scrollUp {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-50%); }
+}
+
+/* ── Product cards ─────────────────────────────────────────── */
+
+.card {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 16px 42px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* Radial vignette so product edges blend into the dark card */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 10px;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%);
+  pointer-events: none;
+}
+
+.cardImg {
+  flex: 1;
+  width: 85%;
+  min-height: 0;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  border-radius: 6px;
+}
+
+.cardInfo {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 24px 14px 12px;
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
+}
+
+.cardName {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.88);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.cardPrice {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: #c9a96e;
+  opacity: 0.7;
+}
+
+/* ── Gradient fades top & bottom ──────────────────────────── */
+
+.fadeTop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(to bottom, #0a0806 0%, transparent 100%);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.fadeBottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(to top, #0a0806 0%, transparent 100%);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RIGHT PANEL — login form overlay
+   ══════════════════════════════════════════════════════════════ */
+
+.right {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40%;
+  height: 100%;
+  background: rgba(18, 16, 14, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 56px;
+  box-sizing: border-box;
+  z-index: 3;
+}
+
+/* Ambient radial glow — bottom-right corner */
+.glow {
+  position: absolute;
+  bottom: -100px;
+  right: -100px;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(201, 169, 110, 0.07) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Form content sits above glow */
+.formWrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ── Branding ─────────────────────────────────────────────── */
+
+.welcome {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 26px;
+  font-weight: 400;
+  font-style: italic;
+  color: #c9a96e;
+  text-align: center;
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+
+.brand {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 60px;
+  font-weight: 700;
+  color: #c9a96e;
+  text-align: center;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  margin: 0 0 12px;
+}
+
+.subtitle {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 400;
+  color: #6b5f52;
+  text-align: center;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* ── Divider ──────────────────────────────────────────────── */
+
+.divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(201, 169, 110, 0.15);
+  margin: 28px 0;
+  flex-shrink: 0;
+}
+
+/* ── Form ─────────────────────────────────────────────────── */
+
+.form {
+  width: 100%;
+}
+
+.fieldGroup {
+  width: 100%;
+}
+
+.mt12 {
+  margin-top: 12px;
+}
+
+.input {
+  display: block;
+  width: 100%;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(201, 169, 110, 0.18);
+  border-radius: 3px;
+  padding: 0 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  color: #f0ece4;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 200ms ease;
+}
+
+.input::placeholder {
+  color: #4a4035;
+}
+
+.input:focus {
+  border-color: rgba(201, 169, 110, 0.6);
+}
+
+.passwordWrap {
+  position: relative;
+}
+
+.passwordWrap .input {
+  padding-right: 58px;
+}
+
+.toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #c9a96e;
+  cursor: pointer;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  padding: 2px;
+  opacity: 0.55;
+  transition: opacity 150ms;
+}
+
+.toggle:hover {
+  opacity: 1;
+}
+
+.fieldError {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #e07b6a;
+  margin: 6px 0 0;
+}
+
+/* ── Submit button ───────────────────────────────────────── */
+
+.submitBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 52px;
+  margin-top: 24px;
+  background: linear-gradient(135deg, #c9a96e 0%, #a8864d 100%);
+  color: #0e0c0a;
+  border: none;
+  border-radius: 3px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: opacity 150ms, transform 150ms, box-shadow 150ms;
+}
+
+.submitBtn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(201, 169, 110, 0.2);
+}
+
+.submitBtn:active {
+  transform: scale(0.99);
+  box-shadow: none;
+}
+
+.submitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Links ───────────────────────────────────────────────── */
+
+.forgotLink {
+  display: block;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #6b5f52;
+  text-decoration: none;
+  text-align: center;
+  margin-top: 16px;
+  transition: color 150ms;
+}
+
+.forgotLink:hover {
+  color: #c9a96e;
+  text-decoration: underline;
+}
+
+.signupRow {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #6b5f52;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.signupHighlight {
+  color: #c9a96e;
+  cursor: pointer;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ANIMATIONS — staggered fade + slide-up on load
+   ══════════════════════════════════════════════════════════════ */
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .a1 { animation: fadeUp 600ms cubic-bezier(0.16, 1, 0.3, 1) 200ms both; }
+  .a2 { animation: fadeUp 600ms cubic-bezier(0.16, 1, 0.3, 1) 400ms both; }
+  .a3 { animation: fadeUp 600ms cubic-bezier(0.16, 1, 0.3, 1) 600ms both; }
+  .a4 { animation: fadeUp 600ms cubic-bezier(0.16, 1, 0.3, 1) 800ms both; }
+  .a5 { animation: fadeUp 600ms cubic-bezier(0.16, 1, 0.3, 1) 1000ms both; }
+  .a6 { animation: fadeUp 600ms cubic-bezier(0.16, 1, 0.3, 1) 1200ms both; }
+  .a7 { animation: fadeUp 600ms cubic-bezier(0.16, 1, 0.3, 1) 1400ms both; }
+}
+
+/* ── Mobile: hide grid panel ─────────────────────────────── */
+
+@media (max-width: 767px) {
+  .left {
+    display: none;
+  }
+  .right {
+    width: 100%;
+    padding: 0 32px;
+    background: #12100e;
+    backdrop-filter: none;
+  }
+}

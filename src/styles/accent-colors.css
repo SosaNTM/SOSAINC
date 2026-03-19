@@ -1,0 +1,518 @@
+/* ═══ FULL THEME COLOR SYSTEM ═══ */
+/* 10 colors × 2 modes = 20 unique theme combinations */
+/* Uses compound selectors: [data-theme][data-color] */
+
+/* ── Shared text/surface vars by mode (color-independent) ── */
+[data-theme="dark"] {
+  --text-primary: rgba(255, 255, 255, 0.88);
+  --text-secondary: rgba(255, 255, 255, 0.55);
+  --text-tertiary: rgba(255, 255, 255, 0.35);
+  --text-quaternary: rgba(255, 255, 255, 0.20);
+  --glass-bg-elevated: rgba(8, 12, 24, 0.88);
+  --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  --glass-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.35);
+  --divider: rgba(255, 255, 255, 0.04);
+  --divider-strong: rgba(255, 255, 255, 0.07);
+  --surface-hover: rgba(255, 255, 255, 0.018);
+}
+
+[data-theme="light"] {
+  --text-primary: rgba(0, 0, 0, 0.92);
+  --text-secondary: rgba(0, 0, 0, 0.72);
+  --text-tertiary: rgba(0, 0, 0, 0.55);
+  --text-quaternary: rgba(0, 0, 0, 0.42);
+  --glass-bg-elevated: rgba(255, 255, 255, 0.88);
+  --glass-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  --glass-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --divider: rgba(0, 0, 0, 0.06);
+  --divider-strong: rgba(0, 0, 0, 0.10);
+  --surface-hover: rgba(0, 0, 0, 0.02);
+}
+
+/* ══════════════════════════════════════════ */
+/* THEME 1: EMERALD (default)                */
+/* ══════════════════════════════════════════ */
+[data-theme="dark"][data-color="emerald"] {
+  --bg-body: #030305;
+  --orb-1: rgba(52, 211, 153, 0.045);
+  --orb-2: rgba(59, 130, 246, 0.04);
+  --orb-3: rgba(139, 92, 246, 0.03);
+  --orb-4: rgba(244, 63, 94, 0.02);
+  --glass-bg: rgba(255, 255, 255, 0.025);
+  --glass-bg-hover: rgba(255, 255, 255, 0.042);
+  --glass-bg-subtle: rgba(255, 255, 255, 0.015);
+  --glass-border: rgba(255, 255, 255, 0.05);
+  --glass-border-hover: rgba(255, 255, 255, 0.085);
+  --accent-color: #6ee7b7;
+  --accent-dim: rgba(110, 231, 183, 0.10);
+  --accent-border-color: rgba(110, 231, 183, 0.18);
+  --accent-hover-color: rgba(110, 231, 183, 0.16);
+  --accent-glow: rgba(110, 231, 183, 0.06);
+  --sidebar-active: rgba(110, 231, 183, 0.08);
+  --toggle-on-bg: rgba(110, 231, 183, 0.20);
+  --toggle-on-border: rgba(110, 231, 183, 0.30);
+}
+
+[data-theme="light"][data-color="emerald"] {
+  --bg-body: #eae8f0;
+  --orb-1: rgba(52, 211, 153, 0.22);
+  --orb-2: rgba(59, 130, 246, 0.18);
+  --orb-3: rgba(139, 92, 246, 0.14);
+  --orb-4: rgba(244, 63, 94, 0.10);
+  --glass-bg: rgba(255, 255, 255, 0.62);
+  --glass-bg-hover: rgba(255, 255, 255, 0.72);
+  --glass-bg-subtle: rgba(255, 255, 255, 0.45);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-border-hover: rgba(0, 0, 0, 0.14);
+  --accent-color: #059669;
+  --accent-dim: rgba(5, 150, 105, 0.10);
+  --accent-border-color: rgba(5, 150, 105, 0.20);
+  --accent-hover-color: rgba(5, 150, 105, 0.15);
+  --accent-glow: rgba(5, 150, 105, 0.06);
+  --sidebar-active: rgba(5, 150, 105, 0.06);
+  --toggle-on-bg: rgba(5, 150, 105, 0.30);
+  --toggle-on-border: rgba(5, 150, 105, 0.45);
+}
+
+/* ══════════════════════════════════════════ */
+/* THEME 2: OCEAN BLUE                       */
+/* ══════════════════════════════════════════ */
+[data-theme="dark"][data-color="ocean"] {
+  --bg-body: #020308;
+  --orb-1: rgba(59, 130, 246, 0.06);
+  --orb-2: rgba(56, 189, 248, 0.045);
+  --orb-3: rgba(99, 102, 241, 0.035);
+  --orb-4: rgba(14, 165, 233, 0.025);
+  --glass-bg: rgba(130, 180, 255, 0.025);
+  --glass-bg-hover: rgba(130, 180, 255, 0.045);
+  --glass-bg-subtle: rgba(130, 180, 255, 0.015);
+  --glass-border: rgba(130, 180, 255, 0.06);
+  --glass-border-hover: rgba(130, 180, 255, 0.10);
+  --accent-color: #93c5fd;
+  --accent-dim: rgba(147, 197, 253, 0.10);
+  --accent-border-color: rgba(147, 197, 253, 0.18);
+  --accent-hover-color: rgba(147, 197, 253, 0.16);
+  --accent-glow: rgba(147, 197, 253, 0.06);
+  --sidebar-active: rgba(147, 197, 253, 0.08);
+  --toggle-on-bg: rgba(147, 197, 253, 0.20);
+  --toggle-on-border: rgba(147, 197, 253, 0.30);
+}
+
+[data-theme="light"][data-color="ocean"] {
+  --bg-body: #e8ecf4;
+  --orb-1: rgba(59, 130, 246, 0.25);
+  --orb-2: rgba(56, 189, 248, 0.20);
+  --orb-3: rgba(99, 102, 241, 0.15);
+  --orb-4: rgba(14, 165, 233, 0.12);
+  --glass-bg: rgba(240, 245, 255, 0.65);
+  --glass-bg-hover: rgba(240, 245, 255, 0.75);
+  --glass-bg-subtle: rgba(240, 245, 255, 0.45);
+  --glass-border: rgba(37, 99, 235, 0.08);
+  --glass-border-hover: rgba(37, 99, 235, 0.14);
+  --accent-color: #2563eb;
+  --accent-dim: rgba(37, 99, 235, 0.10);
+  --accent-border-color: rgba(37, 99, 235, 0.20);
+  --accent-hover-color: rgba(37, 99, 235, 0.15);
+  --accent-glow: rgba(37, 99, 235, 0.06);
+  --sidebar-active: rgba(37, 99, 235, 0.06);
+  --toggle-on-bg: rgba(37, 99, 235, 0.30);
+  --toggle-on-border: rgba(37, 99, 235, 0.45);
+}
+
+/* ══════════════════════════════════════════ */
+/* THEME 3: NIGHT BLUE                       */
+/* ══════════════════════════════════════════ */
+[data-theme="dark"][data-color="night"] {
+  --bg-body: #020210;
+  --orb-1: rgba(30, 64, 175, 0.07);
+  --orb-2: rgba(67, 56, 202, 0.05);
+  --orb-3: rgba(79, 70, 229, 0.04);
+  --orb-4: rgba(96, 165, 250, 0.03);
+  --glass-bg: rgba(100, 140, 255, 0.025);
+  --glass-bg-hover: rgba(100, 140, 255, 0.045);
+  --glass-bg-subtle: rgba(100, 140, 255, 0.015);
+  --glass-border: rgba(100, 140, 255, 0.06);
+  --glass-border-hover: rgba(100, 140, 255, 0.10);
+  --accent-color: #60a5fa;
+  --accent-dim: rgba(96, 165, 250, 0.10);
+  --accent-border-color: rgba(96, 165, 250, 0.18);
+  --accent-hover-color: rgba(96, 165, 250, 0.16);
+  --accent-glow: rgba(96, 165, 250, 0.06);
+  --sidebar-active: rgba(96, 165, 250, 0.08);
+  --toggle-on-bg: rgba(96, 165, 250, 0.20);
+  --toggle-on-border: rgba(96, 165, 250, 0.30);
+}
+
+[data-theme="light"][data-color="night"] {
+  --bg-body: #e6e8f5;
+  --orb-1: rgba(30, 64, 175, 0.22);
+  --orb-2: rgba(67, 56, 202, 0.18);
+  --orb-3: rgba(79, 70, 229, 0.14);
+  --orb-4: rgba(96, 165, 250, 0.10);
+  --glass-bg: rgba(238, 240, 255, 0.65);
+  --glass-bg-hover: rgba(238, 240, 255, 0.75);
+  --glass-bg-subtle: rgba(238, 240, 255, 0.45);
+  --glass-border: rgba(30, 64, 175, 0.08);
+  --glass-border-hover: rgba(30, 64, 175, 0.14);
+  --accent-color: #1e40af;
+  --accent-dim: rgba(30, 64, 175, 0.10);
+  --accent-border-color: rgba(30, 64, 175, 0.20);
+  --accent-hover-color: rgba(30, 64, 175, 0.15);
+  --accent-glow: rgba(30, 64, 175, 0.06);
+  --sidebar-active: rgba(30, 64, 175, 0.06);
+  --toggle-on-bg: rgba(30, 64, 175, 0.30);
+  --toggle-on-border: rgba(30, 64, 175, 0.45);
+}
+
+/* ══════════════════════════════════════════ */
+/* THEME 4: ROSE RED                         */
+/* ══════════════════════════════════════════ */
+[data-theme="dark"][data-color="rose"] {
+  --bg-body: #080304;
+  --orb-1: rgba(225, 29, 72, 0.05);
+  --orb-2: rgba(244, 63, 94, 0.04);
+  --orb-3: rgba(251, 113, 133, 0.03);
+  --orb-4: rgba(190, 18, 60, 0.025);
+  --glass-bg: rgba(255, 150, 170, 0.020);
+  --glass-bg-hover: rgba(255, 150, 170, 0.040);
+  --glass-bg-subtle: rgba(255, 150, 170, 0.012);
+  --glass-border: rgba(255, 150, 170, 0.055);
+  --glass-border-hover: rgba(255, 150, 170, 0.09);
+  --accent-color: #fda4af;
+  --accent-dim: rgba(253, 164, 175, 0.10);
+  --accent-border-color: rgba(253, 164, 175, 0.18);
+  --accent-hover-color: rgba(253, 164, 175, 0.16);
+  --accent-glow: rgba(253, 164, 175, 0.06);
+  --sidebar-active: rgba(253, 164, 175, 0.08);
+  --toggle-on-bg: rgba(253, 164, 175, 0.20);
+  --toggle-on-border: rgba(253, 164, 175, 0.30);
+}
+
+[data-theme="light"][data-color="rose"] {
+  --bg-body: #f4e8ea;
+  --orb-1: rgba(225, 29, 72, 0.20);
+  --orb-2: rgba(244, 63, 94, 0.16);
+  --orb-3: rgba(251, 113, 133, 0.12);
+  --orb-4: rgba(190, 18, 60, 0.10);
+  --glass-bg: rgba(255, 245, 247, 0.65);
+  --glass-bg-hover: rgba(255, 245, 247, 0.75);
+  --glass-bg-subtle: rgba(255, 245, 247, 0.45);
+  --glass-border: rgba(225, 29, 72, 0.08);
+  --glass-border-hover: rgba(225, 29, 72, 0.14);
+  --accent-color: #e11d48;
+  --accent-dim: rgba(225, 29, 72, 0.10);
+  --accent-border-color: rgba(225, 29, 72, 0.20);
+  --accent-hover-color: rgba(225, 29, 72, 0.15);
+  --accent-glow: rgba(225, 29, 72, 0.06);
+  --sidebar-active: rgba(225, 29, 72, 0.06);
+  --toggle-on-bg: rgba(225, 29, 72, 0.30);
+  --toggle-on-border: rgba(225, 29, 72, 0.45);
+}
+
+/* ══════════════════════════════════════════ */
+/* THEME 5: SUNSET ORANGE                    */
+/* ══════════════════════════════════════════ */
+[data-theme="dark"][data-color="sunset"] {
+  --bg-body: #080402;
+  --orb-1: rgba(234, 88, 12, 0.05);
+  --orb-2: rgba(251, 146, 60, 0.04);
+  --orb-3: rgba(245, 158, 11, 0.03);
+  --orb-4: rgba(217, 119, 6, 0.025);
+  --glass-bg: rgba(255, 180, 120, 0.022);
+  --glass-bg-hover: rgba(255, 180, 120, 0.042);
+  --glass-bg-subtle: rgba(255, 180, 120, 0.012);
+  --glass-border: rgba(255, 180, 120, 0.055);
+  --glass-border-hover: rgba(255, 180, 120, 0.09);
+  --accent-color: #fdba74;
+  --accent-dim: rgba(253, 186, 116, 0.10);
+  --accent-border-color: rgba(253, 186, 116, 0.18);
+  --accent-hover-color: rgba(253, 186, 116, 0.16);
+  --accent-glow: rgba(253, 186, 116, 0.06);
+  --sidebar-active: rgba(253, 186, 116, 0.08);
+  --toggle-on-bg: rgba(253, 186, 116, 0.20);
+  --toggle-on-border: rgba(253, 186, 116, 0.30);
+}
+
+[data-theme="light"][data-color="sunset"] {
+  --bg-body: #f4ede6;
+  --orb-1: rgba(234, 88, 12, 0.20);
+  --orb-2: rgba(251, 146, 60, 0.16);
+  --orb-3: rgba(245, 158, 11, 0.12);
+  --orb-4: rgba(217, 119, 6, 0.10);
+  --glass-bg: rgba(255, 250, 243, 0.65);
+  --glass-bg-hover: rgba(255, 250, 243, 0.75);
+  --glass-bg-subtle: rgba(255, 250, 243, 0.45);
+  --glass-border: rgba(234, 88, 12, 0.08);
+  --glass-border-hover: rgba(234, 88, 12, 0.14);
+  --accent-color: #ea580c;
+  --accent-dim: rgba(234, 88, 12, 0.10);
+  --accent-border-color: rgba(234, 88, 12, 0.20);
+  --accent-hover-color: rgba(234, 88, 12, 0.15);
+  --accent-glow: rgba(234, 88, 12, 0.06);
+  --sidebar-active: rgba(234, 88, 12, 0.06);
+  --toggle-on-bg: rgba(234, 88, 12, 0.30);
+  --toggle-on-border: rgba(234, 88, 12, 0.45);
+}
+
+/* ══════════════════════════════════════════ */
+/* THEME 6: ROYAL PURPLE                     */
+/* ══════════════════════════════════════════ */
+[data-theme="dark"][data-color="royal"] {
+  --bg-body: #040208;
+  --orb-1: rgba(124, 58, 237, 0.06);
+  --orb-2: rgba(167, 139, 250, 0.045);
+  --orb-3: rgba(139, 92, 246, 0.035);
+  --orb-4: rgba(192, 132, 252, 0.025);
+  --glass-bg: rgba(160, 130, 255, 0.025);
+  --glass-bg-hover: rgba(160, 130, 255, 0.045);
+  --glass-bg-subtle: rgba(160, 130, 255, 0.015);
+  --glass-border: rgba(160, 130, 255, 0.06);
+  --glass-border-hover: rgba(160, 130, 255, 0.10);
+  --accent-color: #c4b5fd;
+  --accent-dim: rgba(196, 181, 253, 0.10);
+  --accent-border-color: rgba(196, 181, 253, 0.18);
+  --accent-hover-color: rgba(196, 181, 253, 0.16);
+  --accent-glow: rgba(196, 181, 253, 0.06);
+  --sidebar-active: rgba(196, 181, 253, 0.08);
+  --toggle-on-bg: rgba(196, 181, 253, 0.20);
+  --toggle-on-border: rgba(196, 181, 253, 0.30);
+}
+
+[data-theme="light"][data-color="royal"] {
+  --bg-body: #ece8f6;
+  --orb-1: rgba(124, 58, 237, 0.22);
+  --orb-2: rgba(167, 139, 250, 0.18);
+  --orb-3: rgba(139, 92, 246, 0.14);
+  --orb-4: rgba(192, 132, 252, 0.10);
+  --glass-bg: rgba(248, 245, 255, 0.65);
+  --glass-bg-hover: rgba(248, 245, 255, 0.75);
+  --glass-bg-subtle: rgba(248, 245, 255, 0.45);
+  --glass-border: rgba(124, 58, 237, 0.08);
+  --glass-border-hover: rgba(124, 58, 237, 0.14);
+  --accent-color: #7c3aed;
+  --accent-dim: rgba(124, 58, 237, 0.10);
+  --accent-border-color: rgba(124, 58, 237, 0.20);
+  --accent-hover-color: rgba(124, 58, 237, 0.15);
+  --accent-glow: rgba(124, 58, 237, 0.06);
+  --sidebar-active: rgba(124, 58, 237, 0.06);
+  --toggle-on-bg: rgba(124, 58, 237, 0.30);
+  --toggle-on-border: rgba(124, 58, 237, 0.45);
+}
+
+/* ══════════════════════════════════════════ */
+/* THEME 7: GRAPE (Deep Purple)              */
+/* ══════════════════════════════════════════ */
+[data-theme="dark"][data-color="grape"] {
+  --bg-body: #030112;
+  --orb-1: rgba(91, 33, 182, 0.07);
+  --orb-2: rgba(109, 40, 217, 0.05);
+  --orb-3: rgba(139, 92, 246, 0.04);
+  --orb-4: rgba(76, 29, 149, 0.03);
+  --glass-bg: rgba(140, 100, 255, 0.025);
+  --glass-bg-hover: rgba(140, 100, 255, 0.045);
+  --glass-bg-subtle: rgba(140, 100, 255, 0.015);
+  --glass-border: rgba(140, 100, 255, 0.06);
+  --glass-border-hover: rgba(140, 100, 255, 0.10);
+  --accent-color: #a78bfa;
+  --accent-dim: rgba(167, 139, 250, 0.10);
+  --accent-border-color: rgba(167, 139, 250, 0.18);
+  --accent-hover-color: rgba(167, 139, 250, 0.16);
+  --accent-glow: rgba(167, 139, 250, 0.06);
+  --sidebar-active: rgba(167, 139, 250, 0.08);
+  --toggle-on-bg: rgba(167, 139, 250, 0.20);
+  --toggle-on-border: rgba(167, 139, 250, 0.30);
+}
+
+[data-theme="light"][data-color="grape"] {
+  --bg-body: #eae6f6;
+  --orb-1: rgba(91, 33, 182, 0.24);
+  --orb-2: rgba(109, 40, 217, 0.19);
+  --orb-3: rgba(139, 92, 246, 0.14);
+  --orb-4: rgba(76, 29, 149, 0.10);
+  --glass-bg: rgba(246, 242, 255, 0.65);
+  --glass-bg-hover: rgba(246, 242, 255, 0.75);
+  --glass-bg-subtle: rgba(246, 242, 255, 0.45);
+  --glass-border: rgba(91, 33, 182, 0.08);
+  --glass-border-hover: rgba(91, 33, 182, 0.14);
+  --accent-color: #5b21b6;
+  --accent-dim: rgba(91, 33, 182, 0.10);
+  --accent-border-color: rgba(91, 33, 182, 0.20);
+  --accent-hover-color: rgba(91, 33, 182, 0.15);
+  --accent-glow: rgba(91, 33, 182, 0.06);
+  --sidebar-active: rgba(91, 33, 182, 0.06);
+  --toggle-on-bg: rgba(91, 33, 182, 0.30);
+  --toggle-on-border: rgba(91, 33, 182, 0.45);
+}
+
+/* ══════════════════════════════════════════ */
+/* THEME 8: HOT PINK                         */
+/* ══════════════════════════════════════════ */
+[data-theme="dark"][data-color="pink"] {
+  --bg-body: #080206;
+  --orb-1: rgba(219, 39, 119, 0.05);
+  --orb-2: rgba(236, 72, 153, 0.04);
+  --orb-3: rgba(244, 114, 182, 0.03);
+  --orb-4: rgba(190, 24, 93, 0.025);
+  --glass-bg: rgba(255, 140, 200, 0.020);
+  --glass-bg-hover: rgba(255, 140, 200, 0.040);
+  --glass-bg-subtle: rgba(255, 140, 200, 0.012);
+  --glass-border: rgba(255, 140, 200, 0.055);
+  --glass-border-hover: rgba(255, 140, 200, 0.09);
+  --accent-color: #f9a8d4;
+  --accent-dim: rgba(249, 168, 212, 0.10);
+  --accent-border-color: rgba(249, 168, 212, 0.18);
+  --accent-hover-color: rgba(249, 168, 212, 0.16);
+  --accent-glow: rgba(249, 168, 212, 0.06);
+  --sidebar-active: rgba(249, 168, 212, 0.08);
+  --toggle-on-bg: rgba(249, 168, 212, 0.20);
+  --toggle-on-border: rgba(249, 168, 212, 0.30);
+}
+
+[data-theme="light"][data-color="pink"] {
+  --bg-body: #f6e8f0;
+  --orb-1: rgba(219, 39, 119, 0.20);
+  --orb-2: rgba(236, 72, 153, 0.16);
+  --orb-3: rgba(244, 114, 182, 0.12);
+  --orb-4: rgba(190, 24, 93, 0.10);
+  --glass-bg: rgba(255, 245, 250, 0.65);
+  --glass-bg-hover: rgba(255, 245, 250, 0.75);
+  --glass-bg-subtle: rgba(255, 245, 250, 0.45);
+  --glass-border: rgba(219, 39, 119, 0.08);
+  --glass-border-hover: rgba(219, 39, 119, 0.14);
+  --accent-color: #db2777;
+  --accent-dim: rgba(219, 39, 119, 0.10);
+  --accent-border-color: rgba(219, 39, 119, 0.20);
+  --accent-hover-color: rgba(219, 39, 119, 0.15);
+  --accent-glow: rgba(219, 39, 119, 0.06);
+  --sidebar-active: rgba(219, 39, 119, 0.06);
+  --toggle-on-bg: rgba(219, 39, 119, 0.30);
+  --toggle-on-border: rgba(219, 39, 119, 0.45);
+}
+
+/* ══════════════════════════════════════════ */
+/* THEME 9: AMBER (Warm Brown)               */
+/* ══════════════════════════════════════════ */
+[data-theme="dark"][data-color="amber"] {
+  --bg-body: #060402;
+  --orb-1: rgba(217, 119, 6, 0.05);
+  --orb-2: rgba(245, 158, 11, 0.04);
+  --orb-3: rgba(251, 191, 36, 0.03);
+  --orb-4: rgba(146, 64, 14, 0.025);
+  --glass-bg: rgba(255, 200, 100, 0.020);
+  --glass-bg-hover: rgba(255, 200, 100, 0.040);
+  --glass-bg-subtle: rgba(255, 200, 100, 0.012);
+  --glass-border: rgba(255, 200, 100, 0.055);
+  --glass-border-hover: rgba(255, 200, 100, 0.09);
+  --accent-color: #fbbf24;
+  --accent-dim: rgba(251, 191, 36, 0.10);
+  --accent-border-color: rgba(251, 191, 36, 0.18);
+  --accent-hover-color: rgba(251, 191, 36, 0.16);
+  --accent-glow: rgba(251, 191, 36, 0.06);
+  --sidebar-active: rgba(251, 191, 36, 0.08);
+  --toggle-on-bg: rgba(251, 191, 36, 0.20);
+  --toggle-on-border: rgba(251, 191, 36, 0.30);
+}
+
+[data-theme="light"][data-color="amber"] {
+  --bg-body: #f4efe6;
+  --orb-1: rgba(217, 119, 6, 0.20);
+  --orb-2: rgba(245, 158, 11, 0.16);
+  --orb-3: rgba(251, 191, 36, 0.12);
+  --orb-4: rgba(146, 64, 14, 0.10);
+  --glass-bg: rgba(255, 252, 243, 0.65);
+  --glass-bg-hover: rgba(255, 252, 243, 0.75);
+  --glass-bg-subtle: rgba(255, 252, 243, 0.45);
+  --glass-border: rgba(146, 64, 14, 0.08);
+  --glass-border-hover: rgba(146, 64, 14, 0.14);
+  --accent-color: #92400e;
+  --accent-dim: rgba(146, 64, 14, 0.10);
+  --accent-border-color: rgba(146, 64, 14, 0.20);
+  --accent-hover-color: rgba(146, 64, 14, 0.15);
+  --accent-glow: rgba(146, 64, 14, 0.06);
+  --sidebar-active: rgba(146, 64, 14, 0.06);
+  --toggle-on-bg: rgba(146, 64, 14, 0.30);
+  --toggle-on-border: rgba(146, 64, 14, 0.45);
+}
+
+/* ══════════════════════════════════════════ */
+/* THEME 10: TEAL                            */
+/* ══════════════════════════════════════════ */
+[data-theme="dark"][data-color="teal"] {
+  --bg-body: #020606;
+  --orb-1: rgba(13, 148, 136, 0.05);
+  --orb-2: rgba(20, 184, 166, 0.04);
+  --orb-3: rgba(94, 234, 212, 0.03);
+  --orb-4: rgba(45, 212, 191, 0.025);
+  --glass-bg: rgba(100, 220, 200, 0.022);
+  --glass-bg-hover: rgba(100, 220, 200, 0.042);
+  --glass-bg-subtle: rgba(100, 220, 200, 0.014);
+  --glass-border: rgba(100, 220, 200, 0.055);
+  --glass-border-hover: rgba(100, 220, 200, 0.09);
+  --accent-color: #5eead4;
+  --accent-dim: rgba(94, 234, 212, 0.10);
+  --accent-border-color: rgba(94, 234, 212, 0.18);
+  --accent-hover-color: rgba(94, 234, 212, 0.16);
+  --accent-glow: rgba(94, 234, 212, 0.06);
+  --sidebar-active: rgba(94, 234, 212, 0.08);
+  --toggle-on-bg: rgba(94, 234, 212, 0.20);
+  --toggle-on-border: rgba(94, 234, 212, 0.30);
+}
+
+[data-theme="light"][data-color="teal"] {
+  --bg-body: #e6f2f0;
+  --orb-1: rgba(13, 148, 136, 0.22);
+  --orb-2: rgba(20, 184, 166, 0.18);
+  --orb-3: rgba(94, 234, 212, 0.14);
+  --orb-4: rgba(45, 212, 191, 0.10);
+  --glass-bg: rgba(243, 255, 253, 0.65);
+  --glass-bg-hover: rgba(243, 255, 253, 0.75);
+  --glass-bg-subtle: rgba(243, 255, 253, 0.45);
+  --glass-border: rgba(13, 148, 136, 0.08);
+  --glass-border-hover: rgba(13, 148, 136, 0.14);
+  --accent-color: #0d9488;
+  --accent-dim: rgba(13, 148, 136, 0.10);
+  --accent-border-color: rgba(13, 148, 136, 0.20);
+  --accent-hover-color: rgba(13, 148, 136, 0.15);
+  --accent-glow: rgba(13, 148, 136, 0.06);
+  --sidebar-active: rgba(13, 148, 136, 0.06);
+  --toggle-on-bg: rgba(13, 148, 136, 0.30);
+  --toggle-on-border: rgba(13, 148, 136, 0.45);
+}
+
+/* ═══ ACCENT-DRIVEN COMPONENT OVERRIDES ═══ */
+
+/* Primary buttons */
+.glass-btn-primary {
+  background: var(--accent-dim) !important;
+  border-color: var(--accent-border-color) !important;
+  color: var(--accent-color) !important;
+}
+.glass-btn-primary:hover {
+  background: var(--accent-hover-color) !important;
+  border-color: var(--accent-border-color) !important;
+}
+
+/* Input focus */
+.glass-input:focus {
+  border-color: var(--accent-border-color) !important;
+  box-shadow: 0 0 0 3px var(--accent-dim) !important;
+}
+
+/* Smooth theme color transitions */
+body, .glass-card, .glass-card-static, [class*="sidebar"], [class*="header"] {
+  transition: background-color 0.5s ease, border-color 0.4s ease, box-shadow 0.4s ease, color 0.3s ease;
+}
+
+/* Ambient orbs use theme color vars */
+.ambient-orb-1 {
+  background: radial-gradient(circle, var(--orb-1) 0%, transparent 70%) !important;
+}
+.ambient-orb-2 {
+  background: radial-gradient(circle, var(--orb-2) 0%, transparent 70%) !important;
+}
+.ambient-orb-3 {
+  background: radial-gradient(circle, var(--orb-3) 0%, transparent 70%) !important;
+}
+.ambient-orb-4 {
+  background: radial-gradient(circle, var(--orb-4) 0%, transparent 70%) !important;
+}
