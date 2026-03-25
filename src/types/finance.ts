@@ -2,6 +2,20 @@
 // Separate from the business finance types in src/lib/transactionStore.ts.
 // These map to the `personal_transactions` Supabase table.
 
+export type CostClassification = "revenue" | "cogs" | "opex" | "other";
+
+export const COST_CLASSIFICATION_CONFIG: Record<CostClassification, {
+  label: string;
+  color: string;
+  bgColor: string;
+  icon: string;
+}> = {
+  revenue: { label: "Ricavo",            color: "#4ade80", bgColor: "rgba(74, 222, 128, 0.1)",  icon: "TrendingUp" },
+  cogs:    { label: "Costo del Venduto", color: "#fb923c", bgColor: "rgba(251, 146, 60, 0.1)",  icon: "Package" },
+  opex:    { label: "Spesa Operativa",   color: "#f87171", bgColor: "rgba(248, 113, 113, 0.1)", icon: "Receipt" },
+  other:   { label: "Altro",            color: "#94a3b8", bgColor: "rgba(148, 163, 184, 0.1)", icon: "HelpCircle" },
+};
+
 export interface PersonalTransaction {
   id: string;
   user_id: string;
@@ -17,6 +31,25 @@ export interface PersonalTransaction {
   recurring_interval?: "weekly" | "monthly" | "yearly";
   tags?: string[];
   receipt_url?: string;
+  cost_classification?: CostClassification;
+  category_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FinanceCategory {
+  id: string;
+  portal_id: string;
+  name: string;
+  slug: string;
+  type: CostClassification;
+  color: string;
+  icon: string;
+  is_default: boolean;
+  is_active: boolean;
+  sort_order: number;
+  created_by: string | null;
+  updated_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -26,6 +59,8 @@ export type NewPersonalTransaction = Omit<PersonalTransaction, "id" | "created_a
 export interface TransactionFilters {
   type?: "income" | "expense" | "transfer";
   category?: string;
+  costClassification?: CostClassification;
+  categoryId?: string;
   dateFrom?: string;   // YYYY-MM-DD
   dateTo?: string;     // YYYY-MM-DD
   minAmount?: number;

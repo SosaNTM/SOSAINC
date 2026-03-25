@@ -46,7 +46,14 @@ export function ActivityTimeline({ activities }: Props) {
                 {config.icon}
               </div>
               <div className="flex-1 min-w-0 pt-0.5">
-                <p className="text-[13px]" style={{ color: "var(--text-primary)" }}>{item.description}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[13px]" style={{ color: "var(--text-primary)" }}>{item.description}</p>
+                  {item.portal && (
+                    <span className="shrink-0 text-[10px] font-700 px-2 py-0.5 rounded-full" style={{ background: "rgba(74,158,255,0.12)", color: "#4A9EFF", fontWeight: 700, whiteSpace: "nowrap" }}>
+                      {item.portal}
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-[11px]" style={{ color: "var(--text-quaternary)" }}>
                     {formatDistanceToNow(item.timestamp, { addSuffix: true })}

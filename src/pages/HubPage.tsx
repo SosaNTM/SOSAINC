@@ -1,268 +1,176 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth, userCanAccessPortal } from "@/lib/authContext";
 import { usePortal, PORTALS, getLastAccessed, type PortalConfig } from "@/lib/portalContext";
-import { UserAvatar } from "@/components/UserAvatar";
-import { Building2, KeyRound, Zap, ShieldCheck, ArrowRight, LogOut } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import s from "./HubPage.module.css";
 
-const ICON_MAP: Record<string, React.ElementType> = {
-  Building2,
-  KeyRound,
-  Zap,
-  ShieldCheck,
+/* ── Portal visual config ─────────────────────────────────── */
+
+const PORTAL_META: Record<string, { icon: string; color: string; desc: string }> = {
+  sosa:    { icon: "▣", color: "#4488ff", desc: "Corporate management & operations" },
+  keylo:   { icon: "⚷", color: "#00ff88", desc: "Access control & security hub" },
+  redx:    { icon: "⚡", color: "#ff4444", desc: "Performance & growth operations" },
+  trustme: { icon: "◈", color: "#ff6b00", desc: "Compliance, legal & trust layer" },
 };
+
+/* ── HubPage ──────────────────────────────────────────────── */
 
 export default function HubPage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { setPortal } = usePortal();
+  const [loaded, setLoaded] = useState(false);
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [hoveredEnter, setHoveredEnter] = useState<string | null>(null);
 
-  const accessiblePortals = PORTALS.filter(p => userCanAccessPortal(user, p.id));
+  useEffect(() => {
+    const t = setTimeout(() => setLoaded(true), 100);
+    return () => clearTimeout(t);
+  }, []);
 
-  const handleSelectPortal = (portal: PortalConfig) => {
+  const accessiblePortals = PORTALS.filter((p) => userCanAccessPortal(user, p.id));
+
+  const handleSelectPortal = (portal: PortalConfig): void => {
     setPortal(portal);
     navigate(`${portal.routePrefix}/dashboard`);
   };
 
-  const handleLogout = () => {
+  const handleLogout = (): void => {
     logout();
     navigate("/login");
   };
 
   return (
-    <div className="min-h-screen w-full relative flex items-center justify-center p-4">
-      {/* Background */}
-      <div className="ambient-orbs">
-        <div className="ambient-orb-1" />
-        <div className="ambient-orb-2" />
-        <div className="ambient-orb-3" />
-        <div className="ambient-orb-4" />
+    <div className={s.wrapper}>
+      {/* Background lines */}
+      <div className={s.bgLine1} />
+      <div className={s.bgLine2} />
+      <div className={s.bgLine3} />
+      <div className={s.scanline} />
+
+      {/* Corner accents */}
+      <div className={s.cornerTL} />
+      <div className={s.cornerTR} />
+      <div className={s.cornerBL} />
+      <div className={s.cornerBR} />
+
+      {/* ── HEADER ─────────────────────────────────────────────── */}
+      <div
+        className={`${s.header} ${loaded ? s.animFadeInUp : ""}`}
+        style={loaded ? { animationDelay: "0.1s" } : { opacity: 0 }}
+      >
+        <h1 className={s.logo}>SOSA INC.</h1>
+        <p className={s.subtitle}>Select your workspace</p>
       </div>
 
-      <div className="relative z-10 flex flex-col items-center gap-10 w-full max-w-[920px] mx-auto">
-        {/* Logo + tagline */}
-        <div className="text-center">
-          <h1
-            style={{
-              fontSize: 32,
-              fontWeight: 800,
-              color: "var(--text-primary)",
-              letterSpacing: "0.35em",
-              lineHeight: 1.2,
-            }}
-          >
-            S O S A
-          </h1>
-          <p
-            style={{
-              fontSize: 14,
-              color: "var(--text-tertiary)",
-              marginTop: 8,
-              fontWeight: 500,
-            }}
-          >
-            Select your workspace
-          </p>
-        </div>
+      {/* ── PORTAL ROW — 4 columns ─────────────────────────────── */}
+      <div className={s.portalRow}>
+        {accessiblePortals.map((portal, i) => {
+          const meta = PORTAL_META[portal.id] ?? { icon: "◻", color: portal.accent, desc: portal.subtitle };
+          const lastAccessed = getLastAccessed(portal.id);
+          const lastAccessedText = lastAccessed
+            ? formatDistanceToNow(new Date(lastAccessed), { addSuffix: false })
+            : "Not yet accessed";
+          const isHovered = hoveredCard === portal.id;
+          const isEnterHovered = hoveredEnter === portal.id;
 
-        {/* Portal cards grid */}
-        <div
-          className="grid w-full gap-5"
-          style={{
-            gridTemplateColumns: "repeat(2, 1fr)",
-          }}
-        >
-          {accessiblePortals.map((portal) => {
-            const Icon = ICON_MAP[portal.icon];
-            const lastAccessed = getLastAccessed(portal.id);
-            const lastAccessedText = lastAccessed
-              ? `Last accessed ${formatDistanceToNow(new Date(lastAccessed), { addSuffix: true })}`
-              : "Not yet accessed";
+          return (
+            <div
+              key={portal.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => handleSelectPortal(portal)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleSelectPortal(portal); } }}
+              onMouseEnter={() => setHoveredCard(portal.id)}
+              onMouseLeave={() => setHoveredCard(null)}
+              className={`${s.card} ${loaded ? s.animFadeInUp : ""}`}
+              style={{
+                ...(loaded ? { animationDelay: `${0.25 + i * 0.1}s` } : { opacity: 0 }),
+                borderColor: isHovered ? meta.color : "#1a1a1a",
+                background: isHovered
+                  ? `linear-gradient(180deg, ${meta.color}08, transparent 70%)`
+                  : "rgba(255,255,255,0.015)",
+              }}
+            >
+              {/* Top accent line */}
+              <div
+                className={s.cardAccent}
+                style={{ background: `linear-gradient(90deg, ${meta.color}, ${meta.color}33)` }}
+              />
 
-            return (
-              <button type="button"
-                key={portal.id}
-                onClick={() => handleSelectPortal(portal)}
-                className="group text-left transition-all duration-250"
+              {/* Icon */}
+              <div
+                className={s.iconBox}
                 style={{
-                  background: "var(--glass-bg)",
-                  backdropFilter: "blur(20px)",
-                  WebkitBackdropFilter: "blur(20px)",
-                  border: "1px solid var(--glass-border)",
-                  borderLeft: `4px solid ${portal.accent}`,
-                  borderRadius: 20,
-                  padding: "32px",
-                  cursor: "pointer",
-                }}
-                onMouseEnter={(e) => {
-                  const el = e.currentTarget;
-                  el.style.background = "var(--glass-bg-hover)";
-                  el.style.borderColor = `${portal.accent}80`;
-                  el.style.borderLeftColor = portal.accent;
-                  el.style.boxShadow = `0 8px 40px ${portal.accent}2E`;
-                  el.style.transform = "translateY(-3px)";
-                }}
-                onMouseLeave={(e) => {
-                  const el = e.currentTarget;
-                  el.style.background = "var(--glass-bg)";
-                  el.style.borderColor = "var(--glass-border)";
-                  el.style.borderLeftColor = portal.accent;
-                  el.style.boxShadow = "none";
-                  el.style.transform = "translateY(0)";
+                  borderColor: `${meta.color}33`,
+                  background: `${meta.color}0d`,
+                  color: meta.color,
                 }}
               >
-                {/* Icon */}
-                <div
-                  className="flex items-center justify-center mb-4"
-                  style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: 14,
-                    background: `${portal.accent}18`,
-                  }}
-                >
-                  {Icon && (
-                    <Icon
-                      style={{
-                        width: 26,
-                        height: 26,
-                        color: portal.accent,
-                        strokeWidth: 1.8,
-                      }}
-                    />
-                  )}
-                </div>
+                {meta.icon}
+              </div>
 
-                {/* Name */}
-                <h2
-                  style={{
-                    fontSize: 22,
-                    fontWeight: 700,
-                    color: "var(--text-primary)",
-                    marginBottom: 4,
-                  }}
-                >
-                  {portal.name}
-                </h2>
+              {/* Name + desc */}
+              <h2 className={s.cardName}>{portal.name}</h2>
+              <p className={s.cardDesc}>{meta.desc}</p>
 
-                {/* Subtitle */}
-                <p
-                  style={{
-                    fontSize: 13,
-                    color: "var(--text-tertiary)",
-                    marginBottom: 16,
-                  }}
-                >
-                  {portal.subtitle}
-                </p>
+              {/* Spacer */}
+              <div className={s.cardSpacer} />
 
-                {/* Divider */}
-                <div
-                  style={{
-                    height: 1,
-                    background: "var(--divider)",
-                    marginBottom: 14,
-                  }}
-                />
+              {/* Status */}
+              <div className={s.statusRow}>
+                <div className={s.statusDot} style={{ background: meta.color }} />
+                <span className={s.statusText}>Active</span>
+              </div>
 
-                {/* Bottom row */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: "50%",
-                        background: portal.accent,
-                      }}
-                    />
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: "var(--text-secondary)",
-                      }}
-                    >
-                      Active
-                    </span>
-                  </div>
-                  <span
-                    className="flex items-center gap-1 group-hover:gap-2 transition-all"
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: portal.accent,
-                    }}
-                  >
-                    Enter <ArrowRight style={{ width: 14, height: 14 }} />
-                  </span>
-                </div>
-
-                {/* Last accessed */}
-                <p
-                  style={{
-                    fontSize: 11,
-                    color: "var(--text-quaternary)",
-                    marginTop: 8,
-                  }}
-                >
-                  {lastAccessedText}
-                </p>
+              {/* Enter button — fill on hover */}
+              <button
+                type="button"
+                onMouseEnter={() => setHoveredEnter(portal.id)}
+                onMouseLeave={() => setHoveredEnter(null)}
+                onClick={(e) => { e.stopPropagation(); handleSelectPortal(portal); }}
+                className={s.enterBtn}
+                style={{
+                  color: isEnterHovered ? "#0a0a0a" : meta.color,
+                  background: isEnterHovered ? meta.color : "transparent",
+                  borderColor: meta.color,
+                }}
+                aria-label={`Enter ${portal.name}`}
+              >
+                Enter →
               </button>
-            );
-          })}
-        </div>
 
-        {/* Responsive: on mobile make single column */}
-        <style>{`
-          @media (max-width: 768px) {
-            .grid { grid-template-columns: 1fr !important; max-width: 400px; margin: 0 auto; }
-          }
-        `}</style>
+              {/* Last accessed */}
+              <span className={s.lastAccessed}>{lastAccessedText}</span>
+            </div>
+          );
+        })}
+      </div>
 
-        {/* User indicator */}
-        {user && (
-          <div
-            className="flex items-center gap-3"
-            style={{
-              background: "var(--glass-bg)",
-              backdropFilter: "blur(16px)",
-              WebkitBackdropFilter: "blur(16px)",
-              border: "1px solid var(--glass-border)",
-              borderRadius: 40,
-              padding: "8px 20px 8px 8px",
-            }}
-          >
-            <UserAvatar user={user} size={32} />
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "var(--text-primary)",
-              }}
-            >
-              {user.displayName}
-            </span>
-            <button type="button"
+      {/* ── FOOTER ─────────────────────────────────────────────── */}
+      {user && (
+        <div
+          className={`${s.footer} ${loaded ? s.animFadeIn : ""}`}
+          style={loaded ? { animationDelay: "0.8s" } : { opacity: 0 }}
+        >
+          <div className={s.userRow}>
+            <div className={s.userAvatar}>
+              {(user.displayName ?? "U").charAt(0).toUpperCase()}
+            </div>
+            <span className={s.userName}>{user.displayName}</span>
+            <span className={s.dividerDot}>•</span>
+            <button
+              type="button"
               onClick={handleLogout}
-              className="flex items-center gap-1 transition-colors"
-              style={{
-                fontSize: 12,
-                color: "var(--text-tertiary)",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                marginLeft: 8,
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#FF5A5A")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-tertiary)")}
+              className={s.signOutBtn}
+              aria-label="Sign out"
             >
-              <LogOut style={{ width: 14, height: 14 }} />
-              Sign out
+              → Sign out
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

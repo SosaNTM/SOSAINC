@@ -44,6 +44,7 @@ export const GlassInput = React.forwardRef<HTMLInputElement, GlassInputProps>(
               : "none",
             ...style,
           }}
+          autoComplete="off"
           onFocus={(e) => {
             setFocused(true);
             props.onFocus?.(e);

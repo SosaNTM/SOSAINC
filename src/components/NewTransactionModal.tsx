@@ -7,6 +7,9 @@ import {
 import type { CostType } from "@/lib/financialCalculations";
 import { directCostCategories, indirectCostCategories } from "@/lib/financialCalculations";
 import { addTransaction } from "@/lib/transactionStore";
+import { usePortal } from "@/lib/portalContext";
+import { useFinanceCategories } from "@/hooks/useFinanceCategories";
+import type { CostClassification } from "@/types/finance";
 
 const iconMap: Record<string, React.FC<any>> = {
   Users, UserPlus, Package, Monitor, Server, Building2, Megaphone, Briefcase, Landmark, Shield, MoreHorizontal,
@@ -30,6 +33,27 @@ export function NewTransactionModal({ open, onClose }: NewTransactionModalProps)
   const [amount, setAmount] = useState("");
   const [showTooltip, setShowTooltip] = useState(false);
 
+  // Business portal fields
+  const { portal } = usePortal();
+  const isBusinessPortal = portal?.id !== "sosa";
+  const [costClassification, setCostClassification] = useState<CostClassification>("revenue");
+  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const { getCategoriesByType } = useFinanceCategories();
+  const filteredFinanceCategories = getCategoriesByType(costClassification);
+
+  // Auto-select classification when txType changes
+  useEffect(() => {
+    if (isBusinessPortal) {
+      setCostClassification(txType === "income" ? "revenue" : "opex");
+      setCategoryId(null);
+    }
+  }, [txType, isBusinessPortal]);
+
+  // Reset categoryId when classification changes
+  useEffect(() => {
+    setCategoryId(null);
+  }, [costClassification]);
+
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -46,8 +70,18 @@ export function NewTransactionModal({ open, onClose }: NewTransactionModalProps)
     if (!description || !amount || !selectedCategory) return;
     const catLabel = txType === "income" ? selectedCategory
       : [...directCostCategories, ...indirectCostCategories].find((c) => c.id === selectedCategory)?.label || selectedCategory;
-    addTransaction({ date: new Date().toISOString().slice(0, 10), type: txType, description, category: catLabel, costType: txType === "expense" ? costType : null, amount: parseFloat(amount) });
-    setDescription(""); setAmount(""); setSelectedCategory(null); onClose();
+    const txData: Parameters<typeof addTransaction>[0] = {
+      date: new Date().toISOString().slice(0, 10), type: txType, description,
+      category: catLabel, costType: txType === "expense" ? costType : null,
+      amount: parseFloat(amount),
+    };
+    if (isBusinessPortal) {
+      (txData as any).cost_classification = costClassification;
+      if (categoryId) (txData as any).category_id = categoryId;
+    }
+    addTransaction(txData);
+    setDescription(""); setAmount(""); setSelectedCategory(null);
+    setCategoryId(null); onClose();
   };
 
   return (
@@ -81,8 +115,10 @@ export function NewTransactionModal({ open, onClose }: NewTransactionModalProps)
         </div>
 
         <div className="mb-4">
-          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", marginBottom: 6, display: "block" }}>Description</label>
-          <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Invoice #1248" className="glass-input w-full px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", marginBottom: 6, display: "block" }}>Title</label>
+          <input type="text" value={description} onChange={(e) => setDescription(e.target.value)}
+            placeholder={txType === "expense" ? "e.g. Groceries, Rent, Netflix…" : "e.g. Invoice #1248, Client payment"}
+            className="glass-input w-full px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none" autoComplete="off" />
         </div>
 
         <div className="mb-5">
@@ -157,6 +193,41 @@ export function NewTransactionModal({ open, onClose }: NewTransactionModalProps)
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* ── Business portal: Classification + Category ───── */}
+        {isBusinessPortal && (
+          <div className="mb-5" style={{ animation: "fadeInUp 0.25s ease-out" }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", marginBottom: 6, display: "block" }}>
+              Classificazione Costo
+            </label>
+            <select
+              className="glass-input w-full px-4 py-3 text-sm text-foreground outline-none"
+              value={costClassification}
+              onChange={(e) => setCostClassification(e.target.value as CostClassification)}
+            >
+              <option value="revenue">Ricavo</option>
+              <option value="cogs">Costo del Venduto</option>
+              <option value="opex">Spesa Operativa</option>
+              <option value="other">Altro</option>
+            </select>
+
+            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", marginBottom: 6, marginTop: 14, display: "block" }}>
+              Categoria
+            </label>
+            <select
+              className="glass-input w-full px-4 py-3 text-sm text-foreground outline-none"
+              value={categoryId ?? ""}
+              onChange={(e) => setCategoryId(e.target.value || null)}
+            >
+              <option value="">— Seleziona categoria —</option>
+              {filteredFinanceCategories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
           </div>
         )}
 

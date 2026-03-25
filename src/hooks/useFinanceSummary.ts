@@ -74,8 +74,7 @@ export function useFinanceSummary(dateRange: DateRange = currentMonthRange()): {
       const { data, error } = await supabase
         .from("personal_transactions")
         .select("type, amount, category, date")
-        .eq("user_id", user.id)
-        .eq("portal_id", portalId)
+        .eq("portal_id", portalId) // portal-shared
         .gte("date", dateRange.from)
         .lte("date", dateRange.to)
         .order("date", { ascending: true });
@@ -87,7 +86,7 @@ export function useFinanceSummary(dateRange: DateRange = currentMonthRange()): {
 
     if (rows.length === 0) {
       rows = localGetAll(portalId)
-        .filter((t) => t.user_id === user.id && t.date >= dateRange.from && t.date <= dateRange.to)
+        .filter((t) => t.date >= dateRange.from && t.date <= dateRange.to)
         .sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
     }
 

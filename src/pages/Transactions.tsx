@@ -9,8 +9,9 @@ import { AddTransactionModal } from "@/components/finance/AddTransactionModal";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useFinanceSummary } from "@/hooks/useFinanceSummary";
 import { useCategories } from "@/hooks/useCategories";
-import type { PersonalTransaction, TransactionFilters } from "@/types/finance";
-import { PAYMENT_METHOD_LABELS } from "@/types/finance";
+import { usePortal } from "@/lib/portalContext";
+import type { PersonalTransaction, TransactionFilters, CostClassification } from "@/types/finance";
+import { PAYMENT_METHOD_LABELS, COST_CLASSIFICATION_CONFIG } from "@/types/finance";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -76,6 +77,14 @@ function TxRow({ tx, onDelete, getCatColor, getCatIcon }: {
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
             <span style={{ fontSize: 10, color: "var(--text-quaternary)" }}>{fmtDate(tx.date)}</span>
             <span style={{ fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 99, background: `${color}18`, color }}>{tx.category}</span>
+            {tx.cost_classification && (() => {
+              const cfg = COST_CLASSIFICATION_CONFIG[tx.cost_classification];
+              return (
+                <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 99, background: cfg.bgColor, color: cfg.color, letterSpacing: "0.03em" }}>
+                  {cfg.label}
+                </span>
+              );
+            })()}
             {tx.payment_method && (
               <span style={{ fontSize: 10, color: "var(--text-quaternary)" }}>{PAYMENT_METHOD_LABELS[tx.payment_method]}</span>
             )}
@@ -164,17 +173,21 @@ function TxRow({ tx, onDelete, getCatColor, getCatIcon }: {
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 type TypeFilter = "all" | "income" | "expense" | "transfer";
+type ClassFilter = "all" | CostClassification;
 
 export default function Transactions() {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth());
   const [year,  setYear]  = useState(now.getFullYear());
 
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
-  const [catFilter,  setCatFilter]  = useState("");
-  const [search,     setSearch]     = useState("");
-  const [modalOpen,  setModalOpen]  = useState(false);
+  const [typeFilter,  setTypeFilter]  = useState<TypeFilter>("all");
+  const [classFilter, setClassFilter] = useState<ClassFilter>("all");
+  const [catFilter,   setCatFilter]   = useState("");
+  const [search,      setSearch]      = useState("");
+  const [modalOpen,   setModalOpen]   = useState(false);
 
+  const { portal } = usePortal();
+  const isBusinessPortal = portal?.id !== "sosa";
   const { allCategories, getCategoryColor, getCategoryIcon } = useCategories();
 
   const dateRange = useMemo(() => {
@@ -184,12 +197,13 @@ export default function Transactions() {
   }, [month, year]);
 
   const filters: TransactionFilters = useMemo(() => ({
-    ...(typeFilter !== "all" && { type: typeFilter }),
+    ...(typeFilter  !== "all" && { type: typeFilter }),
+    ...(classFilter !== "all" && { costClassification: classFilter }),
     ...(catFilter  && { category: catFilter }),
     ...(search     && { search }),
     dateFrom: dateRange.from,
     dateTo:   dateRange.to,
-  }), [typeFilter, catFilter, search, dateRange]);
+  }), [typeFilter, classFilter, catFilter, search, dateRange]);
 
   const { transactions, isLoading, error, addTransaction, deleteTransaction } = useTransactions(filters);
   const { summary } = useFinanceSummary(dateRange);
@@ -276,6 +290,23 @@ export default function Transactions() {
               ))}
             </div>
 
+            {/* Classification filter (business portals) */}
+            {isBusinessPortal && (
+              <div className="glass-segment flex">
+                {([["all", "Tutti"], ["revenue", "Revenue"], ["cogs", "COGS"], ["opex", "OPEX"]] as const).map(([v, l]) => {
+                  const cfg = v !== "all" ? COST_CLASSIFICATION_CONFIG[v as CostClassification] : null;
+                  return (
+                    <button key={v} className="glass-segment-item" data-active={classFilter === v}
+                      onClick={() => { setClassFilter(v as ClassFilter); }}
+                      style={{ whiteSpace: "nowrap", fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}>
+                      {cfg && <span style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.color, flexShrink: 0 }} />}
+                      {l}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Category filter */}
             {allCategories.length > 0 && (
               <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)}
@@ -285,6 +316,12 @@ export default function Transactions() {
               </select>
             )}
           </div>
+
+          {/* Result count */}
+          <p style={{ fontSize: 11, color: "var(--text-quaternary)", marginBottom: 8 }}>
+            {transactions.length} transazion{transactions.length === 1 ? "e" : "i"}
+            {(classFilter !== "all" || catFilter) ? " (filtrate)" : ""}
+          </p>
 
           {/* Rows */}
           <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>

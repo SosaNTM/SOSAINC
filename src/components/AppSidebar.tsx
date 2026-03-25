@@ -28,6 +28,11 @@ import {
   Swords,
   Zap,
   PieChart,
+  Bitcoin,
+  Gift,
+  Package,
+  FileText,
+  Building2,
 } from "lucide-react";
 
 // ── AccordionSection is defined at module level to prevent remount on every render ──
@@ -87,15 +92,27 @@ function AccordionSection({ label, icon: Icon, isActive, isOpen, onToggle, porta
   );
 }
 
-const financeSubItems = [
+// Personal finance items (shared across ALL portals)
+const personalFinanceSubItems = [
   { title: "Dashboard",     path: "/dashboard",     icon: PieChart        },
   { title: "Transactions",  path: "/transactions",  icon: ArrowLeftRight  },
   { title: "Budget",        path: "/costs",         icon: Wallet          },
   { title: "Subscriptions", path: "/channels",      icon: Zap             },
   { title: "Goals",         path: "/pl-rules",      icon: Target          },
+  { title: "Portfolio",     path: "/investments",   icon: BarChart3       },
+  { title: "Crypto",        path: "/crypto",        icon: Bitcoin         },
+  { title: "Gift Cards",   path: "/gift-cards",    icon: Gift            },
 ];
 
-const financePaths = financeSubItems.map((i) => i.path);
+// Business finance items — removed per request (COGS, OPEX, P&L now handled via
+// transaction classification + waterfall dashboard instead of separate pages)
+const businessFinanceSubItems: typeof personalFinanceSubItems = [];
+
+// Combined paths for active state detection
+const allFinancePaths = [
+  ...personalFinanceSubItems.map((i) => i.path),
+  ...businessFinanceSubItems.map((i) => i.path),
+];
 
 const socialSubItems = [
   { title: "Overview", path: "/social/overview", icon: TrendingUp },
@@ -152,9 +169,14 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
   const location = useLocation();
   const navigate = useNavigate();
   const prefix = portal ? portal.routePrefix : '';
-  const prefixedFinancePaths = financePaths.map(p => `${prefix}${p}`);
+  const isSosa = portal?.id === "sosa";
+  // SOSA: personal finance only. Others: personal finance (minus Portfolio) + business layer
+  const activeFinanceItems = isSosa
+    ? personalFinanceSubItems
+    : [...personalFinanceSubItems.filter(i => i.path !== "/investments"), ...businessFinanceSubItems];
+  const prefixedFinancePaths = allFinancePaths.map(p => `${prefix}${p}`);
   const prefixedSocialPaths = socialPaths.map(p => `${prefix}${p}`);
-  const isFinanceActive = prefixedFinancePaths.includes(location.pathname);
+  const isFinanceActive = prefixedFinancePaths.some(p => location.pathname === p || location.pathname.startsWith(p));
   const isSocialActive = prefixedSocialPaths.includes(location.pathname);
   const [financeOpen, setFinanceOpen] = useState(isFinanceActive);
   const [socialOpen, setSocialOpen] = useState(isSocialActive);
@@ -311,7 +333,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
         {/* Divider */}
         <div style={{ height: 1, background: "var(--divider)", margin: "6px 4px" }} />
 
-        {/* Finance Accordion */}
+        {/* Finance Accordion — shows personal items for SOSA, business items for others */}
         {canViewFinance && (
           <AccordionSection
             label="Finance" icon={Wallet}
@@ -319,8 +341,8 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
             onToggle={() => setFinanceOpen((p) => !p)}
             portal={portal}
           >
-            {financeSubItems.map((item) => {
-              const isActive = location.pathname === `${prefix}${item.path}`;
+            {activeFinanceItems.map((item) => {
+              const isActive = location.pathname === `${prefix}${item.path}` || location.pathname.startsWith(`${prefix}${item.path}/`);
               return (
                 <NavLink
                   key={item.path} to={`${prefix}${item.path}`} onClick={onMobileClose}
@@ -452,7 +474,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
                 </NavLink>
               );
             })()}
-            {(() => {
+            {(user?.role === "owner" || user?.role === "admin") && (() => {
               const isActive = location.pathname.includes(`${prefix}${settingsItem.path}`);
               return (
                 <NavLink

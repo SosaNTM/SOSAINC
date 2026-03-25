@@ -4,6 +4,8 @@ import { Target, Plus, Pencil, Trash2, Check } from "lucide-react";
 import { LiquidGlassCard, LiquidGlassFilter } from "@/components/ui/liquid-glass-card";
 import { NewGoalModal, type NewGoalData } from "@/components/NewGoalModal";
 import { usePortal } from "@/lib/portalContext";
+import { useAuth } from "@/lib/authContext";
+import { addAuditEntry } from "@/lib/adminStore";
 
 interface Goal {
   id: number;
@@ -16,13 +18,7 @@ interface Goal {
   emoji: string;
 }
 
-const INITIAL_GOALS: Goal[] = [
-  { id: 1, name: "Emergency Fund",  target: 10_000, saved: 6_400, deadline: "Dec 2025", category: "Safety",  color: "#2ECC71", emoji: "🛡️" },
-  { id: 2, name: "Japan Trip",      target: 3_500,  saved: 1_100, deadline: "Sep 2025", category: "Travel",  color: "#f59e0b", emoji: "✈️" },
-  { id: 3, name: "MacBook Pro M4",  target: 2_499,  saved: 1_820, deadline: "Jun 2025", category: "Tech",    color: "#4A9EFF", emoji: "💻" },
-  { id: 4, name: "Road Bike",       target: 1_800,  saved: 650,   deadline: "Jul 2025", category: "Fitness", color: "#ef4444", emoji: "🚴" },
-  { id: 5, name: "Home Renovation", target: 8_000,  saved: 2_200, deadline: "Mar 2026", category: "Home",    color: "#C9A84C", emoji: "🏠" },
-];
+const INITIAL_GOALS: Goal[] = [];
 
 const GOALS_KEY_PREFIX = "finance_goals";
 
@@ -46,6 +42,7 @@ function loadGoals(portalId: string): Goal[] {
 export default function Goals() {
   const { portal } = usePortal();
   const portalId = portal?.id ?? "sosa";
+  const { user } = useAuth();
 
   const [goals, setGoals] = useState<Goal[]>(() => loadGoals(portalId));
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -80,14 +77,18 @@ export default function Goals() {
   function handleSave(data: NewGoalData) {
     if (editingGoal) {
       setGoals(prev => prev.map(g => g.id === editingGoal.id ? { ...data, id: g.id } : g));
+      if (user) addAuditEntry({ userId: user.id, action: `Updated goal "${data.name}"`, category: "finance", details: "", icon: "🎯", portalId });
     } else {
       setGoals(prev => [...prev, { ...data, id: Date.now() }]);
+      if (user) addAuditEntry({ userId: user.id, action: `Created goal "${data.name}" — €${data.target.toLocaleString()} target`, category: "finance", details: "", icon: "🎯", portalId });
     }
   }
 
   function deleteGoal(id: number) {
+    const goal = goals.find(g => g.id === id);
     setGoals(prev => prev.filter(g => g.id !== id));
     setDeleteId(null);
+    if (user && goal) addAuditEntry({ userId: user.id, action: `Deleted goal "${goal.name}"`, category: "finance", details: "", icon: "🗑️", portalId });
   }
 
   const totalTarget = goals.reduce((s, g) => s + g.target, 0);

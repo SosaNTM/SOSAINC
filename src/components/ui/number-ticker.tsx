@@ -41,5 +41,9 @@ export function NumberTicker({
     [springValue, decimalPlaces],
   );
 
-  return <span className={cn("inline-block tabular-nums tracking-wider", className)} style={style} ref={ref} />;
+  return (
+    <span className={cn("inline-block tabular-nums tracking-wider", className)} style={style} ref={ref}>
+      {Intl.NumberFormat("en-US", { minimumFractionDigits: decimalPlaces, maximumFractionDigits: decimalPlaces }).format(0)}
+    </span>
+  );
 }

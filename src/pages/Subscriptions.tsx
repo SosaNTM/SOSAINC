@@ -5,6 +5,7 @@ import { LiquidGlassCard, LiquidGlassFilter } from "@/components/ui/liquid-glass
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
+import { addAuditEntry } from "@/lib/adminStore";
 import { localAdd, localGetAll } from "@/lib/personalTransactionStore";
 import { broadcastFinanceUpdate } from "@/lib/financeRealtime";
 import {
@@ -29,18 +30,7 @@ function subsStorageKey(portalId: string): string {
   return `${STORAGE_KEY_PREFIX}_${portalId}`;
 }
 
-const INITIAL_SUBS: Subscription[] = [
-  { id: "sub-1",  name: "Netflix",          icon: "🎬", amount: 15.99, billing_cycle: "monthly", billing_day: 3,  start_date: "2024-01-03", next_billing_date: "2026-04-03", category: "Entertainment",  color: "#e50914", is_active: true,  currency: "EUR", description: "" },
-  { id: "sub-2",  name: "Spotify",          icon: "🎵", amount: 9.99,  billing_cycle: "monthly", billing_day: 8,  start_date: "2024-01-08", next_billing_date: "2026-04-08", category: "Entertainment",  color: "#1db954", is_active: true,  currency: "EUR", description: "" },
-  { id: "sub-3",  name: "iCloud+",          icon: "☁️", amount: 2.99,  billing_cycle: "monthly", billing_day: 12, start_date: "2024-01-12", next_billing_date: "2026-04-12", category: "Subscriptions",  color: "#3b82f6", is_active: true,  currency: "EUR", description: "" },
-  { id: "sub-4",  name: "Adobe CC",         icon: "🎨", amount: 54.99, billing_cycle: "monthly", billing_day: 15, start_date: "2024-01-15", next_billing_date: "2026-04-15", category: "Subscriptions",  color: "#ff0000", is_active: true,  currency: "EUR", description: "" },
-  { id: "sub-5",  name: "ChatGPT Plus",     icon: "🤖", amount: 20.00, billing_cycle: "monthly", billing_day: 18, start_date: "2024-01-18", next_billing_date: "2026-04-18", category: "Subscriptions",  color: "#10a37f", is_active: true,  currency: "EUR", description: "" },
-  { id: "sub-6",  name: "Gym — Wellnesium", icon: "🏋️", amount: 49.00, billing_cycle: "monthly", billing_day: 1,  start_date: "2024-01-01", next_billing_date: "2026-04-01", category: "Healthcare",    color: "#f59e0b", is_active: true,  currency: "EUR", description: "" },
-  { id: "sub-7",  name: "NordVPN",          icon: "🔒", amount: 4.49,  billing_cycle: "monthly", billing_day: 22, start_date: "2024-01-22", next_billing_date: "2026-04-22", category: "Subscriptions",  color: "#4687ff", is_active: false, currency: "EUR", description: "" },
-  { id: "sub-8",  name: "Duolingo Plus",    icon: "🦜", amount: 6.99,  billing_cycle: "monthly", billing_day: 25, start_date: "2024-01-25", next_billing_date: "2026-04-25", category: "Education",     color: "#58cc02", is_active: true,  currency: "EUR", description: "" },
-  { id: "sub-9",  name: "Disney+",          icon: "✨", amount: 8.99,  billing_cycle: "monthly", billing_day: 7,  start_date: "2024-01-07", next_billing_date: "2026-04-07", category: "Entertainment",  color: "#113ccf", is_active: false, currency: "EUR", description: "" },
-  { id: "sub-10", name: "The Guardian",     icon: "📰", amount: 5.99,  billing_cycle: "monthly", billing_day: 14, start_date: "2024-01-14", next_billing_date: "2026-04-14", category: "Education",     color: "#052962", is_active: true,  currency: "EUR", description: "" },
-];
+const INITIAL_SUBS: Subscription[] = [];
 
 function loadSubs(portalId: string): Subscription[] {
   try {
@@ -146,7 +136,7 @@ export default function Subscriptions() {
 
   // Compute balance from personal transactions to detect insufficient funds
   const balance = localGetAll(portalId)
-    .filter((t) => t.user_id === (user?.id ?? ""))
+    .filter(() => true) // portal-shared: all portal transactions
     .reduce(
       (acc: number, t) => (t.type === "income" ? acc + Number(t.amount) : acc - Number(t.amount)),
       0,
@@ -252,16 +242,21 @@ export default function Subscriptions() {
           `✓ ${data.name} added — first charge on ${firstBilling?.toLocaleDateString("en-US", { day: "numeric", month: "long" }) ?? data.start_date}`,
         );
       }
+      if (user) addAuditEntry({ userId: user.id, action: `Added subscription "${data.name}" — €${data.amount.toFixed(2)}/${data.billing_cycle}`, category: "finance", details: "", icon: "💳", portalId });
     }
+    if (editingSub && user) addAuditEntry({ userId: user.id, action: `Updated subscription "${data.name}"`, category: "finance", details: "", icon: "✏️", portalId });
     closeModal();
   }
 
   function togglePause(id: string) {
+    const sub = subs.find(s => s.id === id);
     setSubs((prev) => prev.map((s) => (s.id === id ? { ...s, is_active: !s.is_active } : s)));
     setOpenMenuId(null);
+    if (user && sub) addAuditEntry({ userId: user.id, action: `${sub.is_active ? "Paused" : "Resumed"} subscription "${sub.name}"`, category: "finance", details: "", icon: sub.is_active ? "⏸️" : "▶️", portalId });
   }
 
   function softDelete(id: string) {
+    const sub = subs.find(s => s.id === id);
     setSubs((prev) =>
       prev.map((s) =>
         s.id === id ? { ...s, is_active: false, deleted_at: new Date().toISOString() } : s,
@@ -269,6 +264,7 @@ export default function Subscriptions() {
     );
     setDeleteConfirmId(null);
     setOpenMenuId(null);
+    if (user && sub) addAuditEntry({ userId: user.id, action: `Deleted subscription "${sub.name}"`, category: "finance", details: "", icon: "🗑️", portalId });
   }
 
   // ── Render ────────────────────────────────────────────────────────────────────

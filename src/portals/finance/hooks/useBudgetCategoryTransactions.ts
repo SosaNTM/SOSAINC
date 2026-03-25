@@ -70,8 +70,7 @@ export function useBudgetCategoryTransactions(
       const { data: rawData, error } = await supabase
         .from("personal_transactions")
         .select("*")
-        .eq("user_id", user.id)
-        .eq("portal_id", portalId)
+        .eq("portal_id", portalId) // portal-shared
         .gte("date", fromDate)
         .lte("date", toDate)
         .order("date", { ascending: false });
@@ -104,7 +103,7 @@ export function useBudgetCategoryTransactions(
     // Fallback: portal-scoped localStorage
     if (allTxs.length === 0) {
       allTxs = localGetAll(portalId)
-        .filter((t) => t.user_id === user.id && t.date >= fromDate && t.date <= toDate)
+        .filter((t) => t.date >= fromDate && t.date <= toDate)
         .sort((a, b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : 0));
     }
 

@@ -65,7 +65,8 @@ function due(daysFromNow: number): Date {
 }
 
 export const INITIAL_TASKS: Task[] = [
-  // Backlog (3)
+  // empty — ready for real data
+]; const _UNUSED_TASKS: Task[] = [
   { id: "TSK-001", title: "Research competitor pricing", description: "Analyze top 5 competitors' pricing models and create comparison matrix.", status: "backlog", priority: "low", assigneeId: "usr_003", creatorId: "usr_001", watcherIds: [], labels: ["marketing"], dueDate: null, completedAt: null, comments: [], attachments: [], createdAt: d(10), updatedAt: d(10) },
   { id: "TSK-002", title: "Set up error monitoring", description: "Integrate Sentry or similar for frontend error tracking.", status: "backlog", priority: "medium", assigneeId: null, creatorId: "usr_002", watcherIds: ["usr_001"], labels: ["ops", "product"], dueDate: null, completedAt: null, comments: [], attachments: [], createdAt: d(8), updatedAt: d(8) },
   { id: "TSK-003", title: "Update team handbook", description: "Add new policies and onboarding checklist to the handbook.", status: "backlog", priority: "low", assigneeId: "usr_002", creatorId: "usr_001", watcherIds: [], labels: ["hr"], dueDate: due(20), completedAt: null, comments: [], attachments: [], createdAt: d(12), updatedAt: d(12) },
@@ -97,4 +98,4 @@ export const INITIAL_TASKS: Task[] = [
   { id: "TSK-013", title: "Set up CI/CD pipeline", description: "Configure automated testing and deployment pipeline.", status: "done", priority: "high", assigneeId: "usr_002", creatorId: "usr_001", watcherIds: [], labels: ["ops", "product"], dueDate: d(3), completedAt: d(2), comments: [], attachments: [], createdAt: d(14), updatedAt: d(2) },
   { id: "TSK-014", title: "Create brand style guide", description: "Document all brand assets, colors, typography, and usage guidelines.", status: "done", priority: "medium", assigneeId: "usr_004", creatorId: "usr_001", watcherIds: ["usr_003"], labels: ["design"], dueDate: d(1), completedAt: d(1), comments: [], attachments: [], createdAt: d(10), updatedAt: d(1) },
   { id: "TSK-015", title: "Tax filing preparation", description: "Gather all documents for Q4 tax filing.", status: "done", priority: "urgent", assigneeId: "usr_001", creatorId: "usr_001", watcherIds: ["usr_002"], labels: ["finance", "legal"], dueDate: d(5), completedAt: d(4), comments: [], attachments: [], createdAt: d(20), updatedAt: d(4) },
-];
+]; // eslint-disable-line @typescript-eslint/no-unused-vars

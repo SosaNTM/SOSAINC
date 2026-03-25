@@ -26,13 +26,7 @@ function storageKey(portalId: string): string {
 }
 
 /** Same initial goals used by Goals.tsx — keeps Dashboard consistent before first visit */
-const INITIAL_GOALS: DashboardGoal[] = [
-  { id: 1, name: "Emergency Fund",  target: 10_000, saved: 6_400, deadline: "Dec 2025", category: "Safety",  color: "#2ECC71", emoji: "🛡️" },
-  { id: 2, name: "Japan Trip",      target: 3_500,  saved: 1_100, deadline: "Sep 2025", category: "Travel",  color: "#f59e0b", emoji: "✈️" },
-  { id: 3, name: "MacBook Pro M4",  target: 2_499,  saved: 1_820, deadline: "Jun 2025", category: "Tech",    color: "#4A9EFF", emoji: "💻" },
-  { id: 4, name: "Road Bike",       target: 1_800,  saved: 650,   deadline: "Jul 2025", category: "Fitness", color: "#ef4444", emoji: "🚴" },
-  { id: 5, name: "Home Renovation", target: 8_000,  saved: 2_200, deadline: "Mar 2026", category: "Home",    color: "#C9A84C", emoji: "🏠" },
-];
+const INITIAL_GOALS: DashboardGoal[] = [];
 
 function readGoals(portalId: string): DashboardGoal[] {
   try {

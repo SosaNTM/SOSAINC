@@ -11,6 +11,7 @@ import { supabase as _supabase } from "@/lib/supabase";
 const supabase = _supabase as any;
 import { broadcastFinanceUpdate, subscribeToFinanceUpdates } from "@/lib/financeRealtime";
 import { useAuth } from "@/lib/authContext";
+import { addAuditEntry } from "@/lib/adminStore";
 import { usePortal } from "@/lib/portalContext";
 import {
   localGetAll, localAdd, localUpdate, localDelete, applyFilters,
@@ -24,22 +25,24 @@ function isSupabaseConfigured(): boolean {
 
 function toPersonal(row: any): PersonalTransaction {
   return {
-    id:                 row.id,
-    user_id:            row.user_id,
-    type:               row.type,
-    amount:             Number(row.amount),
-    currency:           row.currency ?? "EUR",
-    category:           row.category,
-    subcategory:        row.subcategory ?? undefined,
-    description:        row.description ?? "",
-    date:               row.date,
-    payment_method:     row.payment_method ?? undefined,
-    is_recurring:       row.is_recurring ?? false,
-    recurring_interval: row.recurring_interval ?? undefined,
-    tags:               row.tags ?? undefined,
-    receipt_url:        row.receipt_url ?? undefined,
-    created_at:         row.created_at,
-    updated_at:         row.updated_at,
+    id:                  row.id,
+    user_id:             row.user_id,
+    type:                row.type,
+    amount:              Number(row.amount),
+    currency:            row.currency ?? "EUR",
+    category:            row.category,
+    subcategory:         row.subcategory ?? undefined,
+    description:         row.description ?? "",
+    date:                row.date,
+    payment_method:      row.payment_method ?? undefined,
+    is_recurring:        row.is_recurring ?? false,
+    recurring_interval:  row.recurring_interval ?? undefined,
+    tags:                row.tags ?? undefined,
+    receipt_url:         row.receipt_url ?? undefined,
+    cost_classification: row.cost_classification ?? undefined,
+    category_id:         row.category_id ?? undefined,
+    created_at:          row.created_at,
+    updated_at:          row.updated_at,
   };
 }
 
@@ -81,17 +84,18 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
       let q = supabase
         .from("personal_transactions")
         .select("*")
-        .eq("user_id", user.id)
-        .eq("portal_id", portalId)
+        .eq("portal_id", portalId) // portal-shared: all members see all data
         .order("date", { ascending: false })
         .order("created_at", { ascending: false });
 
-      if (parsedFilters.type)      q = q.eq("type", parsedFilters.type);
-      if (parsedFilters.category)  q = q.eq("category", parsedFilters.category);
-      if (parsedFilters.dateFrom)  q = q.gte("date", parsedFilters.dateFrom);
-      if (parsedFilters.dateTo)    q = q.lte("date", parsedFilters.dateTo);
-      if (parsedFilters.minAmount) q = q.gte("amount", parsedFilters.minAmount);
-      if (parsedFilters.maxAmount) q = q.lte("amount", parsedFilters.maxAmount);
+      if (parsedFilters.type)               q = q.eq("type", parsedFilters.type);
+      if (parsedFilters.category)           q = q.eq("category", parsedFilters.category);
+      if (parsedFilters.costClassification) q = q.eq("cost_classification", parsedFilters.costClassification);
+      if (parsedFilters.categoryId)         q = q.eq("category_id", parsedFilters.categoryId);
+      if (parsedFilters.dateFrom)           q = q.gte("date", parsedFilters.dateFrom);
+      if (parsedFilters.dateTo)             q = q.lte("date", parsedFilters.dateTo);
+      if (parsedFilters.minAmount)          q = q.gte("amount", parsedFilters.minAmount);
+      if (parsedFilters.maxAmount)          q = q.lte("amount", parsedFilters.maxAmount);
       if (parsedFilters.search) {
         q = q.or(`description.ilike.%${parsedFilters.search}%,category.ilike.%${parsedFilters.search}%`);
       }
@@ -104,8 +108,8 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
       }
     }
 
-    // Fallback: portal-scoped localStorage
-    const local = localGetAll(portalId).filter((t) => t.user_id === user.id);
+    // Fallback: portal-scoped localStorage (all portal data, no user filter)
+    const local = localGetAll(portalId);
     setAll(applyFilters(local, JSON.parse(filtersKey)));
     setIsLoading(false);
   }, [user, portalId, filtersKey, tick]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -137,12 +141,14 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
         localAdd(data, user.id, portalId);
       }
       broadcastFinanceUpdate("transaction_added");
+      addAuditEntry({ userId: user.id, action: `Added ${data.type} — ${data.description || data.category} €${data.amount}`, category: "finance", details: "", icon: data.type === "income" ? "💰" : "💸", portalId });
       toast.success("Transaction added");
       return true;
     } catch {
       try {
         localAdd(data, user.id, portalId);
         broadcastFinanceUpdate("transaction_added");
+        addAuditEntry({ userId: user.id, action: `Added ${data.type} — ${data.description || data.category} €${data.amount}`, category: "finance", details: "", icon: data.type === "income" ? "💰" : "💸", portalId });
         toast.success("Transaction added");
         return true;
       } catch {
@@ -160,18 +166,19 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
           .from("personal_transactions")
           .update(changes as any)
           .eq("id", id)
-          .eq("user_id", user.id)
           .eq("portal_id", portalId);
         if (err) throw err;
       } else {
         localUpdate(id, changes, portalId);
       }
       broadcastFinanceUpdate("transaction_updated", { id });
+      addAuditEntry({ userId: user.id, action: `Updated transaction`, category: "finance", details: "", icon: "✏️", portalId });
       toast.success("Transaction updated");
       return true;
     } catch {
       localUpdate(id, changes, portalId);
       broadcastFinanceUpdate("transaction_updated", { id });
+      addAuditEntry({ userId: user.id, action: `Updated transaction`, category: "finance", details: "", icon: "✏️", portalId });
       toast.success("Transaction updated");
       return true;
     }
@@ -185,18 +192,19 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
           .from("personal_transactions")
           .delete()
           .eq("id", id)
-          .eq("user_id", user.id)
           .eq("portal_id", portalId);
         if (err) throw err;
       } else {
         localDelete(id, portalId);
       }
       broadcastFinanceUpdate("transaction_deleted", { id });
+      addAuditEntry({ userId: user.id, action: `Deleted transaction`, category: "finance", details: "", icon: "🗑️", portalId });
       toast.success("Transaction deleted");
       return true;
     } catch {
       localDelete(id, portalId);
       broadcastFinanceUpdate("transaction_deleted", { id });
+      addAuditEntry({ userId: user.id, action: `Deleted transaction`, category: "finance", details: "", icon: "🗑️", portalId });
       toast.success("Transaction deleted");
       return true;
     }

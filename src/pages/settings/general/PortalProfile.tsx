@@ -1,73 +1,82 @@
 import { useState, useEffect } from "react";
-import { Globe, Upload, Loader2 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { Building2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { usePortalProfile } from "../../../hooks/settings";
-
-const GOLD = "#C6A961";
-const BG_CARD = "#ffffff";
-const BORDER = "#e5e7eb";
-const TEXT_PRIMARY = "#111827";
-const TEXT_SECONDARY = "#374151";
-const TEXT_MUTED = "#6b7280";
+import {
+  SettingsPageHeader,
+  SettingsCard,
+  SettingsFormField,
+} from "@/components/settings";
 
 const TIMEZONES = [
-  "Europe/Rome", "Europe/London", "America/New_York", "America/Los_Angeles",
-  "Asia/Tokyo", "Asia/Shanghai", "Australia/Sydney", "Pacific/Auckland",
-  "America/Chicago", "Europe/Berlin",
+  "Europe/Rome",
+  "Europe/London",
+  "Europe/Berlin",
+  "America/New_York",
+  "America/Chicago",
+  "America/Los_Angeles",
+  "Asia/Tokyo",
+  "Asia/Shanghai",
+  "Australia/Sydney",
+  "Pacific/Auckland",
 ];
 
-const DATE_FORMATS = ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"];
+const COUNTRIES = [
+  { value: "IT", label: "Italia" },
+  { value: "GB", label: "United Kingdom" },
+  { value: "US", label: "United States" },
+  { value: "FR", label: "France" },
+  { value: "DE", label: "Germany" },
+  { value: "ES", label: "Spain" },
+  { value: "CH", label: "Switzerland" },
+];
 
-const defaultForm = {
+const DATE_FORMATS = ["DD/MM/YYYY", "MM/DD/YYYY"] as const;
+
+interface FormState {
+  legal_name: string;
+  vat_number: string;
+  address_line1: string;
+  city: string;
+  zip: string;
+  country: string;
+  phone: string;
+  website: string;
+  language: string;
+  timezone: string;
+  date_format: string;
+}
+
+const defaultForm: FormState = {
   legal_name: "",
-  phone: "",
-  website: "",
   vat_number: "",
   address_line1: "",
-  address_line2: "",
   city: "",
   zip: "",
-  state: "",
   country: "IT",
+  phone: "",
+  website: "",
   language: "Italiano",
   timezone: "Europe/Rome",
   date_format: "DD/MM/YYYY",
 };
 
-const labelStyle: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 6 };
-const labelText: React.CSSProperties = { fontSize: 12, color: TEXT_SECONDARY, fontWeight: 500 };
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{
-      fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
-      color: TEXT_MUTED, paddingBottom: 10, borderBottom: `0.5px solid ${BORDER}`,
-      marginBottom: 16, marginTop: 4,
-    }}>
-      {children}
-    </div>
-  );
-}
-
 export default function PortalProfile() {
   const { data, loading, upsert } = usePortalProfile();
-  const [form, setForm] = useState(defaultForm);
+  const [form, setForm] = useState<FormState>(defaultForm);
   const [saving, setSaving] = useState(false);
 
-  // Load DB data into form on mount / data change
   useEffect(() => {
     if (data) {
       setForm({
         legal_name: data.legal_name ?? "",
-        phone: data.phone ?? "",
-        website: data.website ?? "",
         vat_number: data.vat_number ?? "",
         address_line1: data.address_line1 ?? "",
-        address_line2: data.address_line2 ?? "",
         city: data.city ?? "",
         zip: data.zip ?? "",
-        state: data.state ?? "",
         country: data.country ?? "IT",
+        phone: data.phone ?? "",
+        website: data.website ?? "",
         language: data.language ?? "Italiano",
         timezone: data.timezone ?? "Europe/Rome",
         date_format: data.date_format ?? "DD/MM/YYYY",
@@ -75,183 +84,240 @@ export default function PortalProfile() {
     }
   }, [data]);
 
-  function set<K extends keyof typeof defaultForm>(field: K, value: string) {
-    setForm(f => ({ ...f, [field]: value }));
+  function set<K extends keyof FormState>(field: K, value: string) {
+    setForm((prev) => ({ ...prev, [field]: value }));
   }
 
   async function handleSave() {
     setSaving(true);
     const { error } = await upsert({
       legal_name: form.legal_name || null,
-      phone: form.phone || null,
-      website: form.website || null,
       vat_number: form.vat_number || null,
       address_line1: form.address_line1 || null,
-      address_line2: form.address_line2 || null,
       city: form.city || null,
       zip: form.zip || null,
-      state: form.state || null,
       country: form.country,
+      phone: form.phone || null,
+      website: form.website || null,
       language: form.language,
       timezone: form.timezone,
       date_format: form.date_format,
     });
     setSaving(false);
-    if (error) { toast({ title: "Errore", description: error, variant: "destructive" }); return; }
-    toast({ title: "Modifiche salvate", description: "Il profilo portale è stato aggiornato." });
+
+    if (error) {
+      toast.error("Errore nel salvataggio", { description: error });
+      return;
+    }
+    toast.success("Modifiche salvate", {
+      description: "Il profilo portale e stato aggiornato.",
+    });
   }
 
   if (loading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 60 }}>
-        <Loader2 size={24} style={{ color: GOLD, animation: "spin 1s linear infinite" }} />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 80,
+        }}
+      >
+        <Loader2
+          size={24}
+          style={{
+            color: "var(--accent-primary)",
+            animation: "spin 1s linear infinite",
+          }}
+        />
       </div>
     );
   }
 
   return (
     <div style={{ maxWidth: 860 }}>
-      <div style={{ marginBottom: 20 }}>
-        <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 600, color: TEXT_PRIMARY, margin: 0 }}>
-          Profilo Portale
-        </h2>
-        <p style={{ fontSize: 13, color: TEXT_SECONDARY, margin: "4px 0 0" }}>
-          Informazioni aziendali e impostazioni generali del portale
-        </p>
-      </div>
+      <SettingsPageHeader
+        icon={Building2}
+        title="Profilo Portale"
+        description="Informazioni legali e configurazione del portale"
+      />
 
-      <div style={{ background: BG_CARD, border: `0.5px solid ${BORDER}`, borderRadius: 12, padding: "24px 28px" }}>
-
-        {/* General info */}
-        <SectionTitle>Informazioni generali</SectionTitle>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
-          {/* Legal name — full width */}
-          <label style={{ ...labelStyle, gridColumn: "1 / -1" }}>
-            <span style={labelText}>Nome portale / Azienda</span>
-            <input className="glass-input" value={form.legal_name} onChange={e => set("legal_name", e.target.value)} placeholder="Nome azienda" />
-          </label>
-
-          {/* Logo — full width */}
-          <div style={{ ...labelStyle, gridColumn: "1 / -1" }}>
-            <span style={labelText}>Logo</span>
-            <label style={{
-              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-              gap: 8, padding: "22px 0", borderRadius: 8, cursor: "pointer",
-              border: `1.5px dashed #d1d5db`, background: "#f9fafb",
-              transition: "border-color 0.15s",
-            }}>
-              <Upload size={20} style={{ color: TEXT_MUTED }} />
-              <span style={{ fontSize: 12, color: TEXT_MUTED }}>Carica Logo</span>
-              <span style={{ fontSize: 10, color: "#9ca3af" }}>PNG, SVG, JPG — max 2MB</span>
-              <input type="file" accept="image/*" style={{ display: "none" }} />
-            </label>
+      {/* ── Card 1: Informazioni Azienda ── */}
+      <SettingsCard title="Informazioni Azienda">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 0,
+            columnGap: 16,
+          }}
+        >
+          <div style={{ gridColumn: "1 / -1" }}>
+            <SettingsFormField label="Ragione Sociale">
+              <input
+                className="glass-input"
+                value={form.legal_name}
+                onChange={(e) => set("legal_name", e.target.value)}
+                placeholder="Nome azienda o ragione sociale"
+              />
+            </SettingsFormField>
           </div>
 
-          <label style={labelStyle}>
-            <span style={labelText}>Telefono</span>
-            <input className="glass-input" type="tel" value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="+39 02 ..." />
-          </label>
+          <SettingsFormField label="Partita IVA">
+            <input
+              className="glass-input"
+              value={form.vat_number}
+              onChange={(e) => set("vat_number", e.target.value)}
+              placeholder="IT12345678901"
+            />
+          </SettingsFormField>
 
-          <label style={labelStyle}>
-            <span style={labelText}>Sito web</span>
-            <input className="glass-input" type="url" value={form.website} onChange={e => set("website", e.target.value)} placeholder="https://..." />
-          </label>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <SettingsFormField label="Indirizzo">
+              <input
+                className="glass-input"
+                value={form.address_line1}
+                onChange={(e) => set("address_line1", e.target.value)}
+                placeholder="Via, numero civico"
+              />
+            </SettingsFormField>
+          </div>
 
-          <label style={labelStyle}>
-            <span style={labelText}>P.IVA / Codice Fiscale</span>
-            <input className="glass-input" value={form.vat_number} onChange={e => set("vat_number", e.target.value)} placeholder="IT12345678901" />
-          </label>
-        </div>
+          <SettingsFormField label="Citta">
+            <input
+              className="glass-input"
+              value={form.city}
+              onChange={(e) => set("city", e.target.value)}
+              placeholder="Milano"
+            />
+          </SettingsFormField>
 
-        {/* Address */}
-        <SectionTitle>Indirizzo</SectionTitle>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
-          <label style={{ ...labelStyle, gridColumn: "1 / -1" }}>
-            <span style={labelText}>Via / Indirizzo</span>
-            <input className="glass-input" value={form.address_line1} onChange={e => set("address_line1", e.target.value)} placeholder="Via ..." />
-          </label>
+          <SettingsFormField label="CAP">
+            <input
+              className="glass-input"
+              value={form.zip}
+              onChange={(e) => set("zip", e.target.value)}
+              placeholder="20100"
+            />
+          </SettingsFormField>
 
-          <label style={{ ...labelStyle, gridColumn: "1 / -1" }}>
-            <span style={labelText}>Indirizzo 2 (opzionale)</span>
-            <input className="glass-input" value={form.address_line2} onChange={e => set("address_line2", e.target.value)} placeholder="Interno, scala, ..." />
-          </label>
-
-          <label style={labelStyle}>
-            <span style={labelText}>Città</span>
-            <input className="glass-input" value={form.city} onChange={e => set("city", e.target.value)} placeholder="Città" />
-          </label>
-
-          <label style={labelStyle}>
-            <span style={labelText}>CAP</span>
-            <input className="glass-input" value={form.zip} onChange={e => set("zip", e.target.value)} placeholder="00000" />
-          </label>
-
-          <label style={labelStyle}>
-            <span style={labelText}>Provincia / Stato</span>
-            <input className="glass-input" value={form.state} onChange={e => set("state", e.target.value)} placeholder="MI" />
-          </label>
-
-          <label style={labelStyle}>
-            <span style={labelText}>Paese</span>
-            <select className="glass-input" value={form.country} onChange={e => set("country", e.target.value)}>
-              <option value="IT">Italia</option>
-              <option value="GB">United Kingdom</option>
-              <option value="US">United States</option>
-              <option value="FR">France</option>
-              <option value="DE">Germany</option>
-              <option value="ES">Spain</option>
-              <option value="CH">Switzerland</option>
+          <SettingsFormField label="Paese">
+            <select
+              className="glass-input"
+              value={form.country}
+              onChange={(e) => set("country", e.target.value)}
+            >
+              {COUNTRIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
             </select>
-          </label>
-        </div>
+          </SettingsFormField>
 
-        {/* Preferences */}
-        <SectionTitle>Preferenze interfaccia</SectionTitle>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
-          <label style={labelStyle}>
-            <span style={labelText}>Lingua interfaccia</span>
-            <select className="glass-input" value={form.language} onChange={e => set("language", e.target.value)}>
+          <SettingsFormField label="Telefono">
+            <input
+              className="glass-input"
+              type="tel"
+              value={form.phone}
+              onChange={(e) => set("phone", e.target.value)}
+              placeholder="+39 02 1234567"
+            />
+          </SettingsFormField>
+
+          <div style={{ gridColumn: "1 / -1" }}>
+            <SettingsFormField label="Sito Web">
+              <input
+                className="glass-input"
+                type="url"
+                value={form.website}
+                onChange={(e) => set("website", e.target.value)}
+                placeholder="https://www.esempio.it"
+              />
+            </SettingsFormField>
+          </div>
+        </div>
+      </SettingsCard>
+
+      {/* ── Card 2: Preferenze Regionali ── */}
+      <SettingsCard title="Preferenze Regionali">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 0,
+            columnGap: 16,
+          }}
+        >
+          <SettingsFormField label="Lingua">
+            <select
+              className="glass-input"
+              value={form.language}
+              onChange={(e) => set("language", e.target.value)}
+            >
               <option value="Italiano">Italiano</option>
               <option value="English">English</option>
             </select>
-          </label>
+          </SettingsFormField>
 
-          <label style={labelStyle}>
-            <span style={labelText}>Fuso orario</span>
-            <select className="glass-input" value={form.timezone} onChange={e => set("timezone", e.target.value)}>
-              {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
-            </select>
-          </label>
-
-          <div style={{ ...labelStyle, gridColumn: "1 / -1" }}>
-            <span style={labelText}>Formato data</span>
-            <div style={{ display: "flex", gap: 8 }}>
-              {DATE_FORMATS.map(fmt => (
-                <button type="button"
-                  key={fmt}
-                  onClick={() => set("date_format", fmt)}
-                  style={{
-                    padding: "6px 14px", borderRadius: 7, border: `0.5px solid ${form.date_format === fmt ? GOLD + "88" : BORDER}`,
-                    background: form.date_format === fmt ? "#fef9ee" : "#f9fafb",
-                    color: form.date_format === fmt ? GOLD : TEXT_SECONDARY,
-                    cursor: "pointer", fontSize: 12, fontWeight: form.date_format === fmt ? 600 : 400,
-                    transition: "all 0.15s",
-                  }}
-                >
-                  {fmt}
-                </button>
+          <SettingsFormField label="Fuso Orario">
+            <select
+              className="glass-input"
+              value={form.timezone}
+              onChange={(e) => set("timezone", e.target.value)}
+            >
+              {TIMEZONES.map((tz) => (
+                <option key={tz} value={tz}>
+                  {tz}
+                </option>
               ))}
-            </div>
+            </select>
+          </SettingsFormField>
+
+          <div style={{ gridColumn: "1 / -1" }}>
+            <SettingsFormField label="Formato Data">
+              <div className="glass-segment">
+                {DATE_FORMATS.map((fmt) => (
+                  <button
+                    type="button"
+                    key={fmt}
+                    className="glass-segment-item"
+                    data-active={form.date_format === fmt}
+                    onClick={() => set("date_format", fmt)}
+                  >
+                    {fmt}
+                  </button>
+                ))}
+              </div>
+            </SettingsFormField>
           </div>
         </div>
+      </SettingsCard>
 
-        {/* Save */}
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <button type="button" className="glass-btn-primary" onClick={handleSave} disabled={saving} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {saving ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Globe size={14} />}
-            Salva Modifiche
-          </button>
-        </div>
+      {/* ── Save Button ── */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={handleSave}
+          disabled={saving}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            opacity: saving ? 0.7 : 1,
+            cursor: saving ? "not-allowed" : "pointer",
+          }}
+        >
+          {saving && (
+            <Loader2
+              size={15}
+              style={{ animation: "spin 1s linear infinite" }}
+            />
+          )}
+          Salva Modifiche
+        </button>
       </div>
     </div>
   );

@@ -195,6 +195,18 @@ export function AddTransactionModal({ open, onClose, onSave }: Props) {
               </div>
             </div>
 
+            {/* ── Title ─────────────────────────────────────────────── */}
+            <div style={{ marginBottom: 16 }}>
+              <Label>Title</Label>
+              <input
+                autoFocus
+                value={subcategory} onChange={(e) => setSubcategory(e.target.value)}
+                placeholder={type === "expense" ? "e.g. Groceries, Netflix, Rent…" : "e.g. Client payment, Invoice #42…"}
+                style={{ ...FIELD, padding: "10px 14px" }}
+                autoComplete="off"
+              />
+            </div>
+
             {/* ── Amount ────────────────────────────────────────────── */}
             <div style={{ marginBottom: 16 }}>
               <Label>Amount</Label>
@@ -233,16 +245,6 @@ export function AddTransactionModal({ open, onClose, onSave }: Props) {
                 })}
               </div>
               <FieldError msg={errors.category} />
-            </div>
-
-            {/* ── Subcategory ───────────────────────────────────────── */}
-            <div style={{ marginBottom: 16 }}>
-              <Label>Subcategory <span style={{ fontWeight: 400, color: "#666" }}>(optional)</span></Label>
-              <input
-                value={subcategory} onChange={(e) => setSubcategory(e.target.value)}
-                placeholder="e.g. Supermarket, Netflix subscription..."
-                style={{ ...FIELD, padding: "10px 14px" }}
-              />
             </div>
 
             {/* ── Description ──────────────────────────────────────── */}

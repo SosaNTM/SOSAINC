@@ -1,166 +1,340 @@
-import { useState } from "react";
-import { Navigate, Link } from "react-router-dom";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Navigate, Link, useNavigate } from "react-router-dom";
+import { AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/authContext";
 import { toast } from "sonner";
 import s from "./LoginPage.module.css";
 
-/* ── Luxury product data — bags only ─────────────────────────── */
-const PRODUCTS = [
-  // Column 1 — 6 items
-  { bg: "#1a2838", img: "/images/products/p1.png",  name: "Hermès Birkin 35",         price: "$38,500" },
-  { bg: "#2a2218", img: "/images/products/p3.png",  name: "Louis Vuitton Neverfull",  price: "$2,030" },
-  { bg: "#2a1a18", img: "/images/products/p4.png",  name: "Chanel Classic Flap",      price: "$10,800" },
-  { bg: "#2a1820", img: "/images/products/p6.png",  name: "Gucci GG Marmont",         price: "$2,980" },
-  { bg: "#1a1a20", img: "/images/products/p7.png",  name: "Dior Book Tote",           price: "$3,350" },
-  { bg: "#182a20", img: "/images/products/p9.png",  name: "Hermès Birkin Croc",       price: "$42,000" },
-  // Column 2 — 5 items
-  { bg: "#1a1a28", img: "/images/products/p11.png", name: "Chanel Classic Navy",      price: "$10,800" },
-  { bg: "#0a2a1a", img: "/images/products/p13.png", name: "Bulgari Serpenti",         price: "$3,850" },
-  { bg: "#2a2218", img: "/images/products/p14.png", name: "Louis Vuitton Flower",     price: "$3,450" },
-  { bg: "#1a1a1a", img: "/images/products/p15.png", name: "Balenciaga City",          price: "$2,390" },
-  { bg: "#2a1820", img: "/images/products/p17.png", name: "Hermès Birkin Bordeaux",   price: "$45,000" },
-  // Column 3 — 5 items
-  { bg: "#1a2030", img: "/images/products/p19.png", name: "Chanel Classic Blue",      price: "$10,800" },
-  { bg: "#2a1018", img: "/images/products/p20.png", name: "Prada Promenade",          price: "$3,200" },
-  { bg: "#1a1a1a", img: "/images/products/p21.png", name: "Hermès Kelly 32",          price: "$28,500" },
-  { bg: "#2a2218", img: "/images/products/p22.png", name: "Gucci Horsebit Boston",    price: "$2,890" },
-  { bg: "#2a1820", img: "/images/products/p23.png", name: "Miu Miu Arcadie",          price: "$2,650" },
+/* ── Data ─────────────────────────────────────────────────── */
+
+const QUOTES = [
+  { text: "DREAM BIG.", delay: 0 },
+  { text: "WORK HARD.", delay: 0.3 },
+  { text: "STAY HUMBLE.", delay: 0.6 },
 ];
 
-/* Build 3 columns, doubled for seamless loop */
-const COLUMNS = [
-  PRODUCTS.slice(0, 6),
-  PRODUCTS.slice(6, 11),
-  PRODUCTS.slice(11, 16),
+const BOTTOM_QUOTES = [
+  "GRIND IN SILENCE.",
+  "LET SUCCESS MAKE THE NOISE.",
+  "NOBODY CARES. WORK HARDER.",
+  "STAY HUNGRY. STAY FOOLISH.",
+  "LEVELS TO THIS.",
 ];
+
+/* ── Logo SVG ─────────────────────────────────────────────── */
+
+function LogoMark() {
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+      <rect x="2" y="2" width="44" height="44" stroke="#e8ff00" strokeWidth="2" />
+      <rect x="8" y="8" width="32" height="32" stroke="#e8ff00" strokeWidth="1" opacity="0.4" />
+      <text x="24" y="29" textAnchor="middle" fill="#e8ff00" fontFamily="Bebas Neue" fontSize="18" letterSpacing="2">S</text>
+    </svg>
+  );
+}
+
+/* ── Main LoginPage ──────────────────────────────────────── */
 
 const LoginPage = () => {
   const { login, isAuthenticated } = useAuth();
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [showPwd, setShowPwd]   = useState(false);
-  const [loading, setLoading]   = useState(false);
-  const [errors, setErrors]     = useState<{ email?: string; password?: string }>({});
+  const [email, setEmail]             = useState("");
+  const [password, setPassword]       = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [currentQuote, setCurrentQuote] = useState(0);
+  const [loaded, setLoaded]           = useState(false);
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+  const [shaking, setShaking]         = useState(false);
+  const [success, setSuccess]         = useState(false);
 
-  if (isAuthenticated) return <Navigate to="/hub" replace />;
+  const navigate = useNavigate();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const shakeTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const next: typeof errors = {};
-    if (!email.trim()) next.email = "Email is required";
-    if (!password)     next.password = "Password is required";
-    if (Object.keys(next).length) { setErrors(next); return; }
-    setErrors({});
-    setLoading(true);
-    try {
-      await login(email, password, false);
-    } catch (err: any) {
-      toast.error(err.message || "Invalid email or password");
-    } finally {
-      setLoading(false);
+  /* ── Boot sequence ──────────────────────────────────────── */
+  useEffect(() => {
+    const t = setTimeout(() => setLoaded(true), 100);
+    const interval = setInterval(() => {
+      setCurrentQuote((p) => (p + 1) % BOTTOM_QUOTES.length);
+    }, 3500);
+    return () => { clearTimeout(t); clearInterval(interval); };
+  }, []);
+
+  /* ── Canvas grain ───────────────────────────────────────── */
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    canvas.width = 600;
+    canvas.height = 900;
+    const imageData = ctx.createImageData(600, 900);
+    for (let i = 0; i < imageData.data.length; i += 4) {
+      const v = Math.random() * 255;
+      imageData.data[i] = v;
+      imageData.data[i + 1] = v;
+      imageData.data[i + 2] = v;
+      imageData.data[i + 3] = 18;
     }
+    ctx.putImageData(imageData, 0, 0);
+  }, []);
+
+  /* ── Cleanup shake timer ────────────────────────────────── */
+  useEffect(() => {
+    return () => { if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current); };
+  }, []);
+
+  /* ── Navigate after success fade-out (300ms animation) ── */
+  useEffect(() => {
+    if (!success) return;
+    const t = setTimeout(() => navigate("/hub", { replace: true }), 350);
+    return () => clearTimeout(t);
+  }, [success, navigate]);
+
+  /* ── Form submit ────────────────────────────────────────── */
+  const handleSubmit = useCallback((e?: React.FormEvent): void => {
+    e?.preventDefault?.();
+    const errs: typeof fieldErrors = {};
+    if (!email.trim()) errs.email = "EMAIL REQUIRED";
+    if (!password)     errs.password = "PASSWORD REQUIRED";
+    if (Object.keys(errs).length) { setFieldErrors(errs); return; }
+    setFieldErrors({});
+    setError(null);
+    setLoading(true);
+
+    void (async () => {
+      try {
+        await login(email, password, false);
+        setSuccess(true);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "INVALID CREDENTIALS";
+        setError(message);
+        setShaking(true);
+        shakeTimerRef.current = setTimeout(() => setShaking(false), 400);
+        setLoading(false);
+      }
+    })();
+  }, [email, password, login]);
+
+  /* ── Social stubs ───────────────────────────────────────── */
+  const handleSocial = (provider: string): void => {
+    toast.info(`${provider} login not configured yet`);
   };
 
-  return (
-    <div className={s.root}>
+  /* ── Auth redirect (AFTER all hooks) ────────────────────── */
+  if (isAuthenticated && !success) return <Navigate to="/hub" replace />;
 
-      {/* ── Left panel: scrolling product grid ───────────────── */}
-      <div className={s.left}>
-        <div className={s.grid}>
-          {COLUMNS.map((col, ci) => (
-            <div
-              key={ci}
-              className={`${s.column} ${ci === 1 ? s.columnSlow : ""}`}
-            >
-              <div className={s.columnInner}>
-                {/* Render cards twice for seamless infinite scroll */}
-                {[...col, ...col].map((p, i) => (
-                  <div key={i} className={s.card} style={{ background: p.bg }}>
-                    <img
-                      src={p.img}
-                      alt={p.name}
-                      className={s.cardImg}
-                      loading="lazy"
-                    />
-                    <div className={s.cardInfo}>
-                      <span className={s.cardName}>{p.name}</span>
-                      <span className={s.cardPrice}>{p.price}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+  return (
+    <div className={`${s.wrapper} ${success ? s.successOut : ""}`}>
+
+      {/* ══ LEFT PANEL — THE WALL ═══════════════════════════════ */}
+      <div className={s.leftPanel}>
+        <canvas ref={canvasRef} className={s.grainCanvas} />
+        <div className={s.scanline} />
+
+        {/* Diagonal accent lines */}
+        <div className={s.diagonalLine1} />
+        <div className={s.diagonalLine2} />
+
+        {/* Top branding */}
+        <div
+          className={s.topBrand}
+          style={{
+            opacity: loaded ? 1 : 0,
+            transform: loaded ? "translateY(0)" : "translateY(-20px)",
+          }}
+        >
+          <div className={s.brandDot} />
+          <span className={s.brandText}>SOSA INC.</span>
         </div>
 
-        {/* Gradient fades top & bottom */}
-        <div className={s.fadeTop} />
-        <div className={s.fadeBottom} />
+        {/* Main quotes */}
+        <div className={s.quotesContainer}>
+          {QUOTES.map((q, i) => (
+            <div
+              key={i}
+              className={`${s.quoteMain} ${loaded ? s.slideUpAnim : ""}`}
+              style={loaded ? { animationDelay: `${q.delay}s` } : undefined}
+            >
+              <span className={s.quoteText}>{q.text}</span>
+            </div>
+          ))}
+
+          {/* Accent line */}
+          <div className={`${s.accentLine} ${loaded ? s.lineExpandAnim : ""}`} />
+
+          {/* Rotating sub-quote */}
+          <div className={s.subQuoteContainer}>
+            <p key={currentQuote} className={`${s.subQuote} ${s.quoteSwapAnim}`}>
+              {BOTTOM_QUOTES[currentQuote]}
+            </p>
+          </div>
+        </div>
+
+        {/* Bottom decorations */}
+        <div className={s.bottomDecor} style={{ opacity: loaded ? 1 : 0 }}>
+          <div className={s.hashTags}>
+            <span className={s.hashTag}>#NOSLEEP</span>
+            <span className={s.hashDivider}>×</span>
+            <span className={s.hashTag}>#NOEXCUSES</span>
+            <span className={s.hashDivider}>×</span>
+            <span className={s.hashTag}>#HUSTLE</span>
+          </div>
+          <div className={s.yearMark}>© 2026</div>
+        </div>
       </div>
 
-      {/* ── Right panel: login form ───────────────────────────── */}
-      <div className={s.right}>
-        <div className={s.glow} />
+      {/* ══ RIGHT PANEL — LOGIN ═════════════════════════════════ */}
+      <div className={s.rightPanel}>
+        {/* Corner accents */}
+        <div className={s.cornerTL} />
+        <div className={s.cornerBR} />
 
-        <div className={s.formWrap}>
-          <p className={`${s.welcome} ${s.a1}`}>Welcome back to</p>
-          <p className={`${s.brand}   ${s.a2}`}>ICONOFF</p>
-          <p className={`${s.subtitle} ${s.a3}`}>LOGIN TO YOUR PERSONAL TOOL</p>
+        <div
+          className={s.loginContainer}
+          style={{
+            opacity: loaded ? 1 : 0,
+            transform: loaded ? "translateY(0)" : "translateY(30px)",
+          }}
+        >
+          {/* Logo */}
+          <div className={s.logoMark}>
+            <LogoMark />
+          </div>
 
-          <div className={`${s.divider} ${s.a4}`} />
+          <h1 className={s.loginTitle}>SIGN IN</h1>
+          <p className={s.loginSubtitle}>ENTER THE GRIND</p>
 
-          <form onSubmit={handleSubmit} noValidate className={`${s.form} ${s.a5}`}>
+          {/* Error banner */}
+          {error && (
+            <div className={s.errorBanner} role="alert" aria-live="polite">
+              <AlertCircle aria-hidden={true} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Form */}
+          <form
+            onSubmit={handleSubmit}
+            noValidate
+            className={shaking ? s.shake : undefined}
+          >
+            {/* Email */}
             <div className={s.fieldGroup}>
-              <input
-                type="email"
-                value={email}
-                onChange={e => {
-                  setEmail(e.target.value);
-                  if (errors.email) setErrors(p => ({ ...p, email: undefined }));
-                }}
-                className={s.input}
-                placeholder="Email Address"
-                autoComplete="email"
-              />
-              {errors.email && <p className={s.fieldError}>{errors.email}</p>}
+              <label htmlFor="login-email" className={s.fieldLabel}>EMAIL</label>
+              <div className={s.inputWrapper} data-focused={focusedField === "email" ? "true" : undefined}>
+                <span className={s.inputIcon} aria-hidden="true">→</span>
+                <input
+                  id="login-email"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  placeholder="YOUR@EMAIL.COM"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (fieldErrors.email) setFieldErrors((p) => ({ ...p, email: undefined }));
+                  }}
+                  onFocus={() => setFocusedField("email")}
+                  onBlur={() => setFocusedField(null)}
+                  className={s.input}
+                  aria-invalid={!!fieldErrors.email}
+                  aria-describedby={fieldErrors.email ? "email-error" : undefined}
+                />
+              </div>
+              {fieldErrors.email && (
+                <p id="email-error" className={s.fieldError} role="alert">{fieldErrors.email}</p>
+              )}
             </div>
 
-            <div className={`${s.fieldGroup} ${s.mt12}`}>
-              <div className={s.passwordWrap}>
+            {/* Password */}
+            <div className={s.fieldGroup} style={{ marginTop: 16 }}>
+              <label htmlFor="login-password" className={s.fieldLabel}>PASSWORD</label>
+              <div className={s.inputWrapper} data-focused={focusedField === "password" ? "true" : undefined}>
+                <span className={s.inputIcon} aria-hidden="true">◆</span>
                 <input
-                  type={showPwd ? "text" : "password"}
-                  value={password}
-                  onChange={e => {
-                    setPassword(e.target.value);
-                    if (errors.password) setErrors(p => ({ ...p, password: undefined }));
-                  }}
-                  className={s.input}
-                  placeholder="Password"
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (fieldErrors.password) setFieldErrors((p) => ({ ...p, password: undefined }));
+                  }}
+                  onFocus={() => setFocusedField("password")}
+                  onBlur={() => setFocusedField(null)}
+                  className={s.input}
+                  aria-invalid={!!fieldErrors.password}
+                  aria-describedby={fieldErrors.password ? "password-error" : undefined}
                 />
-                <button type="button"
+                <button
                   type="button"
-                  onClick={() => setShowPwd(p => !p)}
-                  className={s.toggle}
+                  onClick={() => setShowPassword((p) => !p)}
+                  className={s.togglePw}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  {showPwd ? "HIDE" : "SHOW"}
+                  {showPassword ? "HIDE" : "SHOW"}
                 </button>
               </div>
-              {errors.password && <p className={s.fieldError}>{errors.password}</p>}
+              {fieldErrors.password && (
+                <p id="password-error" className={s.fieldError} role="alert">{fieldErrors.password}</p>
+              )}
             </div>
 
+            {/* Forgot */}
+            <div className={s.forgotRow} style={{ marginTop: 12 }}>
+              <Link to="/forgot-password" className={s.forgotLink}>FORGOT PASSWORD?</Link>
+            </div>
+
+            {/* Submit */}
             <button type="submit" disabled={loading} className={s.submitBtn}>
-              {loading ? "Signing in…" : "Login"}
+              {loading ? (
+                <span className={s.loadingDots}><span /><span /><span /></span>
+              ) : (
+                <>
+                  <span className={s.btnText}>LET&apos;S WORK</span>
+                  <span className={s.btnArrow}>↗</span>
+                </>
+              )}
             </button>
           </form>
 
-          <Link to="/forgot-password" className={`${s.forgotLink} ${s.a6}`}>
-            Forget Password?
-          </Link>
+          {/* Divider */}
+          <div className={s.dividerRow}>
+            <div className={s.dividerLine} />
+            <span className={s.dividerText}>OR</span>
+            <div className={s.dividerLine} />
+          </div>
 
+          {/* Social logins */}
+          <div className={s.socialRow}>
+            <button type="button" className={s.socialBtn} onClick={() => handleSocial("Google")} aria-label="Sign in with Google">
+              <span>G</span>
+            </button>
+            <button type="button" className={s.socialBtn} onClick={() => handleSocial("X")} aria-label="Sign in with X">
+              <span>𝕏</span>
+            </button>
+            <button type="button" className={s.socialBtn} onClick={() => handleSocial("LinkedIn")} aria-label="Sign in with LinkedIn">
+              <span>in</span>
+            </button>
+          </div>
+
+          {/* Sign up */}
+          <p className={s.signupText}>
+            NEW TO THE GAME?{" "}
+            <Link to="/forgot-password" className={s.signupLink}>JOIN NOW</Link>
+          </p>
+        </div>
+
+        {/* Status bar */}
+        <div className={s.statusBar} style={{ opacity: loaded ? 1 : 0 }}>
+          <div className={s.statusDot} />
+          <span className={s.statusText}>SYSTEM ACTIVE</span>
         </div>
       </div>
-
     </div>
   );
 };

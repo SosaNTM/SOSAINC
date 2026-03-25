@@ -40,7 +40,7 @@ export function useDashboardTransactions() {
 
   const refresh = useCallback(() => {
     if (!user) { setRaw([]); return; }
-    const all = localGetAll(portalId).filter((t) => t.user_id === user.id);
+    const all = localGetAll(portalId); // portal-shared: all users see all portal data
     all.sort((a, b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : 0));
     setRaw(all);
   }, [user, portalId]);
@@ -63,5 +63,5 @@ export function useDashboardTransactions() {
 
   const transactions = useMemo(() => raw.map(toDashboard), [raw]);
 
-  return { transactions };
+  return { transactions, rawTransactions: raw };
 }

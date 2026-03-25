@@ -1,53 +1,64 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import {
-  Package, Monitor, Megaphone, Truck, Box, Home, Zap, Users, Landmark, Plane, MoreHorizontal, CreditCard,
-  Pencil, Trash2, Check, X, ChevronUp, ChevronDown, Plus, Loader2,
+  TrendingDown, ShoppingBag, Briefcase, Percent, RotateCcw, TrendingUp,
+  MoreHorizontal, DollarSign, Gift, Star, Zap, Package, Award, Plus,
 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useExpenseCategories } from "../../../hooks/settings";
 import type { ExpenseCategory } from "../../../types/settings";
+import {
+  SettingsPageHeader, SettingsCard, SettingsFormField,
+  SettingsTable, SettingsModal, SettingsDeleteConfirm,
+  SettingsColorPicker,
+} from "@/components/settings";
 
-const GOLD = "#C6A961";
-const BG_CARD = "#ffffff";
-const BORDER = "#e5e7eb";
-const TEXT_PRIMARY = "#111827";
-const TEXT_SECONDARY = "#374151";
-const TEXT_MUTED = "#6b7280";
-
-const COLOR_PRESETS = ["#4ADE80","#C6A961","#60A5FA","#A78BFA","#F59E0B","#EF4444","#EC4899","#14B8A6","#94A3B8","#FB923C","#84CC16","#F43F5E"];
-const ICON_OPTIONS = ["Package","Monitor","Megaphone","Truck","Box","Home","Zap","Users","Landmark","Plane","MoreHorizontal","CreditCard"] as const;
+const ICON_OPTIONS = [
+  "ShoppingBag", "Briefcase", "Percent", "RotateCcw", "TrendingUp", "MoreHorizontal",
+  "DollarSign", "Gift", "Star", "Zap", "Package", "Award",
+] as const;
 type IconName = typeof ICON_OPTIONS[number];
 
 const ICON_MAP: Record<IconName, React.ElementType> = {
-  Package, Monitor, Megaphone, Truck, Box, Home, Zap, Users, Landmark, Plane, MoreHorizontal, CreditCard,
+  ShoppingBag, Briefcase, Percent, RotateCcw, TrendingUp, MoreHorizontal,
+  DollarSign, Gift, Star, Zap, Package, Award,
 };
 
-type FormState = {
+interface FormState {
   name: string;
   icon: string;
   color: string;
   description: string;
-  monthly_budget: number;
-  alert_threshold: number;
-  is_active: boolean;
-};
+  monthlyBudget: number;
+  alertThreshold: number;
+}
 
 const emptyForm = (): FormState => ({
-  name: "", icon: "Package", color: "#F59E0B", description: "", monthly_budget: 0, alert_threshold: 80, is_active: true,
+  name: "", icon: "Package", color: "#f59e0b", description: "",
+  monthlyBudget: 0, alertThreshold: 80,
 });
 
-export default function ExpenseCategories() {
+function formatEuro(value: number | null): string {
+  if (value == null || value === 0) return "—";
+  return `€${value.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+export default function ExpenseCategoriesPage() {
   const { data: categories, loading, create, update, remove } = useExpenseCategories();
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ExpenseCategory | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const sorted = [...categories].sort((a, b) => a.sort_order - b.sort_order);
 
-  function openCreate() { setEditingId(null); setForm(emptyForm()); setModalOpen(true); }
+  function openCreate() {
+    setEditingId(null);
+    setForm(emptyForm());
+    setModalOpen(true);
+  }
 
   function openEdit(cat: ExpenseCategory) {
     setEditingId(cat.id);
@@ -56,254 +67,198 @@ export default function ExpenseCategories() {
       icon: cat.icon,
       color: cat.color,
       description: cat.description ?? "",
-      monthly_budget: cat.monthly_budget ?? 0,
-      alert_threshold: cat.alert_threshold ?? 80,
-      is_active: cat.is_active,
+      monthlyBudget: cat.monthly_budget ?? 0,
+      alertThreshold: cat.alert_threshold ?? 80,
     });
     setModalOpen(true);
   }
 
-  async function saveModal() {
+  async function handleSubmit() {
     if (!form.name.trim()) return;
     setSaving(true);
+    const payload = {
+      name: form.name,
+      icon: form.icon,
+      color: form.color,
+      description: form.description,
+      monthly_budget: form.monthlyBudget,
+      alert_threshold: form.alertThreshold,
+    };
     if (editingId) {
-      const { error } = await update(editingId, {
-        name: form.name,
-        icon: form.icon,
-        color: form.color,
-        description: form.description,
-        monthly_budget: form.monthly_budget,
-        alert_threshold: form.alert_threshold,
-        is_active: form.is_active,
-      });
-      if (error) { toast({ title: "Errore", description: error, variant: "destructive" }); }
-      else { toast({ title: "Categoria aggiornata" }); }
+      const { error } = await update(editingId, payload);
+      if (error) { toast.error(error); }
+      else { toast.success("Categoria aggiornata"); }
     } else {
       const { error } = await create({
-        name: form.name,
-        icon: form.icon,
-        color: form.color,
-        description: form.description,
-        monthly_budget: form.monthly_budget,
-        alert_threshold: form.alert_threshold,
-        is_active: form.is_active,
+        ...payload,
+        is_active: true,
         sort_order: categories.length,
       });
-      if (error) { toast({ title: "Errore", description: error, variant: "destructive" }); }
-      else { toast({ title: "Categoria creata" }); }
+      if (error) { toast.error(error); }
+      else { toast.success("Categoria creata"); }
     }
     setSaving(false);
     setModalOpen(false);
   }
 
-  async function deleteItem(id: string) {
-    const { error } = await remove(id);
-    if (error) { toast({ title: "Errore", description: error, variant: "destructive" }); }
-    else { toast({ title: "Categoria eliminata" }); }
-    setDeleteConfirm(null);
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const { error } = await remove(deleteTarget.id);
+    if (error) { toast.error(error); }
+    else { toast.success("Categoria eliminata"); }
+    setDeleting(false);
+    setDeleteTarget(null);
   }
 
-  async function moveItem(id: string, dir: -1 | 1) {
-    const idx = sorted.findIndex(c => c.id === id);
-    const target = idx + dir;
-    if (target < 0 || target >= sorted.length) return;
-    await update(sorted[idx].id, { sort_order: sorted[target].sort_order });
-    await update(sorted[target].id, { sort_order: sorted[idx].sort_order });
-  }
+  const columns = [
+    {
+      key: "color",
+      label: "Colore",
+      width: "60px",
+      render: (item: ExpenseCategory) => (
+        <div style={{
+          width: 12, height: 12, borderRadius: "50%",
+          background: item.color,
+        }} />
+      ),
+    },
+    {
+      key: "icon",
+      label: "Icona",
+      width: "60px",
+      render: (item: ExpenseCategory) => {
+        const Icon = (ICON_MAP[item.icon as IconName] ?? MoreHorizontal) as React.ElementType;
+        return <Icon style={{ width: 16, height: 16, color: item.color }} />;
+      },
+    },
+    {
+      key: "name",
+      label: "Nome",
+      render: (item: ExpenseCategory) => (
+        <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{item.name}</span>
+      ),
+    },
+    {
+      key: "monthly_budget",
+      label: "Budget Mensile",
+      width: "130px",
+      render: (item: ExpenseCategory) => (
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-secondary)" }}>
+          {formatEuro(item.monthly_budget)}
+        </span>
+      ),
+    },
+    {
+      key: "alert_threshold",
+      label: "Soglia Avviso",
+      width: "100px",
+      render: (item: ExpenseCategory) => (
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-secondary)" }}>
+          {item.alert_threshold != null ? `${item.alert_threshold}%` : "—"}
+        </span>
+      ),
+    },
+  ];
 
   return (
     <div style={{ maxWidth: 860 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-        <div>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 600, color: TEXT_PRIMARY, margin: 0 }}>
-            Categorie Uscite
-          </h2>
-          <p style={{ fontSize: 13, color: TEXT_SECONDARY, margin: "4px 0 0" }}>
-            Gestisci le categorie e i budget mensili per le uscite
-          </p>
-        </div>
-        <button type="button" className="glass-btn-primary" onClick={openCreate} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <Plus size={14} /> Nuova Categoria
-        </button>
-      </div>
+      <SettingsPageHeader
+        icon={TrendingDown}
+        title="Categorie Uscite"
+        description="Gestisci le categorie di spesa con budget mensili"
+        action={{ label: "Aggiungi Categoria", icon: Plus, onClick: openCreate }}
+      />
 
-      <div style={{ background: BG_CARD, border: `0.5px solid ${BORDER}`, borderRadius: 12, padding: "18px 22px" }}>
-        {loading ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 0", gap: 10, color: TEXT_MUTED }}>
-            <Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} />
-            <span style={{ fontSize: 13 }}>Caricamento...</span>
-          </div>
-        ) : sorted.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "40px 0", color: TEXT_MUTED }}>
-            <Package size={32} style={{ margin: "0 auto 10px", opacity: 0.3 }} />
-            <p style={{ fontSize: 13 }}>Nessuna categoria. Creane una nuova.</p>
-          </div>
-        ) : (
-          <AnimatePresence initial={false}>
-            {sorted.map((cat, idx) => {
-              const Icon = (ICON_MAP[cat.icon as IconName] ?? MoreHorizontal) as React.ElementType;
-              const budget = cat.monthly_budget ?? 0;
-              const threshold = cat.alert_threshold ?? 80;
-              const mockSpent = budget > 0 ? Math.round(budget * 0.6) : 0;
-              const pct = budget > 0 ? (mockSpent / budget) * 100 : 0;
-              const barColor = pct >= threshold ? "#EF4444" : GOLD;
-              return (
-                <motion.div
-                  key={cat.id}
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.18 }}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 12,
-                    padding: "10px 0",
-                    borderBottom: idx < sorted.length - 1 ? `0.5px solid ${BORDER}` : "none",
-                    opacity: cat.is_active ? 1 : 0.45,
-                  }}
-                >
-                  <div style={{ width: 14, height: 14, borderRadius: "50%", background: cat.color, flexShrink: 0 }} />
-                  <Icon size={16} style={{ color: cat.color, flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: TEXT_PRIMARY }}>{cat.name}</div>
-                    {cat.description && (
-                      <div style={{ fontSize: 11, color: TEXT_MUTED, marginTop: 1 }}>{cat.description}</div>
-                    )}
-                    {budget > 0 && (
-                      <div style={{ marginTop: 4 }}>
-                        <div style={{ height: 3, borderRadius: 99, background: "#e5e7eb", width: "100%", maxWidth: 160, overflow: "hidden" }}>
-                          <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: barColor, borderRadius: 99 }} />
-                        </div>
-                        <span style={{ fontSize: 10, color: TEXT_MUTED }}>€{mockSpent} / €{budget}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                    {deleteConfirm === cat.id ? (
-                      <>
-                        <span style={{ fontSize: 11, color: TEXT_SECONDARY, marginRight: 4 }}>Sei sicuro?</span>
-                        <button type="button" onClick={() => deleteItem(cat.id)} style={iconBtnStyle("#4ADE80")}><Check size={13} /></button>
-                        <button type="button" onClick={() => setDeleteConfirm(null)} style={iconBtnStyle("#EF4444")}><X size={13} /></button>
-                      </>
-                    ) : (
-                      <>
-                        <button type="button" onClick={() => moveItem(cat.id, -1)} disabled={idx === 0} style={iconBtnStyle(TEXT_MUTED, idx === 0)}><ChevronUp size={13} /></button>
-                        <button type="button" onClick={() => moveItem(cat.id, 1)} disabled={idx === sorted.length - 1} style={iconBtnStyle(TEXT_MUTED, idx === sorted.length - 1)}><ChevronDown size={13} /></button>
-                        <button type="button" onClick={() => openEdit(cat)} style={iconBtnStyle(GOLD)}><Pencil size={13} /></button>
-                        <button type="button" onClick={() => setDeleteConfirm(cat.id)} style={iconBtnStyle("#EF4444")}><Trash2 size={13} /></button>
-                      </>
-                    )}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        )}
-      </div>
+      <SettingsCard>
+        <SettingsTable<ExpenseCategory>
+          columns={columns}
+          data={sorted}
+          onEdit={openEdit}
+          onDelete={(item) => setDeleteTarget(item)}
+          emptyMessage="Nessuna categoria. Creane una nuova."
+          emptyIcon={TrendingDown}
+        />
+      </SettingsCard>
 
-      {/* Modal */}
-      <AnimatePresence>
-        {modalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: "fixed", inset: 0, background: "rgba(10,10,11,0.75)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center" }}
-            onClick={e => { if (e.target === e.currentTarget) setModalOpen(false); }}
+      <SettingsModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editingId ? "Modifica Categoria" : "Nuova Categoria"}
+        onSubmit={handleSubmit}
+        isLoading={saving}
+      >
+        <SettingsFormField label="Nome" required>
+          <input
+            className="glass-input"
+            value={form.name}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            placeholder="Nome categoria"
+          />
+        </SettingsFormField>
+
+        <SettingsFormField label="Icona">
+          <select
+            className="glass-input"
+            value={form.icon}
+            onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))}
           >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              style={{ background: "#ffffff", border: "0.5px solid #e5e7eb", borderRadius: 12, padding: "24px 28px", minWidth: 440, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto" }}
-            >
-              <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 600, color: TEXT_PRIMARY, marginBottom: 20, marginTop: 0 }}>
-                {editingId ? "Modifica Categoria" : "Nuova Categoria"}
-              </h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <label style={labelStyle}>
-                  <span style={labelText}>Nome</span>
-                  <input className="glass-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Nome categoria" />
-                </label>
-                <label style={labelStyle}>
-                  <span style={labelText}>Icona</span>
-                  <select className="glass-input" value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))}>
-                    {ICON_OPTIONS.map(ic => <option key={ic} value={ic}>{ic}</option>)}
-                  </select>
-                </label>
-                <div style={labelStyle}>
-                  <span style={labelText}>Colore</span>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                    {COLOR_PRESETS.map(c => (
-                      <button type="button" key={c} onClick={() => setForm(f => ({ ...f, color: c }))}
-                        style={{ width: 22, height: 22, borderRadius: 4, background: c, border: form.color === c ? "2px solid white" : "2px solid transparent", cursor: "pointer" }} />
-                    ))}
-                  </div>
-                  <input type="color" value={form.color} onChange={e => setForm(f => ({ ...f, color: e.target.value }))}
-                    style={{ width: 36, height: 28, border: "none", background: "transparent", cursor: "pointer", padding: 0 }} />
-                </div>
-                <label style={labelStyle}>
-                  <span style={labelText}>Descrizione</span>
-                  <textarea className="glass-input" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                    placeholder="Descrizione opzionale" rows={2} style={{ resize: "vertical" }} />
-                </label>
-                <div style={{ display: "flex", gap: 12 }}>
-                  <label style={{ ...labelStyle, flex: 1 }}>
-                    <span style={labelText}>Budget Mensile</span>
-                    <div style={{ position: "relative" }}>
-                      <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: TEXT_MUTED, fontSize: 13 }}>€</span>
-                      <input className="glass-input" type="number" min={0} value={form.monthly_budget || ""}
-                        onChange={e => setForm(f => ({ ...f, monthly_budget: Number(e.target.value) || 0 }))}
-                        placeholder="0" style={{ paddingLeft: 24 }} />
-                    </div>
-                  </label>
-                  {form.monthly_budget > 0 && (
-                    <label style={{ ...labelStyle, flex: 1 }}>
-                      <span style={labelText}>Soglia Alert</span>
-                      <div style={{ position: "relative" }}>
-                        <input className="glass-input" type="number" min={0} max={100} value={form.alert_threshold}
-                          onChange={e => setForm(f => ({ ...f, alert_threshold: Number(e.target.value) }))}
-                          style={{ paddingRight: 28 }} />
-                        <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: TEXT_MUTED, fontSize: 13 }}>%</span>
-                      </div>
-                    </label>
-                  )}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 13, color: TEXT_SECONDARY }}>Attiva</span>
-                  <ToggleSwitch checked={form.is_active} onChange={v => setForm(f => ({ ...f, is_active: v }))} />
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 10, marginTop: 22, justifyContent: "flex-end" }}>
-                <button type="button" className="glass-btn" onClick={() => setModalOpen(false)} disabled={saving}>Annulla</button>
-                <button type="button" className="glass-btn-primary" onClick={saveModal} disabled={!form.name.trim() || saving}
-                  style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  {saving && <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} />}
-                  Salva
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            {ICON_OPTIONS.map((ic) => (
+              <option key={ic} value={ic}>{ic}</option>
+            ))}
+          </select>
+        </SettingsFormField>
+
+        <SettingsFormField label="Colore">
+          <SettingsColorPicker
+            value={form.color}
+            onChange={(color) => setForm((f) => ({ ...f, color }))}
+          />
+        </SettingsFormField>
+
+        <SettingsFormField label="Budget Mensile">
+          <input
+            className="glass-input"
+            type="number"
+            min={0}
+            value={form.monthlyBudget || ""}
+            onChange={(e) => setForm((f) => ({ ...f, monthlyBudget: Number(e.target.value) || 0 }))}
+            placeholder="0.00"
+          />
+        </SettingsFormField>
+
+        <SettingsFormField label="Soglia Avviso (%)" description="Percentuale del budget alla quale ricevere un avviso">
+          <input
+            className="glass-input"
+            type="number"
+            min={0}
+            max={100}
+            value={form.alertThreshold}
+            onChange={(e) => setForm((f) => ({ ...f, alertThreshold: Number(e.target.value) }))}
+          />
+        </SettingsFormField>
+
+        <SettingsFormField label="Descrizione">
+          <textarea
+            className="glass-input"
+            value={form.description}
+            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            placeholder="Descrizione opzionale"
+            rows={2}
+            style={{ resize: "vertical" }}
+          />
+        </SettingsFormField>
+      </SettingsModal>
+
+      <SettingsDeleteConfirm
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Elimina Categoria"
+        message="Questa azione è irreversibile. Vuoi eliminare"
+        itemName={deleteTarget?.name}
+        isLoading={deleting}
+      />
     </div>
-  );
-}
-
-function iconBtnStyle(color: string, disabled = false): React.CSSProperties {
-  return {
-    display: "flex", alignItems: "center", justifyContent: "center",
-    width: 28, height: 28, borderRadius: 6, border: "none",
-    background: "transparent", color, cursor: disabled ? "not-allowed" : "pointer",
-    opacity: disabled ? 0.3 : 1,
-  };
-}
-
-const labelStyle: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 6 };
-const labelText: React.CSSProperties = { fontSize: 12, color: TEXT_SECONDARY, fontWeight: 500 };
-
-function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button type="button"
-      onClick={() => onChange(!checked)}
-      style={{ width: 36, height: 20, borderRadius: 10, border: "none", cursor: "pointer", background: checked ? GOLD : "#d1d5db", position: "relative", transition: "background 0.2s", flexShrink: 0 }}
-    >
-      <span style={{ position: "absolute", top: 2, left: checked ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "white", transition: "left 0.2s", display: "block" }} />
-    </button>
   );
 }

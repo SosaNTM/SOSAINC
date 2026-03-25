@@ -16,6 +16,8 @@ import { usePortal } from "@/lib/portalContext";
 import { localGetAll } from "@/lib/personalTransactionStore";
 import { getAllCategories, getCategoryUpdateEvent } from "@/lib/financeCategoryStore";
 import type { FinanceCategory } from "@/lib/financeCategoryStore";
+import { useFinanceCategories } from "@/hooks/useFinanceCategories";
+import type { FinanceCategory as TxCategory } from "@/types/finance";
 import { loadBudgetLimits, saveBudgetLimits, loadTotalBudget, saveTotalBudget } from "../services/budgetStorage";
 import type { BudgetLimitMap } from "../services/budgetStorage";
 import type { BudgetCategoryDef } from "../components/BudgetCategoryPanel";
@@ -38,12 +40,16 @@ export function useBudgetData(month: number, year: number): BudgetDataResult {
   const { user } = useAuth();
   const { portal } = usePortal();
   const portalId = portal?.id ?? "sosa";
+  const isBusinessPortal = portalId !== "sosa";
 
   const [limits, setLimits]                 = useState<BudgetLimitMap>(() => loadBudgetLimits(portalId));
   const [totalBudget, setTotalBudgetState]  = useState<number>(() => loadTotalBudget(portalId));
   const [spentMap, setSpentMap]             = useState<SpentMap>({});
   const [tick, setTick]                     = useState(0);
   const [catTick, setCatTick]               = useState(0);
+
+  // Finance transaction categories (for business portals)
+  const { categories: financeCategories } = useFinanceCategories();
 
   // Reload limits and total when portal changes
   useEffect(() => {
@@ -58,6 +64,14 @@ export function useBudgetData(month: number, year: number): BudgetDataResult {
       .filter((c) => c.type === "expense" && c.is_active)
       .sort((a, b) => a.sort_order - b.sort_order);
   }, [portalId, catTick]);
+
+  // For business portals: also include COGS and OPEX categories from finance_transaction_categories
+  const businessBudgetCategories: TxCategory[] = useMemo(() => {
+    if (!isBusinessPortal) return [];
+    return financeCategories
+      .filter((c) => (c.type === "cogs" || c.type === "opex") && c.is_active)
+      .sort((a, b) => a.sort_order - b.sort_order);
+  }, [isBusinessPortal, financeCategories]);
 
   // Subscribe to portal-scoped category-update events
   useEffect(() => {
@@ -92,8 +106,7 @@ export function useBudgetData(month: number, year: number): BudgetDataResult {
       supabase
         .from("personal_transactions")
         .select("category, amount")
-        .eq("user_id", user.id)
-        .eq("portal_id", portalId)
+        .eq("portal_id", portalId) // portal-shared
         .eq("type", "expense")
         .gte("date", fromDate)
         .lte("date", toDate)
@@ -102,13 +115,13 @@ export function useBudgetData(month: number, year: number): BudgetDataResult {
             computeSpent(data);
           } else {
             const local = localGetAll(portalId)
-              .filter((t) => t.user_id === user.id && t.type === "expense" && t.date >= fromDate && t.date <= toDate);
+              .filter((t) => t.type === "expense" && t.date >= fromDate && t.date <= toDate);
             computeSpent(local);
           }
         });
     } else {
       const local = localGetAll(portalId)
-        .filter((t) => t.user_id === user.id && t.type === "expense" && t.date >= fromDate && t.date <= toDate);
+        .filter((t) => t.type === "expense" && t.date >= fromDate && t.date <= toDate);
       computeSpent(local);
     }
   }, [user, portalId, month, year, expenseCategories, tick]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -120,7 +133,7 @@ export function useBudgetData(month: number, year: number): BudgetDataResult {
 
   // Build final categories: financeCategoryStore metadata + budget limits + spent
   const categories: BudgetCategoryDef[] = useMemo(() => {
-    return expenseCategories.map((cat) => ({
+    const fromExpense = expenseCategories.map((cat) => ({
       id:     cat.id,
       name:   cat.name,
       budget: limits[cat.name.toLowerCase()] ?? 0,
@@ -128,7 +141,21 @@ export function useBudgetData(month: number, year: number): BudgetDataResult {
       color:  cat.color,
       icon:   <span style={{ fontSize: 16 }}>{cat.icon}</span>,
     }));
-  }, [expenseCategories, limits, spentMap]);
+
+    // Business portals: add COGS/OPEX finance categories
+    const fromBusiness = businessBudgetCategories
+      .filter((bc) => !fromExpense.some((e) => e.name.toLowerCase() === bc.name.toLowerCase()))
+      .map((cat) => ({
+        id:     cat.id,
+        name:   cat.name,
+        budget: limits[cat.name.toLowerCase()] ?? 0,
+        spent:  spentMap[cat.name.toLowerCase()] ?? 0,
+        color:  cat.color,
+        icon:   <span style={{ fontSize: 16 }}>{cat.icon}</span>,
+      }));
+
+    return [...fromExpense, ...fromBusiness];
+  }, [expenseCategories, businessBudgetCategories, limits, spentMap]);
 
   const updateBudgetLimit = useCallback((categoryName: string, limit: number) => {
     const updated = { ...limits, [categoryName.toLowerCase()]: limit };

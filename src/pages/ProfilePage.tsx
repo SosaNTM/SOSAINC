@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth, getUserById, getLastLogin, type User } from "@/lib/authContext";
-import { addAuditEntry, getAuditLog, subscribeAudit } from "@/lib/adminStore";
+import { addAuditEntry, getAuditLog, subscribeAudit, getPortalName } from "@/lib/adminStore";
 import { useTheme } from "@/lib/theme";
 import { useAccent, ACCENT_PRESETS } from "@/lib/accent";
 import { getProfile, updateProfile, getProfileStats, getActivityFeed, getRevenueData, type Profile, type ActivityItem } from "@/lib/profileStore";
@@ -51,6 +51,7 @@ const AUDIT_TYPE_MAP: Record<string, ActivityItem["type"]> = {
   tasks: "task",
   admin: "client",
   profile: "client",
+  finance: "payment",
 };
 
 function buildActivities(userId: string): ActivityItem[] {
@@ -60,6 +61,7 @@ function buildActivities(userId: string): ActivityItem[] {
     type: AUDIT_TYPE_MAP[e.category] ?? "document",
     description: e.action,
     timestamp: e.timestamp,
+    portal: e.portalId ? getPortalName(e.portalId) : undefined,
   }));
 
   // Fall back to static seed data if no live audit entries exist for this user

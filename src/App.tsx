@@ -13,9 +13,13 @@ import Dashboard from "./pages/Dashboard";
 import Budget from "./pages/Budget";
 import Transactions from "./pages/Transactions";
 import Goals from "./pages/Goals";
+import Investments from "./pages/Investments";
 import Invoices from "./pages/Invoices";
 import Subscriptions from "./pages/Subscriptions";
 import Analytics from "./pages/Analytics";
+import CryptoPage from "./pages/crypto/CryptoPage";
+import GiftCardsPage from "./pages/gift-cards/GiftCardsPage";
+// Business finance sub-pages removed from navigation (COGS, OPEX, P&L)
 import { SettingsRoutes } from "./pages/settings/settingsRoutes";
 import NotFound from "./pages/NotFound";
 import PlaceholderPage from "./pages/PlaceholderPage";
@@ -41,6 +45,20 @@ import { AccentProvider } from "./lib/accent";
 
 const queryClient = new QueryClient();
 
+// ── One-time data reset ──────────────────────────────────────────────────────
+// Bumping this version clears all cached demo data from localStorage on next load.
+// Safe to increment whenever a clean slate is needed.
+const RESET_VERSION = "portal_shared_v6";
+if (typeof localStorage !== "undefined" && localStorage.getItem("app_reset_version") !== RESET_VERSION) {
+  const KEEP_PREFIXES = ["iconoff_profile_", "iconoff_audit_log", "sb-", "app_reset_version", "iconoff_theme", "iconoff_accent", "iconoff_number_format", "period_"];
+  Object.keys(localStorage).forEach((key) => {
+    if (!KEEP_PREFIXES.some((p) => key.startsWith(p))) {
+      localStorage.removeItem(key);
+    }
+  });
+  localStorage.setItem("app_reset_version", RESET_VERSION);
+}
+
 /* Shared portal routes — rendered inside each /:portalId layout */
 function PortalRoutes() {
   return (
@@ -53,6 +71,10 @@ function PortalRoutes() {
       <Route path="transactions" element={<Transactions />} />
       <Route path="channels" element={<Subscriptions />} />
       <Route path="pl-rules" element={<Goals />} />
+      <Route path="investments" element={<Investments />} />
+      <Route path="crypto" element={<CryptoPage />} />
+      <Route path="gift-cards" element={<GiftCardsPage />} />
+      {/* Business finance sub-pages removed — classification handled via transactions + dashboard */}
       <Route path="analytics" element={<Analytics />} />
       <Route path="invoices" element={<Invoices />} />
       <Route path="vault" element={<VaultPage />} />

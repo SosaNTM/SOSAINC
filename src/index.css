@@ -1,4 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Anton&display=swap');
 @import './styles/accent-colors.css';
 
 @tailwind base;
@@ -177,10 +179,103 @@
     /* Transition */
     --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
     --ease-in-out: cubic-bezier(0.42, 0, 0.58, 1);
+    --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
     --duration-fast: 0.15s;
     --duration-normal: 0.3s;
     --duration-slow: 0.5s;
     --transition-fluid: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+    /* ═══ DESIGN SYSTEM — Font Stack ═══ */
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'DM Mono', 'SF Mono', 'Fira Code', monospace;
+
+    /* ═══ DESIGN SYSTEM — Type Scale ═══ */
+    --text-hero: 32px;
+    --text-h1: 24px;
+    --text-h2: 18px;
+    --text-h3: 15px;
+    --text-body: 14px;
+    --text-small: 12px;
+    --text-micro: 10px;
+    --text-data: 28px;
+
+    /* ═══ DESIGN SYSTEM — Spacing Scale ═══ */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-7: 32px;
+    --space-8: 40px;
+    --space-9: 48px;
+    --space-10: 64px;
+
+    /* ═══ DESIGN SYSTEM — Semantic Colors (Light) ═══ */
+    --color-success: #16a34a;
+    --color-success-soft: rgba(22, 163, 74, 0.10);
+    --color-warning: #d97706;
+    --color-warning-soft: rgba(217, 119, 6, 0.10);
+    --color-error: #dc2626;
+    --color-error-soft: rgba(220, 38, 38, 0.10);
+    --color-info: #0e74b2;
+    --color-info-soft: rgba(14, 116, 178, 0.10);
+
+    /* ═══ DESIGN SYSTEM — Chart Palette (Light) ═══ */
+    --chart-1: #0e74b2;
+    --chart-2: #d97706;
+    --chart-3: #16a34a;
+    --chart-4: #7c3aed;
+    --chart-5: #dc2626;
+    --chart-6: #9a7b42;
+
+    /* ═══ DESIGN SYSTEM — Accent Gold ═══ */
+    --accent-gold: #9a7b42;
+    --accent-gold-soft: rgba(154, 123, 66, 0.10);
+
+    /* ═══ DESIGN SYSTEM — Surface System (Light) ═══ */
+    --bg-app: #e8ecf2;
+    --bg-shell: rgba(255, 255, 255, 0.55);
+    --bg-sidebar: rgba(255, 255, 255, 0.60);
+    --bg-card: rgba(255, 255, 255, 0.50);
+    --bg-card-inner: rgba(255, 255, 255, 0.40);
+    --bg-card-hover: rgba(255, 255, 255, 0.65);
+    --bg-input: rgba(255, 255, 255, 0.55);
+    --bg-modal: rgba(230, 234, 240, 0.90);
+    --bg-tooltip: rgba(255, 255, 255, 0.92);
+
+    /* ═══ DESIGN SYSTEM — Border System (Light) ═══ */
+    --border-glass: rgba(255, 255, 255, 0.60);
+    --border-glass-hover: rgba(255, 255, 255, 0.80);
+    --border-accent: rgba(14, 116, 178, 0.25);
+    --border-active: rgba(14, 116, 178, 0.50);
+    --border-sidebar: rgba(0, 0, 0, 0.06);
+
+    /* ═══ DESIGN SYSTEM — Accent Primary (Light) ═══ */
+    --accent-primary: #0e74b2;
+    --accent-primary-soft: rgba(14, 116, 178, 0.10);
+    --accent-primary-glow: rgba(14, 116, 178, 0.15);
+
+    /* ═══ DESIGN SYSTEM — Shadows (Light) ═══ */
+    --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+    --shadow-card-hover: 0 8px 32px rgba(0, 0, 0, 0.10), 0 2px 6px rgba(0, 0, 0, 0.06);
+    --shadow-sidebar: 4px 0 20px rgba(0, 0, 0, 0.06);
+    --shadow-modal: 0 16px 48px rgba(0, 0, 0, 0.12);
+    --shadow-glow-accent: 0 0 16px rgba(14, 116, 178, 0.10);
+    --shadow-glow-gold: 0 0 16px rgba(154, 123, 66, 0.08);
+    --shadow-button: 0 2px 10px rgba(14, 116, 178, 0.20);
+
+    /* ═══ DESIGN SYSTEM — Glass Effects (Light) ═══ */
+    --glass-blur-val: 14px;
+    --glass-blur-heavy-val: 20px;
+    --glass-blur-sidebar-val: 18px;
+    --glass-saturate: 1.3;
+
+    /* ═══ DESIGN SYSTEM — Radius ═══ */
+    --radius-full: 9999px;
 
     /* Tailwind Semantic */
     --background: 210 15% 82%;
@@ -325,6 +420,66 @@
     --orb-violet: rgba(167, 139, 250, 0.025);
     --orb-rose: rgba(255, 90, 90, 0.015);
 
+    /* ═══ DESIGN SYSTEM — Semantic Colors (Dark) ═══ */
+    --color-success: #22c55e;
+    --color-success-soft: rgba(34, 197, 94, 0.15);
+    --color-warning: #f59e0b;
+    --color-warning-soft: rgba(245, 158, 11, 0.15);
+    --color-error: #ef4444;
+    --color-error-soft: rgba(239, 68, 68, 0.15);
+    --color-info: #38bdf8;
+    --color-info-soft: rgba(56, 189, 248, 0.15);
+
+    /* ═══ DESIGN SYSTEM — Chart Palette (Dark) ═══ */
+    --chart-1: #38bdf8;
+    --chart-2: #f59e0b;
+    --chart-3: #22c55e;
+    --chart-4: #a78bfa;
+    --chart-5: #ef4444;
+    --chart-6: #c9a96e;
+
+    /* ═══ DESIGN SYSTEM — Accent Gold (Dark) ═══ */
+    --accent-gold: #c9a96e;
+    --accent-gold-soft: rgba(201, 169, 110, 0.15);
+
+    /* ═══ DESIGN SYSTEM — Surface System (Dark) ═══ */
+    --bg-app: #0a0e1a;
+    --bg-shell: rgba(15, 20, 40, 0.65);
+    --bg-sidebar: rgba(12, 16, 32, 0.70);
+    --bg-card: rgba(20, 28, 50, 0.45);
+    --bg-card-inner: rgba(25, 35, 60, 0.35);
+    --bg-card-hover: rgba(30, 42, 72, 0.55);
+    --bg-input: rgba(18, 24, 45, 0.50);
+    --bg-modal: rgba(10, 14, 28, 0.85);
+    --bg-tooltip: rgba(20, 28, 50, 0.90);
+
+    /* ═══ DESIGN SYSTEM — Border System (Dark) ═══ */
+    --border-glass: rgba(255, 255, 255, 0.08);
+    --border-glass-hover: rgba(255, 255, 255, 0.15);
+    --border-accent: rgba(56, 189, 248, 0.30);
+    --border-active: rgba(56, 189, 248, 0.60);
+    --border-sidebar: rgba(255, 255, 255, 0.06);
+
+    /* ═══ DESIGN SYSTEM — Accent Primary (Dark) ═══ */
+    --accent-primary: #38bdf8;
+    --accent-primary-soft: rgba(56, 189, 248, 0.15);
+    --accent-primary-glow: rgba(56, 189, 248, 0.25);
+
+    /* ═══ DESIGN SYSTEM — Shadows (Dark) ═══ */
+    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.15);
+    --shadow-card-hover: 0 8px 40px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.20);
+    --shadow-sidebar: 4px 0 24px rgba(0, 0, 0, 0.30);
+    --shadow-modal: 0 16px 64px rgba(0, 0, 0, 0.50);
+    --shadow-glow-accent: 0 0 20px rgba(56, 189, 248, 0.15);
+    --shadow-glow-gold: 0 0 20px rgba(201, 169, 110, 0.12);
+    --shadow-button: 0 2px 12px rgba(56, 189, 248, 0.30);
+
+    /* ═══ DESIGN SYSTEM — Glass Effects (Dark) ═══ */
+    --glass-blur-val: 16px;
+    --glass-blur-heavy-val: 24px;
+    --glass-blur-sidebar-val: 20px;
+    --glass-saturate: 1.2;
+
     /* Tailwind Semantic */
     --background: 230 30% 5%;
     --foreground: 0 0% 90%;
@@ -355,7 +510,7 @@
   }
 
   html {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    font-family: var(--font-body), 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -364,12 +519,20 @@
     background: var(--bg-body);
     color: var(--text-primary);
     font-weight: 400;
+    font-size: var(--text-body);
+    letter-spacing: 0.01em;
     transition: background-color 0.6s ease, color 0.4s ease;
   }
 
   h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display), Georgia, serif;
     font-weight: 600;
     color: var(--text-primary);
+    letter-spacing: 0.02em;
+  }
+
+  code, pre, kbd, samp {
+    font-family: var(--font-mono);
   }
 }
 
@@ -602,6 +765,158 @@
     font-size: 11px;
     font-weight: 500;
   }
+
+  /* ═══ DESIGN SYSTEM — Glass Shell (Layer 1) ═══ */
+  .glass-shell {
+    background: var(--bg-shell);
+    backdrop-filter: blur(var(--glass-blur-heavy-val, 24px)) saturate(var(--glass-saturate, 1.2));
+    -webkit-backdrop-filter: blur(var(--glass-blur-heavy-val, 24px)) saturate(var(--glass-saturate, 1.2));
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* ═══ DESIGN SYSTEM — Glass Card Inner (Layer 3) ═══ */
+  .glass-card-inner {
+    background: var(--bg-card-inner);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+  }
+
+  /* ═══ DESIGN SYSTEM — Glass Sidebar ═══ */
+  .glass-sidebar {
+    background: var(--bg-sidebar);
+    backdrop-filter: blur(var(--glass-blur-sidebar-val, 20px)) saturate(var(--glass-saturate, 1.2));
+    -webkit-backdrop-filter: blur(var(--glass-blur-sidebar-val, 20px)) saturate(var(--glass-saturate, 1.2));
+    border-right: 1px solid var(--border-glass);
+    box-shadow: var(--shadow-sidebar);
+    border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+  }
+
+  /* ═══ DESIGN SYSTEM — Status Badges ═══ */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: var(--radius-full, 9999px);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: capitalize;
+    font-family: var(--font-body);
+  }
+  .badge-success { background: var(--color-success-soft); color: var(--color-success); }
+  .badge-warning { background: var(--color-warning-soft); color: var(--color-warning); }
+  .badge-error   { background: var(--color-error-soft);   color: var(--color-error);   }
+  .badge-info    { background: var(--color-info-soft);    color: var(--color-info);    }
+  .badge-neutral { background: var(--border-glass);       color: var(--text-secondary); }
+
+  /* ═══ DESIGN SYSTEM — Input Glass ═══ */
+  .input-glass {
+    background: var(--bg-input);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
+    padding: 10px var(--space-4);
+    font-size: var(--text-body);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    width: 100%;
+  }
+  .input-glass::placeholder { color: var(--text-tertiary); }
+  .input-glass:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--accent-primary-soft);
+  }
+
+  /* ═══ DESIGN SYSTEM — Button Primary ═══ */
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent-primary), color-mix(in srgb, var(--accent-primary) 80%, white));
+    color: var(--text-inverse);
+    padding: 10px var(--space-6);
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: var(--text-body);
+    font-family: var(--font-body);
+    border: none;
+    box-shadow: var(--shadow-button);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-button), 0 4px 20px var(--accent-primary-glow);
+  }
+
+  /* ═══ DESIGN SYSTEM — Button Glass ═══ */
+  .btn-glass-ds {
+    background: var(--bg-card);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: var(--text-primary);
+    padding: 10px var(--space-5);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-glass);
+    font-weight: 500;
+    font-size: var(--text-body);
+    font-family: var(--font-body);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .btn-glass-ds:hover {
+    border-color: var(--border-glass-hover);
+    background: var(--bg-card-hover);
+  }
+
+  /* ═══ DESIGN SYSTEM — Modal ═══ */
+  .ds-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.50);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+  }
+  :root:not([data-theme="dark"]) .ds-modal-overlay {
+    background: rgba(0, 0, 0, 0.20);
+  }
+  .ds-modal-content {
+    background: var(--bg-modal);
+    backdrop-filter: blur(var(--glass-blur-heavy-val, 24px));
+    -webkit-backdrop-filter: blur(var(--glass-blur-heavy-val, 24px));
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-modal);
+    padding: var(--space-7);
+    max-width: 560px;
+    width: 90%;
+  }
+}
+
+/* ═══ DESIGN SYSTEM — Skeleton Shimmer ═══ */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-card-inner, rgba(255,255,255,0.04)) 25%,
+    var(--border-glass, rgba(255,255,255,0.08)) 50%,
+    var(--bg-card-inner, rgba(255,255,255,0.04)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
 }
 
 /* ═══ AMBIENT ORBS ═══ */
@@ -680,9 +995,18 @@
 
 /* ═══ ANIMATIONS ═══ */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* Staggered card entrance */
+.glass-card { animation: fadeInUp 0.4s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) backwards; }
+.glass-card:nth-child(1) { animation-delay: 0.05s; }
+.glass-card:nth-child(2) { animation-delay: 0.10s; }
+.glass-card:nth-child(3) { animation-delay: 0.15s; }
+.glass-card:nth-child(4) { animation-delay: 0.20s; }
+.glass-card:nth-child(5) { animation-delay: 0.25s; }
+.glass-card:nth-child(6) { animation-delay: 0.30s; }
 
 @keyframes chartFade {
   from { opacity: 0; }
