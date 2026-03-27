@@ -205,9 +205,9 @@ export function CreateInvoiceModal({ open, onClose }: Props) {
         <div className="space-y-2 mb-2">
           {items.map((it, idx) => (
             <div key={idx} className="grid grid-cols-[1fr_60px_100px_90px_32px] gap-2 items-center">
-              <input value={it.description} onChange={(e) => updateItem(idx, "description", e.target.value)} placeholder="Descrizione" className="glass-input px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground outline-none" />
-              <input type="number" value={it.quantity || ""} onChange={(e) => updateItem(idx, "quantity", parseFloat(e.target.value) || 0)} placeholder="Qtà" className="glass-input px-2 py-2 text-xs text-foreground text-center outline-none" />
-              <input type="number" value={it.unitPrice || ""} onChange={(e) => updateItem(idx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="€ Unit." className="glass-input px-2 py-2 text-xs text-foreground text-right outline-none" />
+              <input value={it.description} onChange={(e) => updateItem(idx, "description", e.target.value)} placeholder="Descrizione" maxLength={200} className="glass-input px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground outline-none" />
+              <input type="number" min="0" max="99999" step="1" value={it.quantity || ""} onChange={(e) => updateItem(idx, "quantity", parseFloat(e.target.value) || 0)} placeholder="Qtà" className="glass-input px-2 py-2 text-xs text-foreground text-center outline-none" />
+              <input type="number" min="0" max="999999" step="0.01" value={it.unitPrice || ""} onChange={(e) => updateItem(idx, "unitPrice", parseFloat(e.target.value) || 0)} placeholder="€ Unit." className="glass-input px-2 py-2 text-xs text-foreground text-right outline-none" />
               <span className="text-xs font-bold text-foreground text-right">{fmtEur(it.quantity * it.unitPrice)}</span>
               {items.length > 1 && (
                 <button type="button" onClick={() => setItems((p) => p.filter((_, i) => i !== idx))} className="glass-btn p-1.5 text-muted-foreground hover:text-destructive">
@@ -236,7 +236,7 @@ export function CreateInvoiceModal({ open, onClose }: Props) {
           <div className="flex justify-between items-center text-xs">
             <span className="text-muted-foreground font-semibold flex items-center gap-2">
               IVA
-              <input type="number" value={taxRate} onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)} className="glass-input w-14 px-2 py-1 text-xs text-foreground text-center outline-none" />
+              <input type="number" min="0" max="100" step="0.5" value={taxRate} onChange={(e) => setTaxRate(Math.min(100, parseFloat(e.target.value) || 0))} className="glass-input w-14 px-2 py-1 text-xs text-foreground text-center outline-none" />
               %
             </span>
             <span className="text-foreground font-bold">{fmtEur(tax)}</span>

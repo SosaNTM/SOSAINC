@@ -74,8 +74,7 @@ const ForgotPasswordPage = () => {
                   />
                 </div>
 
-                <button type="button"
-                  type="submit"
+                <button type="submit"
                   disabled={loading}
                   className="glass-btn-primary flex items-center justify-center gap-2"
                   style={{ padding: "12px 0", fontSize: 14, fontWeight: 600, borderRadius: 10, width: "100%" }}

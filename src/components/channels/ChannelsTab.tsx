@@ -120,14 +120,14 @@ function ChannelModal({ channel, onClose }: { channel?: Channel; onClose: () => 
         <div className="grid grid-cols-2 gap-4" style={{ marginBottom: 16 }}>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6, display: "block" }}>Commission Rate (%)</label>
-            <input type="number" value={commission} onChange={e => setCommission(+e.target.value)} style={{
+            <input type="number" min="0" max="100" step="0.1" value={commission} onChange={e => setCommission(Math.min(100, +e.target.value))} style={{
               width: "100%", padding: "10px 14px", borderRadius: 12, fontSize: 14,
               background: "var(--input-bg)", border: "1px solid var(--glass-border)", color: "var(--text-primary)", outline: "none",
             }} />
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6, display: "block" }}>Tax Rate (%)</label>
-            <input type="number" value={taxRate} onChange={e => setTaxRate(+e.target.value)} style={{
+            <input type="number" min="0" max="100" step="0.1" value={taxRate} onChange={e => setTaxRate(Math.min(100, +e.target.value))} style={{
               width: "100%", padding: "10px 14px", borderRadius: 12, fontSize: 14,
               background: "var(--input-bg)", border: "1px solid var(--glass-border)", color: "var(--text-primary)", outline: "none",
             }} />

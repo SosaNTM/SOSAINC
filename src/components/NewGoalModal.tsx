@@ -211,7 +211,7 @@ export function NewGoalModal({ open, onClose, onSave, initialData }: NewGoalModa
           <div>
             <label style={labelStyle}>Goal Name *</label>
             <input
-              type="text" placeholder="e.g. Emergency Fund"
+              type="text" placeholder="e.g. Emergency Fund" maxLength={80}
               value={form.name}
               onChange={e => set("name", e.target.value)}
               style={{ ...inputStyle, borderColor: errors.name ? "#FF5A5A" : "rgba(255,255,255,0.1)" }}
@@ -226,7 +226,7 @@ export function NewGoalModal({ open, onClose, onSave, initialData }: NewGoalModa
             <div>
               <label style={labelStyle}>Target Amount € *</label>
               <input
-                type="number" min="0" step="0.01" placeholder="0.00"
+                type="number" min="0" max="999999999" step="0.01" placeholder="0.00"
                 value={form.target}
                 onChange={e => set("target", e.target.value)}
                 style={{ ...inputStyle, borderColor: errors.target ? "#FF5A5A" : "#e5e7eb" }}
@@ -238,7 +238,7 @@ export function NewGoalModal({ open, onClose, onSave, initialData }: NewGoalModa
             <div>
               <label style={labelStyle}>Current Amount €</label>
               <input
-                type="number" min="0" step="0.01" placeholder="0.00"
+                type="number" min="0" max="999999999" step="0.01" placeholder="0.00"
                 value={form.saved}
                 onChange={e => set("saved", e.target.value)}
                 style={inputStyle}

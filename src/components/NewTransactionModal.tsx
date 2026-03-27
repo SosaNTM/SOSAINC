@@ -123,7 +123,7 @@ export function NewTransactionModal({ open, onClose }: NewTransactionModalProps)
 
         <div className="mb-5">
           <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", marginBottom: 6, display: "block" }}>Amount (€)</label>
-          <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="glass-input w-full px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none" />
+          <input type="number" min="0" max="999999999" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="glass-input w-full px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none" />
         </div>
 
         {txType === "income" && (

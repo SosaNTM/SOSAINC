@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { PortalLayout } from "./components/PortalLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AdminRoute } from "./components/AdminRoute";
 import { AuthProvider } from "./lib/authContext";
 import { PortalProvider } from "./lib/portalContext";
 import { PortalDBProvider } from "./lib/portalContextDB";
@@ -81,7 +82,9 @@ function PortalRoutes() {
       <Route path="cloud" element={<CloudPage />} />
       <Route path="tasks" element={<TasksPage />} />
       <Route path="notes" element={<NotesPage />} />
-      <Route path="admin" element={<AdministrationPage />} />
+      <Route path="admin" element={<AdminRoute />}>
+        <Route index element={<AdministrationPage />} />
+      </Route>
       <Route path="reports" element={<PlaceholderPage name="Reports" />} />
       <Route path="forecast" element={<PlaceholderPage name="Forecast" />} />
       <Route path="social" element={<Navigate to="overview" replace />} />

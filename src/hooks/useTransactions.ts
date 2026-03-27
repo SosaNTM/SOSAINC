@@ -149,7 +149,7 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
         localAdd(data, user.id, portalId);
         broadcastFinanceUpdate("transaction_added");
         addAuditEntry({ userId: user.id, action: `Added ${data.type} — ${data.description || data.category} €${data.amount}`, category: "finance", details: "", icon: data.type === "income" ? "💰" : "💸", portalId });
-        toast.success("Transaction added");
+        toast.success("Transaction saved locally");
         return true;
       } catch {
         toast.error("Error: unable to save transaction");
@@ -179,7 +179,7 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
       localUpdate(id, changes, portalId);
       broadcastFinanceUpdate("transaction_updated", { id });
       addAuditEntry({ userId: user.id, action: `Updated transaction`, category: "finance", details: "", icon: "✏️", portalId });
-      toast.success("Transaction updated");
+      toast.success("Transaction updated locally");
       return true;
     }
   }, [user, portalId]);
@@ -205,7 +205,7 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
       localDelete(id, portalId);
       broadcastFinanceUpdate("transaction_deleted", { id });
       addAuditEntry({ userId: user.id, action: `Deleted transaction`, category: "finance", details: "", icon: "🗑️", portalId });
-      toast.success("Transaction deleted");
+      toast.success("Transaction deleted locally");
       return true;
     }
   }, [user, portalId]);

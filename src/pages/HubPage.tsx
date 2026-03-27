@@ -69,9 +69,11 @@ export default function HubPage() {
         {accessiblePortals.map((portal, i) => {
           const meta = PORTAL_META[portal.id] ?? { icon: "◻", color: portal.accent, desc: portal.subtitle };
           const lastAccessed = getLastAccessed(portal.id);
-          const lastAccessedText = lastAccessed
-            ? formatDistanceToNow(new Date(lastAccessed), { addSuffix: false })
-            : "Not yet accessed";
+          let lastAccessedText = "Not yet accessed";
+          if (lastAccessed) {
+            try { lastAccessedText = formatDistanceToNow(new Date(lastAccessed), { addSuffix: false }); }
+            catch { lastAccessedText = "Recently"; }
+          }
           const isHovered = hoveredCard === portal.id;
           const isEnterHovered = hoveredEnter === portal.id;
 

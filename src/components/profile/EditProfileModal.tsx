@@ -201,7 +201,6 @@ export function EditProfileModal({ profile, open, onClose, onSaved }: Props) {
                       </div>
                     </div>
                     <button type="button"
-                      type="button"
                       onClick={() => { updateProfile(profile.id, { telegram_chat_id: null, telegram_notifications_enabled: false }); onSaved({ ...profile, telegram_chat_id: null }); toast.success("Telegram disconnesso"); }}
                       style={{
                         fontSize: 11, fontWeight: 600, color: "rgba(239,68,68,0.7)",

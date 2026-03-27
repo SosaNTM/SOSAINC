@@ -92,7 +92,6 @@ const ResetPasswordPage = () => {
                       style={{ padding: "10px 42px 10px 14px", fontSize: 14 }}
                     />
                     <button type="button"
-                      type="button"
                       onClick={() => setShowPw((p) => !p)}
                       className="absolute right-3 top-1/2 -translate-y-1/2"
                       style={{ color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
@@ -125,8 +124,7 @@ const ResetPasswordPage = () => {
                   )}
                 </div>
 
-                <button type="button"
-                  type="submit"
+                <button type="submit"
                   disabled={loading || mismatch || password.length < 6}
                   className="glass-btn-primary flex items-center justify-center gap-2"
                   style={{ padding: "12px 0", fontSize: 14, fontWeight: 600, borderRadius: 10, width: "100%", opacity: mismatch ? 0.5 : 1 }}

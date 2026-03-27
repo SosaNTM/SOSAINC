@@ -134,16 +134,31 @@ export async function loadProjectsFromSupabase(): Promise<Project[]> {
   return (data as ProjectRow[]).map(projectRowToProject);
 }
 
-// ── Write ─────────────────────────────────────────────────────────────────────
+// ── Write (with graceful fallback if Supabase table doesn't exist) ────────────
 
 export async function upsertTask(issue: Issue, userId: string): Promise<void> {
-  await supabase.from("tasks").upsert(issueToTaskRow(issue, userId), { onConflict: "id" });
+  try {
+    const { error } = await supabase.from("tasks").upsert(issueToTaskRow(issue, userId), { onConflict: "id" });
+    if (error) console.warn("Failed to sync task to Supabase:", error.message);
+  } catch {
+    // Supabase not available — task lives in localStorage only
+  }
 }
 
 export async function deleteTask(id: string): Promise<void> {
-  await supabase.from("tasks").delete().eq("id", id);
+  try {
+    const { error } = await supabase.from("tasks").delete().eq("id", id);
+    if (error) console.warn("Failed to delete task from Supabase:", error.message);
+  } catch {
+    // Supabase not available
+  }
 }
 
 export async function upsertProject(project: Project, userId: string): Promise<void> {
-  await supabase.from("projects").upsert(projectToRow(project, userId), { onConflict: "id" });
+  try {
+    const { error } = await supabase.from("projects").upsert(projectToRow(project, userId), { onConflict: "id" });
+    if (error) console.warn("Failed to sync project to Supabase:", error.message);
+  } catch {
+    // Supabase not available
+  }
 }

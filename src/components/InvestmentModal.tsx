@@ -90,12 +90,12 @@ export function InvestmentModal({ open, onClose, onSave, initial }: Props) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-quaternary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Name *</label>
-                  <input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Apple Inc." required autoComplete="off"
+                  <input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Apple Inc." required maxLength={100} autoComplete="off"
                     style={{ marginTop: 6, width: "100%", padding: "9px 12px", borderRadius: 10, border: "1px solid var(--glass-border)", background: "rgba(255,255,255,0.04)", color: "var(--text-primary)", fontSize: 13, outline: "none" }} />
                 </div>
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-quaternary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Ticker</label>
-                  <input value={form.ticker} onChange={(e) => set("ticker", e.target.value.toUpperCase())} placeholder="AAPL" autoComplete="off"
+                  <input value={form.ticker} onChange={(e) => set("ticker", e.target.value.toUpperCase())} placeholder="AAPL" maxLength={10} autoComplete="off"
                     style={{ marginTop: 6, width: "100%", padding: "9px 12px", borderRadius: 10, border: "1px solid var(--glass-border)", background: "rgba(255,255,255,0.04)", color: "var(--text-primary)", fontSize: 13, outline: "none" }} />
                 </div>
               </div>
