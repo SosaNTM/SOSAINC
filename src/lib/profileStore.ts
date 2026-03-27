@@ -32,6 +32,7 @@ export interface Profile {
   website_url: string | null;
   linkedin_url: string | null;
   instagram_url: string | null;
+  discord_tag: string | null;
   slack_tag: string | null;
   extra_socials: { label: string; url: string }[];
   created_at: string;
@@ -95,6 +96,7 @@ function createDefaultProfile(userId: string, email: string, displayName: string
     website_url: null,
     linkedin_url: null,
     instagram_url: null,
+    discord_tag: null,
     slack_tag: null,
     extra_socials: [],
     created_at: new Date().toISOString(),

@@ -177,6 +177,9 @@ export function EditProfileModal({ profile, open, onClose, onSaved }: Props) {
               <Field label="Instagram" error={errors.instagram_url}>
                 <input className="glass-input w-full" value={form.instagram_url || ""} onChange={(e) => set("instagram_url", e.target.value)} style={fieldStyle("instagram_url")} placeholder="https://instagram.com/..." />
               </Field>
+              <Field label="Discord">
+                <input className="glass-input w-full" value={form.discord_tag || ""} onChange={(e) => set("discord_tag", e.target.value)} style={fieldStyle("discord_tag")} placeholder="username#0000" />
+              </Field>
               <Field label="Slack Tag">
                 <input className="glass-input w-full" value={form.slack_tag || ""} onChange={(e) => set("slack_tag", e.target.value)} style={fieldStyle("slack_tag")} placeholder="@username" />
               </Field>
