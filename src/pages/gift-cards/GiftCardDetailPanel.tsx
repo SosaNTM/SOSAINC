@@ -94,8 +94,12 @@ export function GiftCardDetailPanel({
         <div style={{ padding: "0 20px 24px" }}>
           {/* Header */}
           <div style={{ textAlign: "center", padding: "16px 0 20px" }}>
-            <div style={{ width: 64, height: 64, borderRadius: 16, background: brandColor, margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ fontSize: 28, fontWeight: 700, color: "#fff" }}>{card.brand.charAt(0)}</span>
+            <div style={{ width: 64, height: 64, borderRadius: 16, background: card.brandData?.logo_url ? "#fff" : brandColor, margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+              {card.brandData?.logo_url ? (
+                <img src={card.brandData.logo_url} alt="" style={{ width: 48, height: 48, objectFit: "contain" }} loading="lazy" />
+              ) : (
+                <span style={{ fontSize: 28, fontWeight: 700, color: "#fff" }}>{card.brand.charAt(0)}</span>
+              )}
             </div>
             <p style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>{card.brand}</p>
             <p style={{ fontSize: 12, color: "var(--text-quaternary)", marginTop: 2 }}>Gift Card</p>

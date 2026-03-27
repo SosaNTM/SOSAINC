@@ -85,9 +85,13 @@ function TxRow({ tx, onDelete, getCatColor, getCatIcon }: {
                 </span>
               );
             })()}
-            {tx.payment_method && (
+            {tx.payment_method === "crypto" ? (
+              <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 99, background: "rgba(247,147,26,0.12)", color: "#F7931A", letterSpacing: "0.03em" }}>
+                Crypto
+              </span>
+            ) : tx.payment_method ? (
               <span style={{ fontSize: 10, color: "var(--text-quaternary)" }}>{PAYMENT_METHOD_LABELS[tx.payment_method]}</span>
-            )}
+            ) : null}
           </div>
         </div>
 

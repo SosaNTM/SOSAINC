@@ -252,26 +252,6 @@ export function CryptoHoldingModal({ open, onClose, onSave, editing, existingCoi
               </p>
             )}
 
-            {/* Avg buy price */}
-            <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: 6, marginTop: 16 }}>Prezzo medio di acquisto EUR (opzionale)</label>
-            <input type="number" step="any" value={avgBuyPrice} onChange={(e) => setAvgBuyPrice(e.target.value)} placeholder="0.00"
-              style={INPUT_STYLE}
-              onFocus={(e) => { e.currentTarget.style.borderColor = GOLD; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = "var(--btn-glass-border)"; }} />
-            {livePL != null && qty > 0 && (
-              <p style={{ fontSize: 11, marginTop: 4, color: livePL >= 0 ? "#22c55e" : "#ef4444", fontWeight: 600 }}>
-                P/L stimato: {formatEUR(livePL, { sign: true })} ({livePLPct != null ? `${livePLPct >= 0 ? "+" : ""}${livePLPct.toFixed(1)}%` : ""})
-              </p>
-            )}
-
-            {/* Notes */}
-            <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: 6, marginTop: 16 }}>Note (opzionale)</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
-              placeholder="Es. Comprato su Binance, DCA mensile..."
-              style={{ ...INPUT_STYLE, resize: "vertical", minHeight: 48 }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = GOLD; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = "var(--btn-glass-border)"; }} />
-
             {/* Error */}
             {saveError && (
               <p style={{ fontSize: 12, color: "#ef4444", fontWeight: 600, marginTop: 12, padding: "8px 12px", borderRadius: 8, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>

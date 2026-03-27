@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   RefreshCw, Plus, TrendingUp, TrendingDown,
   Pencil, Trash2,
@@ -15,6 +15,12 @@ import { formatEUR } from "@/portals/finance/utils/currency";
 import type { EnrichedHolding } from "@/portals/finance/types/crypto";
 import { CryptoHoldingModal } from "./CryptoHoldingModal";
 import { CryptoDeleteConfirm } from "./CryptoDeleteConfirm";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { CryptoDetailPopup } from "./CryptoDetailPopup";
+import { localGetAll, localAdd } from "@/lib/personalTransactionStore";
+import { addAuditEntry } from "@/lib/adminStore";
+import { useAuth } from "@/lib/authContext";
+import { usePortal } from "@/lib/portalContext";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -119,12 +125,53 @@ const CHART_PERIODS = [
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export default function CryptoPage() {
+  const { user } = useAuth();
+  const { portal } = usePortal();
+  const portalId = portal?.id ?? "sosa";
+
   const {
     enrichedHoldings, summary,
     isLoading, lastUpdated, isRefreshing,
     refreshPrices, getPriceForCoin,
     addHolding, updateHolding, deleteHolding,
   } = useCryptoPortfolio();
+
+  // ── Migrate old crypto_tx_history into personal transactions (once) ────────
+  React.useEffect(() => {
+    if (!user) return;
+    const MIGRATED_KEY = `crypto_tx_migrated_${portalId}`;
+    if (localStorage.getItem(MIGRATED_KEY)) return;
+
+    try {
+      const raw = localStorage.getItem("crypto_tx_history");
+      if (!raw) { localStorage.setItem(MIGRATED_KEY, "1"); return; }
+      const cryptoTxs: { id: string; coin_id: string; type: "buy" | "sell"; quantity: number; title?: string; date: string }[] = JSON.parse(raw);
+      if (cryptoTxs.length === 0) { localStorage.setItem(MIGRATED_KEY, "1"); return; }
+
+      // Check which crypto tx IDs already exist as personal transactions
+      const existing = localGetAll(portalId);
+      const existingDescriptions = new Set(existing.map((t) => t.description));
+
+      for (const tx of cryptoTxs) {
+        const desc = `${tx.title || (tx.type === "buy" ? "Acquisto" : "Vendita")} — ${tx.quantity.toFixed(tx.quantity < 1 ? 8 : 4)} ${tx.coin_id.toUpperCase()}`;
+        if (existingDescriptions.has(desc)) continue; // already migrated
+
+        localAdd({
+          user_id: user.id,
+          type: tx.type === "buy" ? "expense" : "income",
+          amount: 0, // we don't know EUR value at time of old tx
+          currency: "EUR",
+          category: "Crypto",
+          description: desc,
+          date: tx.date,
+          payment_method: "crypto",
+          is_recurring: false,
+          tags: ["crypto", tx.coin_id],
+        }, user.id, portalId);
+      }
+      localStorage.setItem(MIGRATED_KEY, "1");
+    } catch { /* ignore migration errors */ }
+  }, [user, portalId]);
 
   // Chart
   const [chartDays, setChartDays] = useState(30);
@@ -135,6 +182,7 @@ export default function CryptoPage() {
   const [editingHolding, setEditingHolding] = useState<EnrichedHolding | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string; detail?: string } | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [detailHolding, setDetailHolding] = useState<EnrichedHolding | null>(null);
 
   // Allocation data for donut
   const allocationData = enrichedHoldings
@@ -161,6 +209,7 @@ export default function CryptoPage() {
   async function handleDeleteConfirm() {
     if (!deleteTarget) return;
     await deleteHolding(deleteTarget.id);
+    if (user) addAuditEntry({ userId: user.id, action: `Removed ${deleteTarget.label} from crypto portfolio`, category: "finance", details: deleteTarget.detail ?? "", icon: "🗑️", portalId });
     setDeleteTarget(null);
   }
 
@@ -353,7 +402,8 @@ export default function CryptoPage() {
                 <motion.div key={h.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.03 * i, duration: 0.3 }}
                   className="flex items-center gap-3"
-                  style={{ padding: "12px 14px", borderRadius: 12, transition: "all 0.2s", cursor: "default", borderBottom: i < enrichedHoldings.length - 1 ? "0.5px solid var(--glass-border)" : "none" }}
+                  onClick={() => setDetailHolding(h)}
+                  style={{ padding: "12px 14px", borderRadius: 12, transition: "all 0.2s", cursor: "pointer", borderBottom: i < enrichedHoldings.length - 1 ? "0.5px solid var(--glass-border)" : "none" }}
                   onMouseEnter={(e) => {
                     (e.currentTarget as HTMLElement).style.background = "var(--nav-hover-bg)";
                     (e.currentTarget as HTMLElement).style.borderColor = `${GOLD}4d`;
@@ -378,7 +428,7 @@ export default function CryptoPage() {
                       <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>{h.name}</span>
                     </div>
                     <p style={{ fontSize: 11, color: "var(--text-quaternary)", fontVariantNumeric: "tabular-nums" }}>
-                      {h.quantity.toFixed(h.quantity < 1 ? 6 : 2)} {h.symbol}
+                      {h.quantity.toFixed(h.quantity < 1 ? 8 : 4)} {h.symbol}
                     </p>
                   </div>
 
@@ -404,11 +454,14 @@ export default function CryptoPage() {
                       style={{ width: 26, height: 26, borderRadius: 6, border: "none", background: "rgba(255,255,255,0.05)", color: "var(--text-quaternary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <Pencil style={{ width: 11, height: 11 }} />
                     </button>
-                    <button type="button" title="Elimina" onClick={() => setDeleteTarget({
-                      id: h.id,
-                      label: `${h.name} (${h.symbol})`,
-                      detail: `Possiedi ${h.quantity.toFixed(h.quantity < 1 ? 6 : 2)} ${h.symbol} (${formatEUR(h.totalValue)}).`,
-                    })}
+                    <button type="button" title="Elimina" onClick={(ev) => {
+                      ev.stopPropagation();
+                      setDeleteTarget({
+                        id: h.id,
+                        label: `${h.name} (${h.symbol})`,
+                        detail: `Possiedi ${h.quantity.toFixed(h.quantity < 1 ? 8 : 4)} ${h.symbol} (${formatEUR(h.totalValue)}).`,
+                      });
+                    }}
                       style={{ width: 26, height: 26, borderRadius: 6, border: "none", background: "rgba(255,90,90,0.08)", color: "#FF5A5A", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <Trash2 style={{ width: 11, height: 11 }} />
                     </button>
@@ -459,8 +512,13 @@ export default function CryptoPage() {
         onSave={async (data) => {
           try {
             setSaveError(null);
-            if (editingHolding) await updateHolding(editingHolding.id, data);
-            else await addHolding(data);
+            if (editingHolding) {
+              await updateHolding(editingHolding.id, data);
+              if (user) addAuditEntry({ userId: user.id, action: `Updated ${data.symbol} holding — ${data.quantity.toFixed(data.quantity < 1 ? 8 : 4)} ${data.symbol}`, category: "finance", details: "", icon: "✏️", portalId });
+            } else {
+              await addHolding(data);
+              if (user) addAuditEntry({ userId: user.id, action: `Added ${data.symbol} to crypto portfolio — ${data.quantity.toFixed(data.quantity < 1 ? 8 : 4)} ${data.symbol}`, category: "finance", details: "", icon: "₿", portalId });
+            }
             setHoldingModalOpen(false);
             setEditingHolding(null);
           } catch (err) {
@@ -481,6 +539,19 @@ export default function CryptoPage() {
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}
       />
+
+      {/* ── Detail Popup (chart + add/remove + history) ──────────── */}
+      <AnimatePresence>
+        {detailHolding && (
+          <CryptoDetailPopup
+            holding={detailHolding}
+            onClose={() => setDetailHolding(null)}
+            onUpdateQuantity={async (newQty) => {
+              await updateHolding(detailHolding.id, { quantity: newQty });
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

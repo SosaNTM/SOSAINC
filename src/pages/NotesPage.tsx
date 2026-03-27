@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useAuth, ALL_USERS } from "@/lib/authContext";
+import { addAuditEntry } from "@/lib/adminStore";
 import { INITIAL_NOTES, INITIAL_FOLDERS, TAG_PRESETS, type Note, type NoteFolder, INITIAL_TELEGRAM_NOTES, telegramNoteToNote } from "@/lib/notesStore";
 import {
   Plus, Search, Pin, Lock, Trash2, Copy, Archive, MoreVertical,
@@ -8,7 +9,6 @@ import {
   FolderPlus, Folder, FolderOpen, GripVertical, Smartphone, Mic, FileText,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import sw from "./NotesPage.module.css";
 
 // ─── Tag Pill ───
 function TagPill({ tag, onRemove }: { tag: string; onRemove?: () => void }) {
@@ -39,12 +39,12 @@ function ToolBtn({ icon: Icon, active, onClick, title }: { icon: any; active?: b
       title={title}
       style={{
         width: 30, height: 30, borderRadius: 6, border: "none", cursor: "pointer",
-        background: active ? "rgba(232,255,0,0.1)" : "transparent",
-        color: active ? "#e8ff00" : "rgba(255,255,255,0.25)",
+        background: active ? "var(--accent-color-dim, rgba(110,231,183,0.15))" : "transparent",
+        color: active ? "var(--accent-color)" : "var(--text-tertiary)",
         display: "flex", alignItems: "center", justifyContent: "center",
       }}
-      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "rgba(232,255,0,0.04)"; }}
-      onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = active ? "rgba(232,255,0,0.1)" : "transparent"; }}
+      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--surface-hover, var(--nav-hover-bg))"; }}
+      onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = active ? "var(--accent-color-dim, rgba(110,231,183,0.15))" : "transparent"; }}
     >
       <Icon className="w-4 h-4" style={{ strokeWidth: 1.7 }} />
     </button>
@@ -152,6 +152,7 @@ const NotesPage = () => {
     setNotes((prev) => [newNote, ...prev]);
     setSelectedId(id);
     setMobileListOpen(false);
+    if (user) addAuditEntry({ userId: user.id, action: "Created new note", category: "tasks", details: "", icon: "📝" });
     setTimeout(() => document.getElementById("note-title-input")?.focus(), 50);
   };
 
@@ -159,11 +160,18 @@ const NotesPage = () => {
     const note = notes.find((n) => n.id === noteId);
     if (!note) return;
     switch (action) {
-      case "pin": updateNote(noteId, { isPinned: !note.isPinned }); break;
-      case "archive": updateNote(noteId, { isArchived: !note.isArchived }); break;
+      case "pin":
+        updateNote(noteId, { isPinned: !note.isPinned });
+        if (user) addAuditEntry({ userId: user.id, action: `${note.isPinned ? "Unpinned" : "Pinned"} note "${note.title || "Untitled"}"`, category: "tasks", details: "", icon: note.isPinned ? "📌" : "📌" });
+        break;
+      case "archive":
+        updateNote(noteId, { isArchived: !note.isArchived });
+        if (user) addAuditEntry({ userId: user.id, action: `${note.isArchived ? "Unarchived" : "Archived"} note "${note.title || "Untitled"}"`, category: "tasks", details: "", icon: "📦" });
+        break;
       case "duplicate": {
         const dup: Note = { ...note, id: `note_${Date.now()}`, title: note.title + " (copy)", createdAt: new Date(), updatedAt: new Date() };
         setNotes((prev) => [dup, ...prev]);
+        if (user) addAuditEntry({ userId: user.id, action: `Duplicated note "${note.title || "Untitled"}"`, category: "tasks", details: "", icon: "📋" });
         break;
       }
       case "delete": setDeleteConfirm(noteId); break;
@@ -174,8 +182,10 @@ const NotesPage = () => {
 
   const confirmDelete = () => {
     if (deleteConfirm) {
+      const note = notes.find((n) => n.id === deleteConfirm);
       setNotes((prev) => prev.filter((n) => n.id !== deleteConfirm));
       if (selectedId === deleteConfirm) setSelectedId(null);
+      if (user && note) addAuditEntry({ userId: user.id, action: `Deleted note "${note.title || "Untitled"}"`, category: "tasks", details: "", icon: "🗑️" });
       setDeleteConfirm(null);
     }
   };
@@ -285,18 +295,18 @@ const NotesPage = () => {
           paddingLeft: indent > 0 ? indent : 10,
           borderRadius: 8,
           marginBottom: 1,
-          background: isActive ? "rgba(232,255,0,0.07)" : "transparent",
-          borderLeft: isActive ? "3px solid #e8ff00" : "3px solid transparent",
+          background: isActive ? "var(--nav-item-active-bg)" : "transparent",
+          borderLeft: isActive ? "3px solid var(--accent-color)" : "3px solid transparent",
         }}
-        onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
-        onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? "rgba(232,255,0,0.07)" : "transparent"; }}
+        onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--nav-hover-bg)"; }}
+        onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? "var(--nav-item-active-bg)" : "transparent"; }}
       >
         <div className="flex items-center gap-1.5">
           {canDrag && <GripVertical className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-40 cursor-grab" />}
-          {note.isPinned && <Pin className="w-3 h-3 shrink-0" style={{ color: "#e8ff00" }} />}
-          {isTg && note.file_type === "voice" && <Mic className="w-3 h-3 shrink-0" style={{ color: "rgba(255,255,255,0.18)" }} />}
-          {isTg && note.file_type === "document" && <FileText className="w-3 h-3 shrink-0" style={{ color: "rgba(255,255,255,0.18)" }} />}
-          <span className="truncate" style={{ fontSize: 13, fontWeight: isActive ? 600 : 500, color: isActive ? "#fff" : "rgba(255,255,255,0.45)" }}>
+          {note.isPinned && <Pin className="w-3 h-3 shrink-0" style={{ color: "var(--accent-color)" }} />}
+          {isTg && note.file_type === "voice" && <Mic className="w-3 h-3 shrink-0" style={{ color: "var(--text-quaternary)" }} />}
+          {isTg && note.file_type === "document" && <FileText className="w-3 h-3 shrink-0" style={{ color: "var(--text-quaternary)" }} />}
+          <span className="truncate" style={{ fontSize: 13, fontWeight: isActive ? 600 : 500, color: isActive ? "var(--text-primary)" : "var(--text-secondary)" }}>
             {note.title || "Untitled Note"}
           </span>
           {isTg && (
@@ -311,13 +321,13 @@ const NotesPage = () => {
             <button type="button"
               onClick={(e) => { e.stopPropagation(); setContextMenu({ note, x: e.clientX, y: e.clientY }); }}
               className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-              style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "rgba(255,255,255,0.18)" }}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "var(--text-quaternary)" }}
             >
               <MoreVertical className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
-        <p className="truncate" style={{ fontSize: 11, color: "rgba(255,255,255,0.18)", marginTop: 2, paddingLeft: canDrag ? 15 : 0 }}>
+        <p className="truncate" style={{ fontSize: 11, color: "var(--text-quaternary)", marginTop: 2, paddingLeft: canDrag ? 15 : 0 }}>
           {note.content.replace(/[#*\-\[\]>]/g, "").slice(0, 60)}
         </p>
       </button>
@@ -346,22 +356,22 @@ const NotesPage = () => {
               marginBottom: 1,
               fontSize: 13,
               fontWeight: isActive ? 600 : 500,
-              color: isActive ? "#fff" : "rgba(255,255,255,0.45)",
-              background: isActive ? "rgba(232,255,0,0.07)" : isDragOver ? "rgba(232,255,0,0.08)" : "transparent",
-              border: isDragOver ? "1.5px dashed #e8ff00" : "1.5px solid transparent",
+              color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
+              background: isActive ? "var(--nav-item-active-bg)" : isDragOver ? "var(--accent-color-dim, rgba(110,231,183,0.1))" : "transparent",
+              border: isDragOver ? "1.5px dashed var(--accent-color)" : "1.5px solid transparent",
             }}
             onClick={() => { setViewFilter({ type: "folder", folderId: folder.id }); if (hasContent && !isExpanded) toggleFolder(folder.id); }}
             onContextMenu={(e) => { e.preventDefault(); if (canEdit) setFolderContextMenu({ folder, x: e.clientX, y: e.clientY }); }}
             onDragOver={(e) => handleDragOver(e, folder.id)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, folder.id)}
-            onMouseEnter={(e) => { if (!isActive && !isDragOver) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+            onMouseEnter={(e) => { if (!isActive && !isDragOver) e.currentTarget.style.background = "var(--nav-hover-bg)"; }}
             onMouseLeave={(e) => { if (!isActive && !isDragOver) e.currentTarget.style.background = "transparent"; }}
           >
             {hasContent ? (
               <button type="button"
                 onClick={(e) => { e.stopPropagation(); toggleFolder(folder.id); }}
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "rgba(255,255,255,0.18)", display: "flex" }}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--text-quaternary)", display: "flex" }}
               >
                 {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
               </button>
@@ -376,7 +386,7 @@ const NotesPage = () => {
                 onChange={(e) => setRenameValue(e.target.value)}
                 onBlur={() => { if (renameValue.trim()) setFolders((prev) => prev.map((f) => f.id === folder.id ? { ...f, name: renameValue.trim() } : f)); setRenamingFolderId(null); }}
                 onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setRenamingFolderId(null); }}
-                className=""
+                className="glass-input"
                 style={{ fontSize: 12, padding: "2px 6px", borderRadius: 4, width: "100%" }}
                 onClick={(e) => e.stopPropagation()}
               />
@@ -385,7 +395,7 @@ const NotesPage = () => {
                 <span>{folder.icon}</span>
                 <span className="truncate flex-1">{folder.name}</span>
                 {notesInFolder.length > 0 && (
-                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.18)", marginLeft: "auto" }}>
+                  <span style={{ fontSize: 11, color: "var(--text-quaternary)", marginLeft: "auto" }}>
                     {notesInFolder.length}
                   </span>
                 )}
@@ -407,17 +417,23 @@ const NotesPage = () => {
 
   // ─── LEFT PANEL ───
   const leftPanel = (
-    <div className={`${sw.sidebar} flex flex-col h-full overflow-hidden`}
+    <div
+      className="flex flex-col h-full overflow-hidden"
+      style={{
+        width: 280, minWidth: 280,
+        borderRight: "0.5px solid var(--glass-border)",
+        background: "var(--glass-bg)",
+      }}
     >
       {/* Header */}
       <div className="p-3 flex flex-col gap-2">
         {isOwner && (
           <div className="flex items-center gap-2 mb-1">
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.18)" }}>Viewing:</span>
+            <span style={{ fontSize: 11, color: "var(--text-quaternary)" }}>Viewing:</span>
             <select
               value={viewingUserId}
               onChange={(e) => { setViewingUserId(e.target.value); setSelectedId(null); setViewFilter({ type: "all" }); }}
-              className=""
+              className="glass-input"
               style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, flex: 1 }}
             >
               <option value={user?.id || ""}>My Notes</option>
@@ -429,9 +445,9 @@ const NotesPage = () => {
         )}
 
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: "rgba(255,255,255,0.18)" }} />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: "var(--text-quaternary)" }} />
           <input
-            className="w-full"
+            className="glass-input w-full"
             placeholder="Search notes..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -450,7 +466,7 @@ const NotesPage = () => {
               className="w-full text-left"
               style={{
                 fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px",
-                color: viewFilter.type === "pinned" ? "#e8ff00" : "rgba(255,255,255,0.18)",
+                color: viewFilter.type === "pinned" ? "var(--accent-color)" : "var(--text-quaternary)",
                 padding: "8px 12px 4px", background: "none", border: "none", cursor: "pointer",
               }}
             >
@@ -463,7 +479,7 @@ const NotesPage = () => {
         {/* Folders */}
         {!search && (
           <div className="mb-2">
-            <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "rgba(255,255,255,0.18)", padding: "8px 12px 4px" }}>
+            <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-quaternary)", padding: "8px 12px 4px" }}>
               📁 Folders
             </p>
             {renderFolderTree(null, 0)}
@@ -478,7 +494,7 @@ const NotesPage = () => {
               className="w-full text-left"
               style={{
                 fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px",
-                color: viewFilter.type === "all" ? "#e8ff00" : "rgba(255,255,255,0.18)",
+                color: viewFilter.type === "all" ? "var(--accent-color)" : "var(--text-quaternary)",
                 padding: "8px 12px 4px", background: "none", border: "none", cursor: "pointer",
               }}
             >
@@ -491,7 +507,7 @@ const NotesPage = () => {
         {/* Search results */}
         {search && (
           <div className="mb-2">
-            <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "rgba(255,255,255,0.18)", padding: "8px 12px 4px" }}>
+            <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "var(--text-quaternary)", padding: "8px 12px 4px" }}>
               Results ({displayNotes.length})
             </p>
             {displayNotes.map((n) => renderNoteItem(n))}
@@ -504,7 +520,7 @@ const NotesPage = () => {
             <button type="button"
               onClick={() => { setShowArchive((p) => !p); setViewFilter({ type: "archive" }); }}
               className="flex items-center gap-1.5 w-full"
-              style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: viewFilter.type === "archive" ? "#e8ff00" : "rgba(255,255,255,0.18)", padding: "8px 12px 4px", background: "none", border: "none", cursor: "pointer" }}
+              style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: viewFilter.type === "archive" ? "var(--accent-color)" : "var(--text-quaternary)", padding: "8px 12px 4px", background: "none", border: "none", cursor: "pointer" }}
             >
               📁 Archive ({archivedNotes.length})
               <ChevronDown className="w-3 h-3 transition-transform" style={{ transform: showArchive ? "rotate(0)" : "rotate(-90deg)" }} />
@@ -514,7 +530,7 @@ const NotesPage = () => {
         )}
 
         {userNotes.length === 0 && (
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.18)", textAlign: "center", padding: 32 }}>No notes yet</p>
+          <p style={{ fontSize: 12, color: "var(--text-quaternary)", textAlign: "center", padding: 32 }}>No notes yet</p>
         )}
       </div>
     </div>
@@ -528,9 +544,9 @@ const NotesPage = () => {
     const isTelegramNote = selected.source === "telegram";
     const editAllowed = canEdit;
     return (
-    <div className={sw.mainContentWithNote}>
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
       <div className="lg:hidden p-3">
-        <button type="button" onClick={() => setMobileListOpen(true)} style={{ background: "none", border: "1px solid #2a2a2a", color: "rgba(255,255,255,0.5)", fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: "1px", padding: "5px 12px", cursor: "pointer" }}>
+        <button type="button" onClick={() => setMobileListOpen(true)} className="glass-btn" style={{ fontSize: 12, padding: "5px 10px", borderRadius: 6 }}>
           ← Back
         </button>
       </div>
@@ -545,11 +561,11 @@ const NotesPage = () => {
 
       {/* File/voice info for telegram notes */}
       {isTelegramNote && selected.file_type && (
-        <div className="mx-6 mt-2 px-3 py-2 rounded-lg flex items-center gap-2" style={{ background: "rgba(255,255,255,0.02)", border: "0.5px solid #222" }}>
+        <div className="mx-6 mt-2 px-3 py-2 rounded-lg flex items-center gap-2" style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)" }}>
           {selected.file_type === "voice" ? (
-            <Mic className="w-3.5 h-3.5 shrink-0" style={{ color: "#e8ff00" }} />
+            <Mic className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--accent-color)" }} />
           ) : (
-            <FileText className="w-3.5 h-3.5 shrink-0" style={{ color: "#e8ff00" }} />
+            <FileText className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--accent-color)" }} />
           )}
           <span className="text-[12px] text-muted-foreground truncate">{selected.file_name}</span>
           {selected.file_url && (
@@ -558,7 +574,7 @@ const NotesPage = () => {
               target="_blank"
               rel="noopener noreferrer"
               className="ml-auto text-[11px] font-semibold shrink-0"
-              style={{ color: "#e8ff00", textDecoration: "none" }}
+              style={{ color: "var(--accent-color)", textDecoration: "none" }}
             >
               Scarica ↗
             </a>
@@ -574,24 +590,28 @@ const NotesPage = () => {
           onChange={(e) => updateNote(selected.id, { title: e.target.value })}
           placeholder="Untitled Note"
           readOnly={!editAllowed}
-          className={sw.editorTitleInput}
+          style={{
+            fontSize: 24, fontWeight: 700, color: "var(--text-primary)",
+            background: "transparent", border: "none", outline: "none", width: "100%", padding: 0,
+            cursor: "text",
+          }}
         />
       </div>
 
       {/* Metadata */}
       <div className="px-6 py-2 flex items-center gap-2 flex-wrap">
         {/* Folder breadcrumb */}
-        <div className="flex items-center gap-1" style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", fontFamily: "'Space Mono', monospace", letterSpacing: "1px" }}>
+        <div className="flex items-center gap-1" style={{ fontSize: 12, color: "var(--text-tertiary)" }}>
           <Folder className="w-3.5 h-3.5" />
           {selectedBreadcrumb.length > 0 ? (
             selectedBreadcrumb.map((f, i) => (
               <span key={f.id} className="flex items-center gap-1">
-                {i > 0 && <span style={{ color: "rgba(255,255,255,0.18)" }}>›</span>}
+                {i > 0 && <span style={{ color: "var(--text-quaternary)" }}>›</span>}
                 <button type="button"
                   onClick={() => { setViewFilter({ type: "folder", folderId: f.id }); setExpandedFolders((prev) => new Set(prev).add(f.id)); }}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.25)", fontSize: 12 }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.25)"; }}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)", fontSize: 12 }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text-primary)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-tertiary)"; }}
                 >
                   {f.name}
                 </button>
@@ -603,7 +623,7 @@ const NotesPage = () => {
           {editAllowed && (
             <button type="button"
               onClick={() => setMoveToFolderNote(selected.id)}
-              style={{ fontSize: 9, color: "#e8ff00", background: "none", border: "none", cursor: "pointer", marginLeft: 4, fontFamily: "'Space Mono', monospace", letterSpacing: "1px" }}
+              style={{ fontSize: 11, color: "var(--accent-color)", background: "none", border: "none", cursor: "pointer", marginLeft: 4 }}
             >
               Change
             </button>
@@ -620,7 +640,7 @@ const NotesPage = () => {
           <div className="relative">
             <button type="button"
               onClick={() => setShowTagPicker((p) => !p)}
-              style={{ fontSize: 11, color: "rgba(255,255,255,0.18)", background: "none", border: "1px dashed #222", borderRadius: 99, padding: "2px 8px", cursor: "pointer" }}
+              style={{ fontSize: 11, color: "var(--text-quaternary)", background: "none", border: "1px dashed var(--glass-border)", borderRadius: 99, padding: "2px 8px", cursor: "pointer" }}
             >
               + tag
             </button>
@@ -628,16 +648,16 @@ const NotesPage = () => {
               <div
                 className="absolute top-full left-0 mt-1 z-50"
                 style={{
-                  background: "#151515", backdropFilter: "blur(20px)",
-                  border: "0.5px solid #222", borderRadius: 8, padding: 4, minWidth: 140,
+                  background: "var(--glass-bg-opaque, var(--glass-bg))", backdropFilter: "blur(20px)",
+                  border: "0.5px solid var(--glass-border)", borderRadius: 8, padding: 4, minWidth: 140,
                   boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
                 }}
               >
                 {Object.keys(TAG_PRESETS).filter((t) => !selected.tags.includes(t)).map((tag) => (
                   <button type="button"
                     key={tag} onClick={() => addTag(tag)} className="w-full text-left"
-                    style={{ fontSize: 12, padding: "5px 10px", borderRadius: 4, border: "none", cursor: "pointer", background: "transparent", color: "rgba(255,255,255,0.45)" }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                    style={{ fontSize: 12, padding: "5px 10px", borderRadius: 4, border: "none", cursor: "pointer", background: "transparent", color: "var(--text-secondary)" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "var(--nav-hover-bg)"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                   >
                     <TagPill tag={tag} />
@@ -650,13 +670,13 @@ const NotesPage = () => {
         {!isTelegramNote && (
           <button type="button"
             onClick={() => editAllowed && updateNote(selected.id, { isPinned: !selected.isPinned })}
-            style={{ background: "none", border: "none", cursor: editAllowed ? "pointer" : "default", padding: 2, color: selected.isPinned ? "#e8ff00" : "rgba(255,255,255,0.18)" }}
+            style={{ background: "none", border: "none", cursor: editAllowed ? "pointer" : "default", padding: 2, color: selected.isPinned ? "var(--accent-color)" : "var(--text-quaternary)" }}
             title={selected.isPinned ? "Unpin" : "Pin"}
           >
             <Pin className="w-3.5 h-3.5" />
           </button>
         )}
-        <span className="flex items-center gap-1" style={{ fontSize: 11, color: "rgba(255,255,255,0.18)", marginLeft: "auto" }}>
+        <span className="flex items-center gap-1" style={{ fontSize: 11, color: "var(--text-quaternary)", marginLeft: "auto" }}>
           <Lock className="w-3 h-3" /> Private
         </span>
       </div>
@@ -664,14 +684,14 @@ const NotesPage = () => {
       {/* Toolbar */}
       {editAllowed && (
         <div className="px-6 pt-2">
-          <div className={sw.toolbar}>
+          <div className="flex gap-0.5 p-1.5" style={{ background: "var(--glass-bg)", borderRadius: 8, width: "fit-content" }}>
             <ToolBtn icon={Bold} onClick={() => insertMarkdown("**", "**")} title="Bold" />
             <ToolBtn icon={Italic} onClick={() => insertMarkdown("*", "*")} title="Italic" />
             <ToolBtn icon={Strikethrough} onClick={() => insertMarkdown("~~", "~~")} title="Strikethrough" />
-            <div style={{ width: 1, background: "#222", margin: "4px 2px" }} />
+            <div style={{ width: 1, background: "var(--glass-border)", margin: "4px 2px" }} />
             <ToolBtn icon={Heading1} onClick={() => insertLinePrefix("# ")} title="Heading 1" />
             <ToolBtn icon={Heading2} onClick={() => insertLinePrefix("## ")} title="Heading 2" />
-            <div style={{ width: 1, background: "#222", margin: "4px 2px" }} />
+            <div style={{ width: 1, background: "var(--glass-border)", margin: "4px 2px" }} />
             <ToolBtn icon={List} onClick={() => insertLinePrefix("- ")} title="Bullet List" />
             <ToolBtn icon={ListOrdered} onClick={() => insertLinePrefix("1. ")} title="Numbered List" />
             <ToolBtn icon={CheckSquare} onClick={() => insertLinePrefix("- [ ] ")} title="Checkbox" />
@@ -689,31 +709,29 @@ const NotesPage = () => {
           onChange={(e) => updateNote(selected.id, { content: e.target.value })}
           readOnly={!editAllowed}
           placeholder="Start writing..."
-          className={sw.contentTextarea}
+          className="w-full h-full resize-none"
+          style={{
+            background: "transparent", border: "none", outline: "none",
+            fontSize: 14, lineHeight: 1.7, color: "var(--text-secondary)",
+            fontFamily: "inherit", minHeight: 300,
+          }}
         />
       </div>
 
       {/* Footer */}
-      <div className="px-6 py-3" style={{ borderTop: "1px solid #1a1a1a" }}>
-        <p style={{ fontSize: 9, color: "rgba(255,255,255,0.15)", letterSpacing: "0.5px", fontFamily: "'Space Mono', monospace" }}>
+      <div className="px-6 py-3" style={{ borderTop: "0.5px solid var(--glass-border)" }}>
+        <p style={{ fontSize: 11, color: "var(--text-quaternary)" }}>
           Edited {formatDistanceToNow(selected.updatedAt, { addSuffix: true })}
         </p>
       </div>
     </div>
   );
   })() : (
-    <div className={sw.mainContent}>
-      <div className={sw.emptyState}>
-        <div className={sw.emptyIcon}>
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-            <rect x="6" y="4" width="20" height="24" rx="2" stroke="#e8ff00" strokeWidth="1.5" opacity="0.4" />
-            <path d="M18 4V10H24" stroke="#e8ff00" strokeWidth="1.5" opacity="0.4" />
-            <line x1="10" y1="15" x2="22" y2="15" stroke="#e8ff00" strokeWidth="1" opacity="0.2" />
-            <line x1="10" y1="19" x2="18" y2="19" stroke="#e8ff00" strokeWidth="1" opacity="0.2" />
-          </svg>
-        </div>
-        <span className={sw.emptyStateText}>Select a note or create a new one</span>
+    <div className="flex-1 flex flex-col items-center justify-center gap-4">
+      <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "var(--accent-color-dim, rgba(110,231,183,0.1))" }}>
+        <StickyNote className="w-7 h-7" style={{ color: "var(--accent-color)" }} />
       </div>
+      <p style={{ fontSize: 14, color: "var(--text-tertiary)" }}>Select a note or create a new one</p>
     </div>
   );
 
@@ -756,29 +774,31 @@ const NotesPage = () => {
   const folderToDeleteName = deleteFolderConfirm ? folders.find((f) => f.id === deleteFolderConfirm)?.name : "";
 
   return (
-    <div className={sw.wrapper} style={{ height: "calc(100vh - 72px)" }}>
-      {/* Top bar — SWAG */}
-      <div className={sw.topBar}>
-        <div className={sw.topLeft}>
-          <span className={sw.topIcon}>◆</span>
-          <h1 className={sw.topTitle}>Notes</h1>
-        </div>
+    <div style={{ height: "calc(100vh - 72px)", display: "flex", flexDirection: "column", padding: "16px" }}>
+      {/* Top bar */}
+      <div className="flex items-center justify-between mb-4 gap-2">
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>📝 Notes</h1>
         {canEdit && (
-          <div className={sw.topRight}>
-            <button type="button" onClick={() => setNewFolderModal(true)} className={sw.folderBtn}>
-              <span className={sw.folderBtnIcon}>▤</span>
-              New Folder
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => setNewFolderModal(true)} className="glass-btn flex items-center gap-1.5" style={{ fontSize: 13, padding: "7px 14px", borderRadius: 8 }}>
+              <FolderPlus className="w-4 h-4" /> New Folder
             </button>
-            <button type="button" onClick={createNote} className={sw.newNoteBtn}>
-              + New Note
+            <button type="button" onClick={createNote} className="glass-btn-primary flex items-center gap-1.5" style={{ fontSize: 13, padding: "7px 14px", borderRadius: 8 }}>
+              <Plus className="w-4 h-4" /> New Note
             </button>
           </div>
         )}
       </div>
 
-      {/* Two-panel body */}
-      <div className={sw.body}>
-
+      {/* Two-panel */}
+      <div
+        className="flex-1 flex overflow-hidden"
+        style={{
+          background: "var(--glass-bg)",
+          border: "0.5px solid var(--glass-border)",
+          borderRadius: "var(--radius-xl, 16px)",
+        }}
+      >
         <div className={`${mobileListOpen ? "flex" : "hidden"} lg:flex`}>{leftPanel}</div>
         <div className={`${!mobileListOpen ? "flex flex-1" : "hidden"} lg:flex lg:flex-1`}>{rightPanel}</div>
       </div>
@@ -789,9 +809,9 @@ const NotesPage = () => {
           className="fixed z-[100]"
           style={{
             left: contextMenu.x, top: contextMenu.y,
-            background: "#151515", backdropFilter: "blur(20px)",
-            border: "1px solid #222", borderRadius: 0, padding: 3, minWidth: 170,
-            boxShadow: "0 8px 28px rgba(0,0,0,0.5)",
+            background: "var(--glass-bg-opaque, var(--glass-bg))", backdropFilter: "blur(20px)",
+            border: "0.5px solid var(--glass-border)", borderRadius: 10, padding: 4, minWidth: 180,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
           }}
           onMouseDown={(e) => e.stopPropagation()}
         >
@@ -817,9 +837,9 @@ const NotesPage = () => {
               style={{
                 padding: "7px 12px", borderRadius: 6, fontSize: 13, border: "none", cursor: "pointer",
                 background: "transparent",
-                color: (item as any).danger ? "#ef4444" : "rgba(255,255,255,0.45)",
+                color: (item as any).danger ? "#ef4444" : "var(--text-secondary)",
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(232,255,0,0.04)"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface-hover, var(--nav-hover-bg))"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
             >
               {item.label}
@@ -834,8 +854,8 @@ const NotesPage = () => {
           className="fixed z-[100]"
           style={{
             left: folderContextMenu.x, top: folderContextMenu.y,
-            background: "#151515", backdropFilter: "blur(20px)",
-            border: "0.5px solid #222", borderRadius: 10, padding: 4, minWidth: 180,
+            background: "var(--glass-bg-opaque, var(--glass-bg))", backdropFilter: "blur(20px)",
+            border: "0.5px solid var(--glass-border)", borderRadius: 10, padding: 4, minWidth: 180,
             boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
           }}
           onMouseDown={(e) => e.stopPropagation()}
@@ -858,9 +878,9 @@ const NotesPage = () => {
               style={{
                 padding: "7px 12px", borderRadius: 6, fontSize: 13, border: "none", cursor: "pointer",
                 background: "transparent",
-                color: (item as any).danger ? "#ef4444" : "rgba(255,255,255,0.45)",
+                color: (item as any).danger ? "#ef4444" : "var(--text-secondary)",
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(232,255,0,0.04)"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface-hover, var(--nav-hover-bg))"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
             >
               {item.label}
@@ -876,18 +896,18 @@ const NotesPage = () => {
           <div
             className="fixed z-[100] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
             style={{
-              background: "#151515", backdropFilter: "blur(40px)",
-              border: "0.5px solid #222", borderRadius: 16, padding: 24, width: 320,
+              background: "var(--glass-bg-opaque, var(--glass-bg))", backdropFilter: "blur(40px)",
+              border: "0.5px solid var(--glass-border)", borderRadius: 16, padding: 24, width: 320,
               boxShadow: "0 16px 48px rgba(0,0,0,0.3)",
             }}
           >
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 12 }}>Move to Folder</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12 }}>Move to Folder</h3>
             <div className="flex flex-col gap-1 max-h-60 overflow-y-auto">
               <button type="button"
                 onClick={() => { updateNote(moveToFolderNote, { folderId: null }); setMoveToFolderNote(null); }}
                 className="w-full text-left"
-                style={{ padding: "8px 12px", borderRadius: 8, fontSize: 13, border: "none", cursor: "pointer", background: "transparent", color: "rgba(255,255,255,0.45)" }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                style={{ padding: "8px 12px", borderRadius: 8, fontSize: 13, border: "none", cursor: "pointer", background: "transparent", color: "var(--text-secondary)" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--nav-hover-bg)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
               >
                 📄 No folder (unfiled)
@@ -899,10 +919,10 @@ const NotesPage = () => {
                   className="w-full text-left"
                   style={{
                     padding: "8px 12px", borderRadius: 8, fontSize: 13, border: "none", cursor: "pointer",
-                    background: "transparent", color: "rgba(255,255,255,0.45)",
+                    background: "transparent", color: "var(--text-secondary)",
                     paddingLeft: f.parentId ? 28 : 12,
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "var(--nav-hover-bg)"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                 >
                   {f.icon} {f.name}
@@ -910,7 +930,7 @@ const NotesPage = () => {
               ))}
             </div>
             <div className="flex justify-end mt-4">
-              <button type="button" onClick={() => setMoveToFolderNote(null)} className="" style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8 }}>Cancel</button>
+              <button type="button" onClick={() => setMoveToFolderNote(null)} className="glass-btn" style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8 }}>Cancel</button>
             </div>
           </div>
         </>
@@ -926,15 +946,15 @@ const NotesPage = () => {
           <div
             className="fixed z-[100] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
             style={{
-              background: "#151515", backdropFilter: "blur(40px)",
-              border: "0.5px solid #222", borderRadius: 16, padding: 24, width: 340,
+              background: "var(--glass-bg-opaque, var(--glass-bg))", backdropFilter: "blur(40px)",
+              border: "0.5px solid var(--glass-border)", borderRadius: 16, padding: 24, width: 340,
               boxShadow: "0 16px 48px rgba(0,0,0,0.3)",
             }}
           >
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Delete note?</h3>
-            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.25)", marginBottom: 20 }}>This action cannot be undone.</p>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>Delete note?</h3>
+            <p style={{ fontSize: 13, color: "var(--text-tertiary)", marginBottom: 20 }}>This action cannot be undone.</p>
             <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setDeleteConfirm(null)} className="" style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8 }}>Cancel</button>
+              <button type="button" onClick={() => setDeleteConfirm(null)} className="glass-btn" style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8 }}>Cancel</button>
               <button type="button" onClick={confirmDelete} style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8, background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: 600 }}>Delete</button>
             </div>
           </div>
@@ -948,20 +968,20 @@ const NotesPage = () => {
           <div
             className="fixed z-[100] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
             style={{
-              background: "#151515", backdropFilter: "blur(40px)",
-              border: "0.5px solid #222", borderRadius: 16, padding: 24, width: 380,
+              background: "var(--glass-bg-opaque, var(--glass-bg))", backdropFilter: "blur(40px)",
+              border: "0.5px solid var(--glass-border)", borderRadius: 16, padding: 24, width: 380,
               boxShadow: "0 16px 48px rgba(0,0,0,0.3)",
             }}
           >
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Delete folder "{folderToDeleteName}"?</h3>
-            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.25)", marginBottom: 20 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>Delete folder "{folderToDeleteName}"?</h3>
+            <p style={{ fontSize: 13, color: "var(--text-tertiary)", marginBottom: 20 }}>
               {folderToDeleteNotesCount > 0
                 ? `The ${folderToDeleteNotesCount} note${folderToDeleteNotesCount > 1 ? "s" : ""} inside will be moved to All Notes.`
                 : "This folder is empty."}
               {" "}Subfolders will be moved to root.
             </p>
             <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setDeleteFolderConfirm(null)} className="" style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8 }}>Cancel</button>
+              <button type="button" onClick={() => setDeleteFolderConfirm(null)} className="glass-btn" style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8 }}>Cancel</button>
               <button type="button" onClick={confirmDeleteFolder} style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8, background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: 600 }}>Delete</button>
             </div>
           </div>
@@ -989,29 +1009,29 @@ function NewFolderModal({ folders, onClose, onCreate }: { folders: NoteFolder[];
       <div
         className="fixed z-[100] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
         style={{
-          background: "#151515", backdropFilter: "blur(40px)",
-          border: "0.5px solid #222", borderRadius: 16, padding: 24, width: 360,
+          background: "var(--glass-bg-opaque, var(--glass-bg))", backdropFilter: "blur(40px)",
+          border: "0.5px solid var(--glass-border)", borderRadius: 16, padding: 24, width: 360,
           boxShadow: "0 16px 48px rgba(0,0,0,0.3)",
         }}
       >
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 16 }}>New Folder</h3>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>New Folder</h3>
 
-        <label style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.45)", marginBottom: 4, display: "block" }}>Folder Name *</label>
+        <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 4, display: "block" }}>Folder Name *</label>
         <input
           autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
-          className="w-full mb-4"
+          className="glass-input w-full mb-4"
           placeholder="e.g. Work, Personal..."
           style={{ fontSize: 13, padding: "9px 12px" }}
         />
 
-        <label style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.45)", marginBottom: 4, display: "block" }}>Parent Folder</label>
+        <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 4, display: "block" }}>Parent Folder</label>
         <select
           value={parentId || ""}
           onChange={(e) => setParentId(e.target.value || null)}
-          className="w-full mb-4"
+          className="glass-input w-full mb-4"
           style={{ fontSize: 13, padding: "9px 12px" }}
         >
           <option value="">None (root)</option>
@@ -1020,15 +1040,15 @@ function NewFolderModal({ folders, onClose, onCreate }: { folders: NoteFolder[];
           ))}
         </select>
 
-        <label style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.45)", marginBottom: 6, display: "block" }}>Icon</label>
+        <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 6, display: "block" }}>Icon</label>
         <div className="flex gap-2 flex-wrap mb-6">
           {FOLDER_ICONS.map((emoji) => (
             <button type="button"
               key={emoji}
               onClick={() => setIcon(emoji)}
               style={{
-                width: 36, height: 36, borderRadius: 8, border: icon === emoji ? "2px solid #e8ff00" : "1px solid #222",
-                background: icon === emoji ? "rgba(232,255,0,0.08)" : "transparent",
+                width: 36, height: 36, borderRadius: 8, border: icon === emoji ? "2px solid var(--accent-color)" : "1px solid var(--glass-border)",
+                background: icon === emoji ? "var(--accent-color-dim, rgba(110,231,183,0.1))" : "transparent",
                 fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
               }}
             >
@@ -1038,11 +1058,11 @@ function NewFolderModal({ folders, onClose, onCreate }: { folders: NoteFolder[];
         </div>
 
         <div className="flex gap-2 justify-end">
-          <button type="button" onClick={onClose} className="" style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8 }}>Cancel</button>
+          <button type="button" onClick={onClose} className="glass-btn" style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8 }}>Cancel</button>
           <button type="button"
             onClick={handleCreate}
             disabled={!name.trim()}
-            className=""
+            className="glass-btn-primary"
             style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8, opacity: name.trim() ? 1 : 0.5 }}
           >
             Create

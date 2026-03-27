@@ -11,6 +11,9 @@ import type { EnrichedGiftCard, GiftCardFilter, GiftCardSort } from "@/portals/f
 import { GiftCardModal } from "./GiftCardModal";
 import { GiftCardDetailPanel } from "./GiftCardDetailPanel";
 import { GiftCardCodePopup } from "./GiftCardCodePopup";
+import { addAuditEntry } from "@/lib/adminStore";
+import { useAuth } from "@/lib/authContext";
+import { usePortal } from "@/lib/portalContext";
 
 const FILTER_LABELS: { value: GiftCardFilter; label: string }[] = [
   { value: "all", label: "Tutte" },
@@ -38,6 +41,10 @@ const fadeUp = {
 };
 
 export default function GiftCardsPage() {
+  const { user } = useAuth();
+  const { portal } = usePortal();
+  const portalId = portal?.id ?? "sosa";
+
   const {
     cards, brands, isLoading, filteredCards,
     createCard, updateCard, deleteCard, toggleFavorite, refetch,
@@ -61,27 +68,33 @@ export default function GiftCardsPage() {
   async function handleSave(data: Parameters<typeof createCard>[0]) {
     if (editingCard) {
       await updateCard(editingCard.id, data);
+      if (user) addAuditEntry({ userId: user.id, action: `Updated gift card "${data.brand}"`, category: "finance", details: `€${data.initial_value} ${data.currency}`, icon: "✏️", portalId });
     } else {
       await createCard(data);
+      if (user) addAuditEntry({ userId: user.id, action: `Added ${data.brand} gift card — €${data.initial_value} ${data.currency}`, category: "finance", details: "", icon: "🎁", portalId });
     }
     setModalOpen(false);
     setEditingCard(null);
   }
 
   async function handleDelete(id: string) {
+    const card = cards.find((c) => c.id === id);
     await deleteCard(id);
+    if (user && card) addAuditEntry({ userId: user.id, action: `Deleted ${card.brand} gift card`, category: "finance", details: `€${card.remaining_value.toFixed(2)} remaining`, icon: "🗑️", portalId });
     setDetailCard(null);
   }
 
   async function handleArchive(id: string) {
+    const card = cards.find((c) => c.id === id);
     await updateCard(id, { status: "archived" } as any);
+    if (user && card) addAuditEntry({ userId: user.id, action: `Archived ${card.brand} gift card`, category: "finance", details: "", icon: "📦", portalId });
   }
 
   async function handleUseBalance(amount: number, description?: string, date?: string) {
     if (!detailCard) return;
     await addTransaction(amount, description, date);
     await refetch();
-    // Refresh detail card with updated data
+    if (user) addAuditEntry({ userId: user.id, action: `Used €${amount.toFixed(2)} from ${detailCard.brand} gift card`, category: "finance", details: description || "", icon: "💳", portalId });
     const refreshed = cards.find((c) => c.id === detailCard.id);
     if (refreshed) setDetailCard(refreshed);
   }
@@ -299,7 +312,7 @@ function GiftCardItem({
             <div
               onClick={(e) => e.stopPropagation()}
               onMouseLeave={() => setMenuOpen(false)}
-              style={{ position: "absolute", right: 0, top: 24, background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: 4, minWidth: 160, zIndex: 50, boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }}>
+              style={{ position: "absolute", right: 0, top: 24, background: "var(--glass-bg-elevated, #1e1e1e)", backdropFilter: "blur(20px)", border: "1px solid var(--glass-border, rgba(255,255,255,0.1))", borderRadius: 10, padding: 4, minWidth: 170, zIndex: 50, boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
               {!isInactive && (
                 <MenuBtn label="💳 Usa saldo" onClick={() => { setMenuOpen(false); onUseBalance(card); }} />
               )}
@@ -314,8 +327,12 @@ function GiftCardItem({
 
       {/* Brand */}
       <div className="flex items-center gap-3 mb-4">
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: brandColor, opacity: 0.9, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <span style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{card.brand.charAt(0)}</span>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: card.brandData?.logo_url ? "#fff" : brandColor, opacity: 0.9, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
+          {card.brandData?.logo_url ? (
+            <img src={card.brandData.logo_url} alt="" style={{ width: 30, height: 30, objectFit: "contain" }} loading="lazy" />
+          ) : (
+            <span style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{card.brand.charAt(0)}</span>
+          )}
         </div>
         <div>
           <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{card.brand}</p>
@@ -370,8 +387,14 @@ function GiftCardItem({
 function MenuBtn({ label, onClick, danger }: { label: string; onClick: () => void; danger?: boolean }) {
   return (
     <button type="button" onClick={onClick}
-      style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 12px", fontSize: 12, fontWeight: 500, border: "none", borderRadius: 6, cursor: "pointer", background: "transparent", color: danger ? "#ef4444" : "var(--text-secondary)", transition: "background 0.1s" }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)"; }}
+      style={{
+        display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left",
+        padding: "8px 12px", fontSize: 13, fontWeight: 500, border: "none", borderRadius: 8,
+        cursor: "pointer", background: "transparent",
+        color: danger ? "#ef4444" : "var(--text-primary, #fff)",
+        transition: "background 0.1s",
+      }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = danger ? "rgba(239,68,68,0.1)" : "var(--surface-hover, rgba(255,255,255,0.06))"; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
       {label}
     </button>

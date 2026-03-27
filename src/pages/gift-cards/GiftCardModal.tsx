@@ -242,8 +242,12 @@ export function GiftCardModal({ brands, editingCard, onSave, onClose }: GiftCard
               {/* Brand header */}
               {selectedBrand && (
                 <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 12, background: "#f7f7f7", border: "1px solid #eee", marginBottom: 20 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 9, background: selectedBrand.color ?? "#6b7280", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>{selectedBrand.name.charAt(0)}</span>
+                  <div style={{ width: 36, height: 36, borderRadius: 9, background: selectedBrand.logo_url ? "#fff" : (selectedBrand.color ?? "#6b7280"), display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                    {selectedBrand.logo_url ? (
+                      <img src={selectedBrand.logo_url} alt="" style={{ width: 28, height: 28, objectFit: "contain" }} loading="lazy" />
+                    ) : (
+                      <span style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>{selectedBrand.name.charAt(0)}</span>
+                    )}
                   </div>
                   <div>
                     <p style={{ fontSize: 14, fontWeight: 700, color: "#111" }}>{selectedBrand.name} Gift Card</p>
@@ -252,66 +256,16 @@ export function GiftCardModal({ brands, editingCard, onSave, onClose }: GiftCard
               )}
 
               {/* Value + Currency */}
-              <label style={{ fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 6, display: "block" }}>Valore della card *</label>
-              <div className="flex gap-2 mb-4">
-                <input type="number" value={value} onChange={(e) => setValue(e.target.value)} placeholder="100.00" min="0" step="0.01"
-                  style={{ flex: 1, padding: "10px 12px", borderRadius: 10, background: "#f5f5f5", border: "1px solid #e5e5e5", color: "#111", fontSize: 14, fontWeight: 600, outline: "none", fontVariantNumeric: "tabular-nums" }} />
+              <label style={{ fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 6, display: "block" }}>Quanto hai sulla card? *</label>
+              <div className="flex gap-2 mb-6">
+                <input type="number" value={value} onChange={(e) => { setValue(e.target.value); setRemaining(e.target.value); }} placeholder="0.00" min="0" step="0.01"
+                  style={{ flex: 1, padding: "10px 12px", borderRadius: 10, background: "#f5f5f5", border: "1px solid #e5e5e5", color: "#111", fontSize: 14, fontWeight: 600, outline: "none", fontVariantNumeric: "tabular-nums" }}
+                  autoFocus />
                 <select value={currency} onChange={(e) => setCurrency(e.target.value as GiftCardCurrency)}
                   style={{ padding: "10px 12px", borderRadius: 10, background: "#f5f5f5", border: "1px solid #e5e5e5", color: "#111", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
                   {CURRENCY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
-
-              {/* Remaining */}
-              <label style={{ fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 4, display: "block" }}>Saldo attuale (se diverso dal valore iniziale)</label>
-              <input type="number" value={remaining} onChange={(e) => setRemaining(e.target.value)} placeholder="Lascia vuoto se card nuova" min="0" step="0.01"
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 10, background: "#f5f5f5", border: "1px solid #e5e5e5", color: "#111", fontSize: 13, outline: "none", marginBottom: 4, fontVariantNumeric: "tabular-nums" }} />
-              <p style={{ fontSize: 10, color: "#aaa", marginBottom: 16 }}>Lascia vuoto se la card è nuova/piena</p>
-
-              <div style={{ borderTop: "1px solid #eee", margin: "0 0 16px" }} />
-
-              {/* Card Code */}
-              <label style={{ fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 6, display: "block" }}>Codice card (opzionale)</label>
-              <div className="flex items-center gap-2 mb-4">
-                <input type={showCode ? "text" : "password"} value={cardCode} onChange={(e) => setCardCode(e.target.value)} placeholder="XXXX-XXXX-XXXX-XXXX"
-                  style={{ flex: 1, padding: "10px 12px", borderRadius: 10, background: "#f5f5f5", border: "1px solid #e5e5e5", color: "#111", fontSize: 13, fontFamily: "DM Mono, monospace", outline: "none" }} />
-                <button type="button" onClick={() => setShowCode(!showCode)}
-                  style={{ width: 38, height: 38, borderRadius: 10, background: "#f5f5f5", border: "1px solid #e5e5e5", color: "#999", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {showCode ? <EyeOff style={{ width: 14, height: 14 }} /> : <Eye style={{ width: 14, height: 14 }} />}
-                </button>
-              </div>
-
-              {/* PIN */}
-              <label style={{ fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 6, display: "block" }}>PIN (opzionale)</label>
-              <div className="flex items-center gap-2 mb-4">
-                <input type={showPin ? "text" : "password"} value={pin} onChange={(e) => setPin(e.target.value)} placeholder="••••"
-                  style={{ flex: 1, padding: "10px 12px", borderRadius: 10, background: "#f5f5f5", border: "1px solid #e5e5e5", color: "#111", fontSize: 13, fontFamily: "DM Mono, monospace", outline: "none" }} />
-                <button type="button" onClick={() => setShowPin(!showPin)}
-                  style={{ width: 38, height: 38, borderRadius: 10, background: "#f5f5f5", border: "1px solid #e5e5e5", color: "#999", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {showPin ? <EyeOff style={{ width: 14, height: 14 }} /> : <Eye style={{ width: 14, height: 14 }} />}
-                </button>
-              </div>
-
-              <div style={{ borderTop: "1px solid #eee", margin: "0 0 16px" }} />
-
-              {/* Purchase Date */}
-              <label style={{ fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 6, display: "block" }}>Data di acquisto (opzionale)</label>
-              <input type="date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)}
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 10, background: "#f5f5f5", border: "1px solid #e5e5e5", color: "#111", fontSize: 13, outline: "none", marginBottom: 16 }} />
-
-              {/* Expiry Date */}
-              <label style={{ fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 6, display: "block" }}>Data di scadenza (opzionale)</label>
-              <input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)}
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 10, background: "#f5f5f5", border: "1px solid #e5e5e5", color: "#111", fontSize: 13, outline: "none", marginBottom: 4 }} />
-              {selectedBrand?.has_expiry && (
-                <p style={{ fontSize: 10, color: "#c9a96e", marginBottom: 16 }}>Questo tipo di card tipicamente ha una scadenza</p>
-              )}
-              {!selectedBrand?.has_expiry && <div style={{ marginBottom: 16 }} />}
-
-              {/* Notes */}
-              <label style={{ fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 6, display: "block" }}>Note (opzionale)</label>
-              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Es. Regalo di compleanno, comprata in offerta..." rows={2}
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 10, background: "#f5f5f5", border: "1px solid #e5e5e5", color: "#111", fontSize: 13, outline: "none", resize: "vertical", marginBottom: 16 }} />
 
               {/* Error */}
               {error && (
@@ -347,8 +301,12 @@ function BrandGrid({ brands, onSelect }: { brands: GiftCardBrand[]; onSelect: (b
           style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "12px 4px", borderRadius: 12, border: "1px solid #eee", background: "#fafafa", cursor: "pointer", transition: "all 0.15s" }}
           onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#c9a96e"; (e.currentTarget as HTMLElement).style.background = "#fff"; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#eee"; (e.currentTarget as HTMLElement).style.background = "#fafafa"; }}>
-          <div style={{ width: 36, height: 36, borderRadius: 9, background: brand.color ?? "#6b7280", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>{brand.name.charAt(0)}</span>
+          <div style={{ width: 36, height: 36, borderRadius: 9, background: brand.logo_url ? "#fff" : (brand.color ?? "#6b7280"), display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+            {brand.logo_url ? (
+              <img src={brand.logo_url} alt="" style={{ width: 28, height: 28, objectFit: "contain" }} loading="lazy" />
+            ) : (
+              <span style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>{brand.name.charAt(0)}</span>
+            )}
           </div>
           <span style={{ fontSize: 10, fontWeight: 600, color: "#555", textAlign: "center", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%" }}>{brand.name}</span>
         </button>

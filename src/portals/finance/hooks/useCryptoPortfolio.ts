@@ -82,6 +82,21 @@ export function useCryptoPortfolio() {
     await Promise.all([refetchHoldings(), refreshPrices()]);
   }, [refetchHoldings, refreshPrices]);
 
+  // Wrapped mutations that also refresh prices so new coins get priced immediately
+  const addHoldingAndRefresh = useCallback(async (data: Parameters<typeof addHolding>[0]) => {
+    await addHolding(data);
+    await refreshPrices();
+  }, [addHolding, refreshPrices]);
+
+  const updateHoldingAndRefresh = useCallback(async (id: string, data: Parameters<typeof updateHolding>[1]) => {
+    await updateHolding(id, data);
+    await refreshPrices();
+  }, [updateHolding, refreshPrices]);
+
+  const deleteHoldingAndRefresh = useCallback(async (id: string) => {
+    await deleteHolding(id);
+  }, [deleteHolding]);
+
   return {
     enrichedHoldings,
     summary,
@@ -92,8 +107,8 @@ export function useCryptoPortfolio() {
     refreshAll,
     refreshPrices,
     getPriceForCoin,
-    addHolding,
-    updateHolding,
-    deleteHolding,
+    addHolding: addHoldingAndRefresh,
+    updateHolding: updateHoldingAndRefresh,
+    deleteHolding: deleteHoldingAndRefresh,
   };
 }

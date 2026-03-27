@@ -29,8 +29,12 @@ export function GiftCardCodePopup({ card, onClose }: Props) {
 
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: brandColor, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{card.brand.charAt(0)}</span>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: card.brandData?.logo_url ? "#fff" : brandColor, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+              {card.brandData?.logo_url ? (
+                <img src={card.brandData.logo_url} alt="" style={{ width: 24, height: 24, objectFit: "contain" }} loading="lazy" />
+              ) : (
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{card.brand.charAt(0)}</span>
+              )}
             </div>
             <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{card.brand} Gift Card</p>
           </div>
