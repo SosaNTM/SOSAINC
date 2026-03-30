@@ -143,7 +143,7 @@ export default function CryptoPage() {
     if (localStorage.getItem(MIGRATED_KEY)) return;
 
     try {
-      const raw = localStorage.getItem("crypto_tx_history");
+      const raw = localStorage.getItem(`crypto_tx_history_${portalId}`) || localStorage.getItem("crypto_tx_history");
       if (!raw) { localStorage.setItem(MIGRATED_KEY, "1"); return; }
       const cryptoTxs: { id: string; coin_id: string; type: "buy" | "sell"; quantity: number; title?: string; date: string }[] = JSON.parse(raw);
       if (cryptoTxs.length === 0) { localStorage.setItem(MIGRATED_KEY, "1"); return; }

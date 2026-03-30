@@ -4,11 +4,18 @@ import type {
 } from "../types/giftCards";
 import {
   fetchGiftCards, fetchBrands, createGiftCard, updateGiftCard, deleteGiftCard, toggleFavorite,
+  setGiftCardPortal,
 } from "../services/giftCardService";
 import { convertToEur, getDaysUntilExpiry } from "../utils/giftCardUtils";
+import { usePortal } from "@/lib/portalContext";
 import type { GiftCardCurrency } from "../types/giftCards";
 
 export function useGiftCards() {
+  const { portal } = usePortal();
+  const portalId = portal?.id ?? "sosa";
+
+  // Scope localStorage keys to current portal
+  useEffect(() => { setGiftCardPortal(portalId); }, [portalId]);
   const [cards, setCards] = useState<GiftCard[]>([]);
   const [brands, setBrands] = useState<GiftCardBrand[]>([]);
   const [isLoading, setIsLoading] = useState(true);

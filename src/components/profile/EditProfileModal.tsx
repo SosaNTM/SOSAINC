@@ -92,7 +92,72 @@ export function EditProfileModal({ profile, open, onClose, onSaved }: Props) {
                 </Field>
               </div>
               <Field label="Phone" error={errors.phone}>
-                <input className="glass-input w-full" value={form.phone || ""} onChange={(e) => set("phone", e.target.value)} style={fieldStyle("phone")} placeholder="+39 02 1234 5678" />
+                <div style={{ display: "flex", gap: 6 }}>
+                  <select
+                    value={(form.phone || "").match(/^\+\d{1,3}/)?.[0] || "+39"}
+                    onChange={(e) => {
+                      const currentNum = (form.phone || "").replace(/^\+\d{1,3}\s*/, "");
+                      set("phone", `${e.target.value} ${currentNum}`);
+                    }}
+                    className="glass-input"
+                    style={{ ...fieldStyle("phone"), width: 110, flexShrink: 0, fontSize: 13, padding: "8px 6px", cursor: "pointer" }}
+                  >
+                    <option value="+39">🇮🇹 +39</option>
+                    <option value="+1">🇺🇸 +1</option>
+                    <option value="+44">🇬🇧 +44</option>
+                    <option value="+49">🇩🇪 +49</option>
+                    <option value="+33">🇫🇷 +33</option>
+                    <option value="+34">🇪🇸 +34</option>
+                    <option value="+351">🇵🇹 +351</option>
+                    <option value="+31">🇳🇱 +31</option>
+                    <option value="+32">🇧🇪 +32</option>
+                    <option value="+41">🇨🇭 +41</option>
+                    <option value="+43">🇦🇹 +43</option>
+                    <option value="+46">🇸🇪 +46</option>
+                    <option value="+47">🇳🇴 +47</option>
+                    <option value="+45">🇩🇰 +45</option>
+                    <option value="+358">🇫🇮 +358</option>
+                    <option value="+48">🇵🇱 +48</option>
+                    <option value="+420">🇨🇿 +420</option>
+                    <option value="+30">🇬🇷 +30</option>
+                    <option value="+353">🇮🇪 +353</option>
+                    <option value="+40">🇷🇴 +40</option>
+                    <option value="+385">🇭🇷 +385</option>
+                    <option value="+386">🇸🇮 +386</option>
+                    <option value="+36">🇭🇺 +36</option>
+                    <option value="+55">🇧🇷 +55</option>
+                    <option value="+81">🇯🇵 +81</option>
+                    <option value="+86">🇨🇳 +86</option>
+                    <option value="+91">🇮🇳 +91</option>
+                    <option value="+82">🇰🇷 +82</option>
+                    <option value="+61">🇦🇺 +61</option>
+                    <option value="+64">🇳🇿 +64</option>
+                    <option value="+971">🇦🇪 +971</option>
+                    <option value="+966">🇸🇦 +966</option>
+                    <option value="+7">🇷🇺 +7</option>
+                    <option value="+90">🇹🇷 +90</option>
+                    <option value="+52">🇲🇽 +52</option>
+                    <option value="+54">🇦🇷 +54</option>
+                    <option value="+57">🇨🇴 +57</option>
+                    <option value="+27">🇿🇦 +27</option>
+                    <option value="+234">🇳🇬 +234</option>
+                    <option value="+20">🇪🇬 +20</option>
+                    <option value="+212">🇲🇦 +212</option>
+                    <option value="+216">🇹🇳 +216</option>
+                  </select>
+                  <input
+                    className="glass-input"
+                    style={{ ...fieldStyle("phone"), flex: 1 }}
+                    value={(form.phone || "").replace(/^\+\d{1,3}\s*/, "")}
+                    onChange={(e) => {
+                      const prefix = (form.phone || "").match(/^\+\d{1,3}/)?.[0] || "+39";
+                      set("phone", `${prefix} ${e.target.value}`);
+                    }}
+                    placeholder="02 1234 5678"
+                    type="tel"
+                    maxLength={20}
+                  />
+                </div>
               </Field>
               <Field label="Date of Birth">
                 <input type="date" className="glass-input w-full" value={form.date_of_birth || ""} onChange={(e) => set("date_of_birth", e.target.value)} style={{ ...fieldStyle("date_of_birth"), colorScheme: "light" }} />

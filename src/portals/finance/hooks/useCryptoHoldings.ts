@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { usePortal } from "@/lib/portalContext";
 import type { CryptoHolding } from "../types/crypto";
 import {
   fetchHoldings,
@@ -8,6 +9,9 @@ import {
 } from "../services/cryptoService";
 
 export function useCryptoHoldings() {
+  const { portal } = usePortal();
+  const portalId = portal?.id ?? "sosa";
+
   const [holdings, setHoldings] = useState<CryptoHolding[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,46 +20,42 @@ export function useCryptoHoldings() {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await fetchHoldings();
+      const data = await fetchHoldings(portalId);
       setHoldings(data);
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [portalId]);
 
   useEffect(() => { refetch(); }, [refetch]);
 
   const addHolding = useCallback(
     async (data: {
-      coin_id: string;
-      symbol: string;
-      name: string;
-      quantity: number;
-      avg_buy_price_eur?: number;
-      notes?: string;
+      coin_id: string; symbol: string; name: string;
+      quantity: number; avg_buy_price_eur?: number; notes?: string;
     }) => {
-      await apiAddHolding(data);
+      await apiAddHolding(data, portalId);
       await refetch();
     },
-    [refetch],
+    [refetch, portalId],
   );
 
   const updateHolding = useCallback(
     async (id: string, data: { quantity?: number; avg_buy_price_eur?: number; notes?: string }) => {
-      await apiUpdateHolding(id, data);
+      await apiUpdateHolding(id, data, portalId);
       await refetch();
     },
-    [refetch],
+    [refetch, portalId],
   );
 
   const deleteHolding = useCallback(
     async (id: string) => {
-      await apiDeleteHolding(id);
+      await apiDeleteHolding(id, portalId);
       await refetch();
     },
-    [refetch],
+    [refetch, portalId],
   );
 
   return { holdings, isLoading, error, addHolding, updateHolding, deleteHolding, refetch };

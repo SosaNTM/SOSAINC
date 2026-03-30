@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { usePortal } from "@/lib/portalContext";
 import type { CryptoPrice } from "../types/crypto";
 import { fetchAllPrices, refreshPrices as apiRefreshPrices } from "../services/cryptoService";
 
@@ -9,6 +10,9 @@ function isSupabaseConfigured(): boolean {
 }
 
 export function useCryptoPrices() {
+  const { portal } = usePortal();
+  const portalId = portal?.id ?? "sosa";
+
   const [prices, setPrices] = useState<Record<string, CryptoPrice>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -18,7 +22,7 @@ export function useCryptoPrices() {
   const loadPrices = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await fetchAllPrices();
+      const data = await fetchAllPrices(portalId);
       const map: Record<string, CryptoPrice> = {};
       for (const p of data) {
         map[p.coin_id] = p;
@@ -35,7 +39,7 @@ export function useCryptoPrices() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [portalId]);
 
   useEffect(() => { loadPrices(); }, [loadPrices]);
 
@@ -74,7 +78,7 @@ export function useCryptoPrices() {
   const refreshPrices = useCallback(async () => {
     try {
       setIsRefreshing(true);
-      const freshPrices = await apiRefreshPrices();
+      const freshPrices = await apiRefreshPrices(portalId);
       // If CoinGecko returned data directly (local mode), use it
       if (freshPrices && freshPrices.length > 0) {
         const map: Record<string, CryptoPrice> = {};

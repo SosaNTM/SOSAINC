@@ -31,20 +31,31 @@ interface CryptoTx {
   date: string;
 }
 
-function readTxHistory(coinId: string): CryptoTx[] {
+function txHistoryKey(portalId: string): string {
+  return `crypto_tx_history_${portalId}`;
+}
+
+function readTxHistory(coinId: string, portalId: string): CryptoTx[] {
   try {
-    const raw = localStorage.getItem("crypto_tx_history");
+    const key = txHistoryKey(portalId);
+    let raw = localStorage.getItem(key);
+    // Migrate from old global key
+    if (!raw) {
+      const legacy = localStorage.getItem("crypto_tx_history");
+      if (legacy) { localStorage.setItem(key, legacy); raw = legacy; }
+    }
     const all: CryptoTx[] = raw ? JSON.parse(raw) : [];
     return all.filter((t) => t.coin_id === coinId).sort((a, b) => b.date.localeCompare(a.date));
   } catch { return []; }
 }
 
-function saveTx(tx: CryptoTx): void {
+function saveTx(tx: CryptoTx, portalId: string): void {
   try {
-    const raw = localStorage.getItem("crypto_tx_history");
+    const key = txHistoryKey(portalId);
+    const raw = localStorage.getItem(key);
     const all: CryptoTx[] = raw ? JSON.parse(raw) : [];
     all.push(tx);
-    localStorage.setItem("crypto_tx_history", JSON.stringify(all));
+    localStorage.setItem(key, JSON.stringify(all));
   } catch { /* noop */ }
 }
 
@@ -107,7 +118,7 @@ export function CryptoDetailPopup({ holding, onClose, onUpdateQuantity }: Props)
 
   // Load tx history
   useEffect(() => {
-    setTxHistory(readTxHistory(holding.coin_id));
+    setTxHistory(readTxHistory(holding.coin_id, portalId));
   }, [holding.coin_id]);
 
   // ESC to close
@@ -144,7 +155,7 @@ export function CryptoDetailPopup({ holding, onClose, onUpdateQuantity }: Props)
         quantity: qty,
         title: txTitle,
         date: txDate,
-      });
+      }, portalId);
 
       // Audit log entry
       const eurValue = qty * holding.currentPrice;
@@ -174,7 +185,7 @@ export function CryptoDetailPopup({ holding, onClose, onUpdateQuantity }: Props)
         broadcastFinanceUpdate("transaction_added");
       }
 
-      setTxHistory(readTxHistory(holding.coin_id));
+      setTxHistory(readTxHistory(holding.coin_id, portalId));
       setActionMode(null);
       setActionQty("");
       setActionTitle("");
