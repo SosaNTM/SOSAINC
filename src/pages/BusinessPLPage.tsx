@@ -1,3 +1,4 @@
+// TODO: removed from navigation during audit — routes disabled in App.tsx. Re-enable when business finance module is ready.
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { FileText, Printer } from "lucide-react";
@@ -161,13 +162,13 @@ export default function BusinessPLPage() {
               width: 32,
               height: 32,
               borderRadius: 10,
-              background: "rgba(201,169,110,0.12)",
+              background: "rgba(232,255,0,0.12)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <FileText style={{ width: 16, height: 16, color: "#c9a96e" }} />
+            <FileText style={{ width: 16, height: 16, color: "#e8ff00" }} />
           </div>
           <h2
             style={{
@@ -250,7 +251,7 @@ export default function BusinessPLPage() {
             style={{
               fontSize: 12,
               fontWeight: 700,
-              color: "var(--accent-gold, #c9a96e)",
+              color: "var(--accent-gold, #e8ff00)",
               textTransform: "uppercase",
               letterSpacing: "0.1em",
               marginBottom: 6,

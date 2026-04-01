@@ -9,24 +9,14 @@ import { LiquidGlassCard, LiquidGlassFilter } from "@/components/ui/liquid-glass
 import { useFinanceSummary, lastNMonthsRange } from "@/hooks/useFinanceSummary";
 import { useTransactions } from "@/hooks/useTransactions";
 import { AddTransactionModal } from "@/components/finance/AddTransactionModal";
+import { GlassTooltip } from "@/components/ui/GlassTooltip";
 import type { NewPersonalTransaction } from "@/types/finance";
 
-// ── Tooltip styles ────────────────────────────────────────────────────────────
+// ── Tooltip formatter ────────────────────────────────────────────────────────
 
-function ChartTip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 8, padding: "7px 12px", minWidth: 120 }}>
-      {label && <p style={{ fontSize: 11, color: "var(--text-quaternary)", margin: "0 0 4px", fontWeight: 600 }}>{label}</p>}
-      {payload.map((p: any) => (
-        <p key={p.dataKey} style={{ fontSize: 12, color: p.color, margin: "1px 0", fontWeight: 600 }}>
-          {p.name}: €{Number(p.value).toLocaleString("en-US")}
-        </p>
-      ))}
-    </div>
-  );
-}
+const fmtEurTooltip = (v: number) => `€${Number(v).toLocaleString("en-US")}`;
 
+// NOTE: Custom tooltip — too specialized for GlassTooltip (accesses payload[0].payload.percentage)
 function PieTip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   return (
@@ -133,7 +123,7 @@ export default function Analytics() {
           {stat("Income (6m)", `€${Math.round(s6.totalIncome).toLocaleString("en-US")}`, "#4ade80", <TrendingUp style={{ width: 18, height: 18 }} />)}
           {stat("Expenses (6m)",  `€${Math.round(s6.totalExpenses).toLocaleString("en-US")}`, "#FF5A5A", <TrendingDown style={{ width: 18, height: 18 }} />)}
           {stat("Net (6m)", `${s6.netBalance >= 0 ? "+" : ""}€${Math.round(s6.netBalance).toLocaleString("en-US")}`, s6.netBalance >= 0 ? "#4ade80" : "#FF5A5A", <BarChart2 style={{ width: 18, height: 18 }} />)}
-          {stat("Categories", String(s6.categoryBreakdown.length), "#C9A84C", <PieIcon style={{ width: 18, height: 18 }} />)}
+          {stat("Categories", String(s6.categoryBreakdown.length), "#e8ff00", <PieIcon style={{ width: 18, height: 18 }} />)}
         </div>
       </motion.div>
 
@@ -155,7 +145,7 @@ export default function Analytics() {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                   <XAxis dataKey="name" tick={{ fontSize: 10, fill: "var(--text-quaternary)" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: "var(--text-quaternary)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `€${v}`} />
-                  <Tooltip content={<ChartTip />} />
+                  <Tooltip content={<GlassTooltip formatter={fmtEurTooltip} />} />
                   <Bar dataKey="income"   name="Income"   fill="#4ade80" radius={[4, 4, 0, 0]} opacity={0.85} />
                   <Bar dataKey="expenses" name="Expenses" fill="#FF5A5A" radius={[4, 4, 0, 0]} opacity={0.85} />
                 </BarChart>
@@ -204,7 +194,7 @@ export default function Analytics() {
         transition={{ duration: 0.5, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
       >
         {/* Line chart: daily spending (this month) */}
-        <LiquidGlassCard accentColor="#C9A84C" hover={false}>
+        <LiquidGlassCard accentColor="#e8ff00" hover={false}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12 }}>Daily Spending (Current Month)</h3>
           {dailyData.length === 0 ? (
             <div style={{ height: 180, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-quaternary)", fontSize: 13 }}>No data</div>
@@ -214,8 +204,8 @@ export default function Analytics() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="name" tick={{ fontSize: 10, fill: "var(--text-quaternary)" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: "var(--text-quaternary)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `€${v}`} />
-                <Tooltip content={<ChartTip />} />
-                <Line type="monotone" dataKey="amount" name="Expenses" stroke="#C9A84C" strokeWidth={2} dot={false} />
+                <Tooltip content={<GlassTooltip formatter={fmtEurTooltip} />} />
+                <Line type="monotone" dataKey="amount" name="Expenses" stroke="#e8ff00" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           )}
@@ -234,7 +224,7 @@ export default function Analytics() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 10, fill: "var(--text-quaternary)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `€${v}`} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "var(--text-quaternary)" }} axisLine={false} tickLine={false} width={80} />
-                <Tooltip content={<ChartTip />} />
+                <Tooltip content={<GlassTooltip formatter={fmtEurTooltip} />} />
                 <Bar dataKey="amount" name="Amount" radius={[0, 4, 4, 0]}>
                   {top5.map((c, i) => <Cell key={i} fill={c.color} opacity={0.85} />)}
                 </Bar>
@@ -251,7 +241,7 @@ export default function Analytics() {
             <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Monthly Summary — Last 12 Months</h3>
             <button
               onClick={() => exportCSV(tableData, "finance-analytics.csv")}
-              style={{ height: 28, padding: "0 10px", borderRadius: 8, background: "rgba(201,168,76,0.10)", border: "1px solid rgba(201,168,76,0.25)", color: "#C9A84C", fontSize: 11, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+              style={{ height: 28, padding: "0 10px", borderRadius: 8, background: "rgba(232,255,0,0.10)", border: "1px solid rgba(232,255,0,0.25)", color: "#e8ff00", fontSize: 11, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
               <Download style={{ width: 12, height: 12 }} />
               Export CSV
             </button>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { STORAGE_GOALS_PREFIX, STORAGE_GOALS_LEGACY } from "@/constants/storageKeys";
 import { motion, AnimatePresence } from "framer-motion";
 import { Target, Plus, Pencil, Trash2, Check } from "lucide-react";
 import { LiquidGlassCard, LiquidGlassFilter } from "@/components/ui/liquid-glass-card";
@@ -6,6 +7,8 @@ import { NewGoalModal, type NewGoalData } from "@/components/NewGoalModal";
 import { usePortal } from "@/lib/portalContext";
 import { useAuth } from "@/lib/authContext";
 import { addAuditEntry } from "@/lib/adminStore";
+import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface Goal {
   id: number;
@@ -20,7 +23,7 @@ interface Goal {
 
 const INITIAL_GOALS: Goal[] = [];
 
-const GOALS_KEY_PREFIX = "finance_goals";
+const GOALS_KEY_PREFIX = STORAGE_GOALS_PREFIX;
 
 function goalsStorageKey(portalId: string): string {
   return `${GOALS_KEY_PREFIX}_${portalId}`;
@@ -32,7 +35,7 @@ function loadGoals(portalId: string): Goal[] {
     if (raw) return JSON.parse(raw) as Goal[];
     // Legacy migration for sosa portal
     if (portalId === "sosa") {
-      const legacy = localStorage.getItem("finance_goals");
+      const legacy = localStorage.getItem(STORAGE_GOALS_LEGACY);
       if (legacy) return JSON.parse(legacy) as Goal[];
     }
   } catch {}
@@ -96,6 +99,7 @@ export default function Goals() {
   const overallPct  = totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
 
   return (
+    <ModuleErrorBoundary moduleName="Goals">
     <div className="space-y-5">
       <LiquidGlassFilter />
 
@@ -107,7 +111,7 @@ export default function Goals() {
           { label: "Total Goals",      value: String(goals.length),                        color: "#4A9EFF" },
           { label: "Total Target",     value: `€${totalTarget.toLocaleString("en-US")}`,   color: "var(--text-primary)" },
           { label: "Total Saved",      value: `€${totalSaved.toLocaleString("en-US")}`,    color: "#2ECC71" },
-          { label: "Overall Progress", value: `${overallPct}%`,                             color: "#C9A84C" },
+          { label: "Overall Progress", value: `${overallPct}%`,                             color: "#e8ff00" },
         ].map((s) => (
           <div key={s.label} style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 14, padding: "14px 18px" }}>
             <p style={{ fontSize: 11, color: "var(--text-quaternary)", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" }}>{s.label}</p>
@@ -132,6 +136,15 @@ export default function Goals() {
             </button>
           </div>
 
+          {goals.length === 0 ? (
+            <EmptyState
+              icon={<Target style={{ width: 48, height: 48 }} />}
+              title="NO GOALS YET"
+              description="Set financial goals to track your progress."
+              actionLabel="CREATE GOAL"
+              onAction={openCreate}
+            />
+          ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             <AnimatePresence>
               {goals.map((goal, i) => {
@@ -200,6 +213,7 @@ export default function Goals() {
               })}
             </AnimatePresence>
           </div>
+          )}
         </LiquidGlassCard>
       </motion.div>
 
@@ -210,5 +224,6 @@ export default function Goals() {
         initialData={editingGoal ?? undefined}
       />
     </div>
+    </ModuleErrorBoundary>
   );
 }

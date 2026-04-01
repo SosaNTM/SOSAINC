@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
-const GOLD = "#c9a96e";
+const GOLD = "#e8ff00";
 
 const CATEGORIES = [
   { value: "Savings",     emoji: "💰", color: "#2ECC71" },
   { value: "Investment",  emoji: "📈", color: "#4A9EFF" },
   { value: "Purchase",    emoji: "🛍️", color: "#f59e0b" },
-  { value: "Other",       emoji: "🎯", color: "#C9A84C" },
+  { value: "Other",       emoji: "🎯", color: "#e8ff00" },
 ];
 
 export interface NewGoalData {

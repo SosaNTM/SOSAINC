@@ -109,7 +109,10 @@ const LoginPage = () => {
         await login(email, password, false);
         setSuccess(true);
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "INVALID CREDENTIALS";
+        const isNetworkError = err instanceof TypeError && err.message.toLowerCase().includes("network");
+        const message = isNetworkError
+          ? "CONNECTION ERROR. PLEASE TRY AGAIN."
+          : err instanceof Error ? err.message : "INVALID CREDENTIALS";
         setError(message);
         setShaking(true);
         shakeTimerRef.current = setTimeout(() => setShaking(false), 400);
@@ -322,10 +325,10 @@ const LoginPage = () => {
             </button>
           </div>
 
-          {/* Sign up */}
+          {/* No public signup — admin-only access */}
           <p className={s.signupText}>
             NEW TO THE GAME?{" "}
-            <Link to="/forgot-password" className={s.signupLink}>JOIN NOW</Link>
+            <span className={s.signupLink} style={{ cursor: "default", opacity: 0.6 }}>CONTACT YOUR ADMIN FOR ACCESS</span>
           </p>
         </div>
 

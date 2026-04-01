@@ -24,7 +24,7 @@ export function GiftCardModal({ brands, editingCard, onSave, onClose }: GiftCard
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
   const [customMode, setCustomMode] = useState(false);
   const [customName, setCustomName] = useState("");
-  const [customColor, setCustomColor] = useState("#c9a96e");
+  const [customColor, setCustomColor] = useState("#e8ff00");
   const [customCategory, setCustomCategory] = useState<GiftCardCategory>("other");
   const [saving, setSaving] = useState(false);
 
@@ -146,7 +146,7 @@ export function GiftCardModal({ brands, editingCard, onSave, onClose }: GiftCard
                     <div style={{ textAlign: "center", padding: "24px 0" }}>
                       <p style={{ fontSize: 13, color: "#999", marginBottom: 12 }}>Nessun brand trovato</p>
                       <button type="button" onClick={() => { setCustomMode(true); setCustomName(search); }}
-                        style={{ fontSize: 12, fontWeight: 600, padding: "8px 16px", borderRadius: 8, border: "1px solid #c9a96e", background: "transparent", color: "#c9a96e", cursor: "pointer" }}>
+                        style={{ fontSize: 12, fontWeight: 600, padding: "8px 16px", borderRadius: 8, border: "1px solid #e8ff00", background: "transparent", color: "#e8ff00", cursor: "pointer" }}>
                         + Aggiungi "{search}" come brand custom
                       </button>
                     </div>
@@ -299,7 +299,7 @@ function BrandGrid({ brands, onSelect }: { brands: GiftCardBrand[]; onSelect: (b
       {brands.map((brand) => (
         <button key={brand.brand_key} type="button" onClick={() => onSelect(brand)}
           style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "12px 4px", borderRadius: 12, border: "1px solid #eee", background: "#fafafa", cursor: "pointer", transition: "all 0.15s" }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#c9a96e"; (e.currentTarget as HTMLElement).style.background = "#fff"; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#e8ff00"; (e.currentTarget as HTMLElement).style.background = "#fff"; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#eee"; (e.currentTarget as HTMLElement).style.background = "#fafafa"; }}>
           <div style={{ width: 36, height: 36, borderRadius: 9, background: brand.logo_url ? "#fff" : (brand.color ?? "#6b7280"), display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
             {brand.logo_url ? (

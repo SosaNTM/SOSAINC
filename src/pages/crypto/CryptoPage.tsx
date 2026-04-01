@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { STORAGE_CRYPTO_TX_HISTORY_PREFIX, STORAGE_CRYPTO_TX_HISTORY_LEGACY, STORAGE_CRYPTO_TX_MIGRATED_PREFIX } from "@/constants/storageKeys";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   RefreshCw, Plus, TrendingUp, TrendingDown,
@@ -9,6 +10,7 @@ import {
   AreaChart, Area, XAxis, YAxis,
 } from "recharts";
 import { LiquidGlassCard, LiquidGlassFilter } from "@/components/ui/liquid-glass-card";
+import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
 import { useCryptoPortfolio } from "@/portals/finance/hooks/useCryptoPortfolio";
 import { useCryptoChart } from "@/portals/finance/hooks/useCryptoChart";
 import { formatEUR } from "@/portals/finance/utils/currency";
@@ -21,10 +23,14 @@ import { localGetAll, localAdd } from "@/lib/personalTransactionStore";
 import { addAuditEntry } from "@/lib/adminStore";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
+import { GlassTooltip } from "@/components/ui/GlassTooltip";
+import { useToast } from "@/hooks/use-toast";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Coins } from "lucide-react";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const GOLD = "#c9a96e";
+const GOLD = "#e8ff00";
 const COIN_COLORS = [
   "#F7931A", "#627EEA", "#14F195", "#E84142", "#2775CA",
   "#F0B90B", "#8247E5", "#00D1FF", "#22d3ee", "#10b981",
@@ -93,28 +99,7 @@ function SkeletonRow() {
   );
 }
 
-// ── Tooltips ─────────────────────────────────────────────────────────────────
-
-function DonutTooltipContent({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  const d = payload[0].payload;
-  return (
-    <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 8, padding: "6px 12px" }}>
-      <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>{d.name}</p>
-      <p style={{ fontSize: 11, color: "var(--text-secondary)" }}>{formatEUR(d.value)}</p>
-    </div>
-  );
-}
-
-function ChartTooltipContent({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 8, padding: "6px 12px" }}>
-      <p style={{ fontSize: 10, color: "var(--text-quaternary)", marginBottom: 2 }}>{label}</p>
-      <p style={{ fontSize: 13, fontWeight: 700, color: GOLD }}>{formatEUR(payload[0].value)}</p>
-    </div>
-  );
-}
+const fmtCryptoTooltip = (v: number) => formatEUR(v);
 
 const CHART_PERIODS = [
   { label: "7G", days: 7 },
@@ -132,18 +117,32 @@ export default function CryptoPage() {
   const {
     enrichedHoldings, summary,
     isLoading, lastUpdated, isRefreshing,
+    isPriceStale,
     refreshPrices, getPriceForCoin,
     addHolding, updateHolding, deleteHolding,
   } = useCryptoPortfolio();
 
+  const { toast } = useToast();
+
+  // Show a destructive toast when crypto prices become stale
+  useEffect(() => {
+    if (isPriceStale) {
+      toast({
+        title: "Crypto prices may be outdated",
+        description: "Unable to refresh live prices. Values shown may not be current.",
+        variant: "destructive",
+      });
+    }
+  }, [isPriceStale]);
+
   // ── Migrate old crypto_tx_history into personal transactions (once) ────────
   React.useEffect(() => {
     if (!user) return;
-    const MIGRATED_KEY = `crypto_tx_migrated_${portalId}`;
+    const MIGRATED_KEY = `${STORAGE_CRYPTO_TX_MIGRATED_PREFIX}${portalId}`;
     if (localStorage.getItem(MIGRATED_KEY)) return;
 
     try {
-      const raw = localStorage.getItem(`crypto_tx_history_${portalId}`) || localStorage.getItem("crypto_tx_history");
+      const raw = localStorage.getItem(`${STORAGE_CRYPTO_TX_HISTORY_PREFIX}_${portalId}`) || localStorage.getItem(STORAGE_CRYPTO_TX_HISTORY_LEGACY);
       if (!raw) { localStorage.setItem(MIGRATED_KEY, "1"); return; }
       const cryptoTxs: { id: string; coin_id: string; type: "buy" | "sell"; quantity: number; title?: string; date: string }[] = JSON.parse(raw);
       if (cryptoTxs.length === 0) { localStorage.setItem(MIGRATED_KEY, "1"); return; }
@@ -235,18 +234,16 @@ export default function CryptoPage() {
     return (
       <div className="space-y-5">
         <LiquidGlassFilter />
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-          style={{ textAlign: "center", padding: "80px 24px" }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>₿</div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>Nessuna crypto nel tuo portfolio</h2>
-          <p style={{ fontSize: 14, color: "var(--text-tertiary)", marginBottom: 24, maxWidth: 360, margin: "0 auto 24px" }}>
-            Seleziona le crypto che possiedi e inserisci la quantità per tracciare il valore in tempo reale.
-          </p>
-          <button type="button" onClick={openAddHolding}
-            className="glass-btn-primary" style={{ padding: "10px 24px", fontSize: 14, fontWeight: 600 }}>
-            <Plus style={{ width: 16, height: 16, display: "inline", marginRight: 6, verticalAlign: "middle" }} />
-            Aggiungi Crypto
-          </button>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <LiquidGlassCard accentColor={GOLD} hover={false}>
+            <EmptyState
+              icon={<Coins style={{ width: 48, height: 48 }} />}
+              title="NO CRYPTO HOLDINGS"
+              description="Track your cryptocurrency portfolio."
+              actionLabel="ADD HOLDING"
+              onAction={openAddHolding}
+            />
+          </LiquidGlassCard>
         </motion.div>
 
         <CryptoHoldingModal
@@ -258,6 +255,7 @@ export default function CryptoPage() {
               await addHolding(data);
               setHoldingModalOpen(false);
             } catch (err) {
+              // TODO: Replace with structured error logging (Sentry, etc.)
               console.error("Failed to add holding:", err);
               setSaveError((err as Error).message || "Errore nel salvataggio");
             }
@@ -274,6 +272,7 @@ export default function CryptoPage() {
   // ── Main Render ────────────────────────────────────────────────────────────
 
   return (
+    <ModuleErrorBoundary moduleName="Crypto Portfolio">
     <div className="space-y-5">
       <LiquidGlassFilter />
 
@@ -375,7 +374,7 @@ export default function CryptoPage() {
                   </defs>
                   <XAxis dataKey="date" hide />
                   <YAxis hide domain={["dataMin * 0.95", "dataMax * 1.05"]} />
-                  <Tooltip content={<ChartTooltipContent />} />
+                  <Tooltip content={<GlassTooltip formatter={fmtCryptoTooltip} />} />
                   <Area type="monotone" dataKey="value" stroke={GOLD} strokeWidth={2} fill="url(#portfolioGrad)" dot={false} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -483,7 +482,7 @@ export default function CryptoPage() {
                     <Pie data={donutData} cx="50%" cy="50%" innerRadius={38} outerRadius={60} paddingAngle={3} dataKey="value" strokeWidth={0}>
                       {donutData.map((d) => <Cell key={d.name} fill={d.color} />)}
                     </Pie>
-                    <Tooltip content={<DonutTooltipContent />} />
+                    <Tooltip content={<GlassTooltip formatter={fmtCryptoTooltip} />} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="flex flex-col gap-2 w-full">
@@ -522,6 +521,7 @@ export default function CryptoPage() {
             setHoldingModalOpen(false);
             setEditingHolding(null);
           } catch (err) {
+            // TODO: Replace with structured error logging (Sentry, etc.)
             console.error("Failed to save holding:", err);
             setSaveError((err as Error).message || "Errore nel salvataggio");
           }
@@ -553,5 +553,6 @@ export default function CryptoPage() {
         )}
       </AnimatePresence>
     </div>
+    </ModuleErrorBoundary>
   );
 }

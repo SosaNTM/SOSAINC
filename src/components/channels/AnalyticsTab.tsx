@@ -40,7 +40,7 @@ function KpiCard({ ch, onClick }: { ch: Channel; onClick: () => void }) {
   );
 }
 
-/* ── Custom Tooltip ── */
+// NOTE: Custom tooltip — too specialized for GlassTooltip (multi-field layout: revenue, margin, orders)
 function GlassTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;

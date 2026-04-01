@@ -1,0 +1,63 @@
+{
+  "common": {
+    "save": "Salva",
+    "cancel": "Annulla",
+    "delete": "Elimina",
+    "edit": "Modifica",
+    "add": "Aggiungi",
+    "search": "Cerca",
+    "loading": "Caricamento...",
+    "noData": "Nessun dato",
+    "comingSoon": "In arrivo",
+    "confirm": "Conferma",
+    "close": "Chiudi",
+    "back": "Indietro",
+    "next": "Avanti",
+    "error": "Errore",
+    "success": "Successo",
+    "warning": "Attenzione"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "transactions": "Transazioni",
+    "subscriptions": "Abbonamenti",
+    "budget": "Budget",
+    "goals": "Obiettivi",
+    "crypto": "Crypto",
+    "giftCards": "Gift Cards",
+    "vault": "Vault",
+    "cloud": "Cloud",
+    "tasks": "Task",
+    "notes": "Note",
+    "analytics": "Analytics",
+    "social": "Social",
+    "settings": "Impostazioni",
+    "reports": "Report",
+    "forecast": "Previsioni"
+  },
+  "finance": {
+    "revenue": "Ricavi",
+    "expenses": "Spese",
+    "netProfit": "Utile Netto",
+    "grossMargin": "Margine Lordo",
+    "cogs": "COGS",
+    "opex": "OPEX",
+    "income": "Entrata",
+    "expense": "Uscita",
+    "transfer": "Trasferimento",
+    "balance": "Saldo",
+    "amount": "Importo",
+    "category": "Categoria",
+    "date": "Data",
+    "description": "Descrizione"
+  },
+  "auth": {
+    "login": "Accedi",
+    "logout": "Disconnetti",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Password dimenticata?",
+    "resetPassword": "Reimposta password",
+    "contactAdmin": "Contatta l'amministratore per accedere"
+  }
+}

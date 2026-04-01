@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth, getUserById, getLastLogin, type User } from "@/lib/authContext";
+import { STORAGE_AVATAR_PREFIX, STORAGE_BANNER_PREFIX, STORAGE_DENSITY } from "@/constants/storageKeys";
 import { addAuditEntry, getAuditLog, subscribeAudit, getPortalName } from "@/lib/adminStore";
 import { useTheme } from "@/lib/theme";
 import { useAccent, ACCENT_PRESETS } from "@/lib/accent";
@@ -93,7 +94,7 @@ const ProfilePage = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [density, setDensity] = useState<"comfortable" | "compact">(() =>
-    (localStorage.getItem("iconoff_density") as "comfortable" | "compact") || "comfortable"
+    (localStorage.getItem(STORAGE_DENSITY) as "comfortable" | "compact") || "comfortable"
   );
   const [showCF, setShowCF] = useState(false);
   const [showIBAN, setShowIBAN] = useState(false);
@@ -112,9 +113,9 @@ const ProfilePage = () => {
 
   // Load avatar
   useEffect(() => {
-    const stored = localStorage.getItem("iconoff_avatar_" + profileUser?.id);
+    const stored = localStorage.getItem(STORAGE_AVATAR_PREFIX + profileUser?.id);
     if (stored) setLocalAvatar(stored);
-    const storedBanner = localStorage.getItem("iconoff_banner_" + profileUser?.id);
+    const storedBanner = localStorage.getItem(STORAGE_BANNER_PREFIX + profileUser?.id);
     if (storedBanner) setLocalBanner(storedBanner);
   }, [profileUser?.id]);
 
@@ -158,7 +159,7 @@ const ProfilePage = () => {
     reader.onload = () => {
       const url = reader.result as string;
       setLocalAvatar(url);
-      localStorage.setItem("iconoff_avatar_" + profileUser.id, url);
+      localStorage.setItem(STORAGE_AVATAR_PREFIX + profileUser.id, url);
       updateProfile(profileUser.id, { avatar_url: url });
       window.dispatchEvent(new Event("avatar-changed"));
       toast.success("Avatar updated");
@@ -174,7 +175,7 @@ const ProfilePage = () => {
     reader.onload = () => {
       const url = reader.result as string;
       setLocalBanner(url);
-      localStorage.setItem("iconoff_banner_" + profileUser.id, url);
+      localStorage.setItem(STORAGE_BANNER_PREFIX + profileUser.id, url);
       updateProfile(profileUser.id, { cover_image_url: url });
       toast.success("Banner updated");
     };
@@ -306,28 +307,13 @@ const ProfilePage = () => {
 
 
       {/* ══════════ MAIN CONTENT: TWO COLUMNS ══════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_400px] 2xl:grid-cols-[1fr_440px] gap-5">
-        {/* LEFT COLUMN */}
-        <div className="flex flex-col gap-4">
-          {/* Activity Timeline */}
-          <GlassSection title="Recent Activity" icon={<Activity className="w-4 h-4" />} className="flex-1">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_400px] 2xl:grid-cols-[1fr_440px] gap-5 lg:items-stretch">
+        {/* LEFT COLUMN — stretches to match right column height */}
+        <div className="flex flex-col gap-4 h-full">
+          {/* Activity Timeline — fills remaining height */}
+          <GlassSection title="Recent Activity" icon={<Activity className="w-4 h-4" />} className="flex-1 flex flex-col">
             <ActivityTimeline activities={activities} />
           </GlassSection>
-
-
-          {/* Sensitive Data */}
-          {canViewSensitive && profile.tax_id && (
-            <GlassSection
-              title="Sensitive Data"
-              icon={<ShieldAlert className="w-4 h-4" style={{ color: "#f87171" }} />}
-              badge={<span className="flex items-center gap-1 text-[10px]" style={{ color: "#f87171" }}><Lock className="w-3 h-3" /> Protected</span>}
-            >
-              <MaskedField label="Tax ID" value={profile.tax_id} maskedValue={maskValue(profile.tax_id, 4, 1)} show={showCF} onToggle={() => { setShowCF(!showCF); if (!showCF) { toast.info("Tax ID revealed — logged"); addAuditEntry({ userId: user?.id ?? "unknown", action: `Revealed Tax ID for ${profile.full_name || "user"}`, category: "profile", details: "Sensitive fiscal data accessed", icon: "💰" }); } }} />
-              <div className="flex items-center gap-1.5 text-[10px] rounded-[var(--radius-sm)] p-2 mt-1" style={{ color: "var(--text-tertiary)", background: "var(--glass-bg-subtle)" }}>
-                <Lock className="w-3 h-3 shrink-0" /> Every reveal is recorded in the audit log.
-              </div>
-            </GlassSection>
-          )}
         </div>
 
         {/* RIGHT COLUMN */}
@@ -342,7 +328,19 @@ const ProfilePage = () => {
             <SocialLinksCard profile={profile} onEdit={() => setEditOpen(true)} onProfileUpdate={setProfile} />
           </GlassSection>
 
-
+          {/* Sensitive Data — below Social Links */}
+          {canViewSensitive && profile.tax_id && (
+            <GlassSection
+              title="Sensitive Data"
+              icon={<ShieldAlert className="w-4 h-4" style={{ color: "#f87171" }} />}
+              badge={<span className="flex items-center gap-1 text-[10px]" style={{ color: "#f87171" }}><Lock className="w-3 h-3" /> Protected</span>}
+            >
+              <MaskedField label="Tax ID" value={profile.tax_id} maskedValue={maskValue(profile.tax_id, 4, 1)} show={showCF} onToggle={() => { setShowCF(!showCF); if (!showCF) { toast.info("Tax ID revealed — logged"); addAuditEntry({ userId: user?.id ?? "unknown", action: `Revealed Tax ID for ${profile.full_name || "user"}`, category: "profile", details: "Sensitive fiscal data accessed", icon: "💰" }); } }} />
+              <div className="flex items-center gap-1.5 text-[10px] rounded-[var(--radius-sm)] p-2 mt-1" style={{ color: "var(--text-tertiary)", background: "var(--glass-bg-subtle)" }}>
+                <Lock className="w-3 h-3 shrink-0" /> Every reveal is recorded in the audit log.
+              </div>
+            </GlassSection>
+          )}
         </div>
       </div>
 
@@ -407,7 +405,7 @@ const ProfilePage = () => {
               <label className="text-[10px] font-bold uppercase tracking-wider mb-2 block" style={{ color: "var(--text-quaternary)" }}>Layout Density</label>
               <div className="glass-segment">
                 {DENSITY_OPTIONS.map((opt) => (
-                  <button type="button" key={opt.key} onClick={() => { setDensity(opt.key); localStorage.setItem("iconoff_density", opt.key); }}
+                  <button type="button" key={opt.key} onClick={() => { setDensity(opt.key); localStorage.setItem(STORAGE_DENSITY, opt.key); }}
                     className="glass-segment-item" data-active={density === opt.key}>{opt.label}</button>
                 ))}
               </div>

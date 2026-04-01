@@ -94,14 +94,16 @@ function AccordionSection({ label, icon: Icon, isActive, isOpen, onToggle, porta
 
 // Personal finance items (shared across ALL portals)
 const personalFinanceSubItems = [
-  { title: "Dashboard",     path: "/dashboard",     icon: PieChart        },
-  { title: "Transactions",  path: "/transactions",  icon: ArrowLeftRight  },
-  { title: "Budget",        path: "/costs",         icon: Wallet          },
-  { title: "Subscriptions", path: "/channels",      icon: Zap             },
-  { title: "Goals",         path: "/pl-rules",      icon: Target          },
-  { title: "Portfolio",     path: "/investments",   icon: BarChart3       },
-  { title: "Crypto",        path: "/crypto",        icon: Bitcoin         },
-  { title: "Gift Cards",   path: "/gift-cards",    icon: Gift            },
+  { title: "Dashboard",     path: "/dashboard",     icon: PieChart                       },
+  { title: "Transactions",  path: "/transactions",  icon: ArrowLeftRight                 },
+  { title: "Budget",        path: "/costs",         icon: Wallet                         },
+  { title: "Subscriptions", path: "/channels",      icon: Zap                            },
+  { title: "Goals",         path: "/pl-rules",      icon: Target                         },
+  { title: "Portfolio",     path: "/investments",   icon: BarChart3                      },
+  { title: "Crypto",        path: "/crypto",        icon: Bitcoin                        },
+  { title: "Gift Cards",   path: "/gift-cards",    icon: Gift                           },
+  { title: "Reports",       path: "/reports",       icon: FileText,   comingSoon: true   },
+  { title: "Forecast",      path: "/forecast",      icon: TrendingUp, comingSoon: true   },
 ];
 
 // Business finance items — removed per request (COGS, OPEX, P&L now handled via
@@ -129,10 +131,11 @@ const topItems = [
 ];
 
 const workspaceItems = [
-  { title: "Vault",  path: "/vault",  icon: Lock,        permission: "vault:view",       feature: "vault"  },
-  { title: "Cloud",  path: "/cloud",  icon: Cloud,       permission: "cloud:view",       feature: "cloud"  },
-  { title: "Tasks",  path: "/tasks",  icon: CheckSquare, permission: "tasks:view_own",   feature: "tasks"  },
-  { title: "Notes",  path: "/notes",  icon: StickyNote,  permission: "notes:view_own",   feature: "notes"  },
+  { title: "Inventory", path: "/inventory", icon: Package,     permission: "finance:view",     feature: ""       },
+  { title: "Vault",     path: "/vault",     icon: Lock,        permission: "vault:view",       feature: "vault"  },
+  { title: "Cloud",     path: "/cloud",     icon: Cloud,       permission: "cloud:view",       feature: "cloud"  },
+  { title: "Tasks",     path: "/tasks",     icon: CheckSquare, permission: "tasks:view_own",   feature: "tasks"  },
+  { title: "Notes",     path: "/notes",     icon: StickyNote,  permission: "notes:view_own",   feature: "notes"  },
 ];
 
 const adminItem = { title: "Administration", path: "/admin", icon: ShieldCheck };
@@ -343,6 +346,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
           >
             {activeFinanceItems.map((item) => {
               const isActive = location.pathname === `${prefix}${item.path}` || location.pathname.startsWith(`${prefix}${item.path}/`);
+              const isSoon = "comingSoon" in item && item.comingSoon;
               return (
                 <NavLink
                   key={item.path} to={`${prefix}${item.path}`} onClick={onMobileClose}
@@ -354,12 +358,30 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
                     background: isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent",
                     borderLeft: isActive ? `3px solid ${portal?.accent || '#00D4FF'}` : "3px solid transparent",
                     margin: "1px 0",
+                    opacity: isSoon ? 0.6 : 1,
                   }}
                   onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--nav-hover-bg)"; }}
                   onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent"; }}
                 >
                   <item.icon style={{ width: 14, height: 14, strokeWidth: 1.6, opacity: isActive ? 1 : 0.5 }} />
                   {item.title}
+                  {isSoon && (
+                    <span style={{
+                      fontSize: 9,
+                      fontWeight: 700,
+                      fontFamily: "'Space Mono', monospace",
+                      textTransform: "uppercase",
+                      background: "#e8ff00",
+                      color: "#000",
+                      padding: "1px 5px",
+                      borderRadius: 4,
+                      lineHeight: 1.2,
+                      marginLeft: 4,
+                      letterSpacing: "0.02em",
+                    }}>
+                      SOON
+                    </span>
+                  )}
                 </NavLink>
               );
             })}
@@ -517,12 +539,13 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
   // ── Dock items for collapsed mode ──────────────────────────────────────────
   const disabled = portal?.disabledFeatures ?? [];
   const dockGroups = [
-    ...(canViewFinance ? [{ label: "Finance", icon: Wallet, path: `${prefix}/dashboard`, matchPaths: prefixedFinancePaths }] : []),
+    ...(canViewFinance ? [{ label: "Finance",   icon: Wallet,      path: `${prefix}/dashboard`,       matchPaths: prefixedFinancePaths }] : []),
     ...(canViewSocial && !disabled.includes("social") ? [{ label: "Social",  icon: TrendingUp, path: `${prefix}/social/overview`, matchPaths: prefixedSocialPaths }] : []),
-    ...(!disabled.includes("vault") ? [{ label: "Vault",  icon: Lock,        path: `${prefix}/vault` }] : []),
-    ...(!disabled.includes("cloud") ? [{ label: "Cloud",  icon: Cloud,       path: `${prefix}/cloud` }] : []),
-    ...(!disabled.includes("tasks") ? [{ label: "Tasks",  icon: CheckSquare, path: `${prefix}/tasks` }] : []),
-    ...(!disabled.includes("notes") ? [{ label: "Notes",  icon: StickyNote,  path: `${prefix}/notes` }] : []),
+    ...(canViewFinance ? [{ label: "Inventory", icon: Package,     path: `${prefix}/inventory` }] : []),
+    ...(!disabled.includes("vault") ? [{ label: "Vault",     icon: Lock,        path: `${prefix}/vault` }] : []),
+    ...(!disabled.includes("cloud") ? [{ label: "Cloud",     icon: Cloud,       path: `${prefix}/cloud` }] : []),
+    ...(!disabled.includes("tasks") ? [{ label: "Tasks",     icon: CheckSquare, path: `${prefix}/tasks` }] : []),
+    ...(!disabled.includes("notes") ? [{ label: "Notes",     icon: StickyNote,  path: `${prefix}/notes` }] : []),
     ...(canAccessAdmin && (!portal || portal.id === "sosa") ? [{ label: "Admin", icon: ShieldCheck, path: `${prefix}/admin` }] : []),
   ];
 

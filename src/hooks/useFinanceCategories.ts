@@ -6,9 +6,12 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { usePortal } from "@/lib/portalContext";
+import { localGetAll } from "@/lib/personalTransactionStore";
 import type { FinanceCategory, CostClassification } from "@/types/finance";
 
-const STORAGE_KEY_PREFIX = "finance_tx_categories";
+import { STORAGE_FINANCE_TX_CATEGORIES_PREFIX } from "@/constants/storageKeys";
+
+const STORAGE_KEY_PREFIX = STORAGE_FINANCE_TX_CATEGORIES_PREFIX;
 
 function storageKey(portalId: string) {
   return `${STORAGE_KEY_PREFIX}_${portalId}`;
@@ -125,7 +128,7 @@ export function useFinanceCategories() {
     if (isSupabaseConfigured()) {
       const { data, error } = await supabase
         .from("finance_transaction_categories")
-        .insert({ portal_id: portalId, name: input.name, slug, type: input.type, color: input.color ?? "#c9a96e", icon: input.icon ?? "tag", sort_order: categories.length })
+        .insert({ portal_id: portalId, name: input.name, slug, type: input.type, color: input.color ?? "#e8ff00", icon: input.icon ?? "tag", sort_order: categories.length })
         .select().single();
       if (error) return { error: error.message };
       setCategories(prev => [...prev, data as FinanceCategory]);
@@ -133,7 +136,7 @@ export function useFinanceCategories() {
     } else {
       const cat: FinanceCategory = {
         id: crypto.randomUUID(), portal_id: portalId, name: input.name, slug, type: input.type,
-        color: input.color ?? "#c9a96e", icon: input.icon ?? "tag",
+        color: input.color ?? "#e8ff00", icon: input.icon ?? "tag",
         is_default: false, is_active: true, sort_order: categories.length,
         created_by: null, updated_by: null, created_at: now, updated_at: now,
       };
@@ -164,6 +167,25 @@ export function useFinanceCategories() {
 
   // Delete
   const deleteCategory = useCallback(async (id: string) => {
+    // Check for orphaned transactions before deleting
+    const cat = categories.find(c => c.id === id);
+    if (cat) {
+      let txCount = 0;
+      if (isSupabaseConfigured()) {
+        const { count, error: countErr } = await supabase
+          .from("personal_transactions")
+          .select("id", { count: "exact", head: true })
+          .eq("portal_id", portalId)
+          .eq("category_id", id);
+        if (!countErr && count != null) txCount = count;
+      } else {
+        txCount = localGetAll(portalId).filter(t => t.category_id === id || t.category === cat.name).length;
+      }
+      if (txCount > 0) {
+        return { error: `Cannot delete category: ${txCount} transaction${txCount === 1 ? "" : "s"} still use it` };
+      }
+    }
+
     if (isSupabaseConfigured()) {
       const { error } = await supabase.from("finance_transaction_categories").delete().eq("id", id);
       if (error) return { error: error.message };
@@ -172,7 +194,7 @@ export function useFinanceCategories() {
     setCategories(updated);
     persistLocal(updated);
     return {};
-  }, [categories, persistLocal]);
+  }, [categories, persistLocal, portalId]);
 
   // Toggle active
   const toggleActive = useCallback(async (id: string) => {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { STORAGE_SUBSCRIPTIONS_PREFIX, STORAGE_SUBSCRIPTIONS_LEGACY } from "@/constants/storageKeys";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Pause, Play, Zap, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { LiquidGlassCard, LiquidGlassFilter } from "@/components/ui/liquid-glass-card";
@@ -21,10 +22,13 @@ import {
   NewSubscriptionModal,
   type NewSubFormData,
 } from "@/portals/finance/components/NewSubscriptionModal";
+import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
+import { GlassTooltip } from "@/components/ui/GlassTooltip";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 
-const STORAGE_KEY_PREFIX = "finance_subscriptions";
+const STORAGE_KEY_PREFIX = STORAGE_SUBSCRIPTIONS_PREFIX;
 
 function subsStorageKey(portalId: string): string {
   return `${STORAGE_KEY_PREFIX}_${portalId}`;
@@ -38,7 +42,7 @@ function loadSubs(portalId: string): Subscription[] {
     if (raw) return JSON.parse(raw) as Subscription[];
     // Legacy migration for sosa portal
     if (portalId === "sosa") {
-      const legacy = localStorage.getItem("finance_subscriptions");
+      const legacy = localStorage.getItem(STORAGE_SUBSCRIPTIONS_LEGACY);
       if (legacy) return JSON.parse(legacy) as Subscription[];
     }
   } catch {}
@@ -55,15 +59,7 @@ function getStatus(sub: Subscription): "active" | "due_soon" | "overdue" | "inac
   return "active";
 }
 
-function SubTooltip({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 8, padding: "7px 12px" }}>
-      <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>{payload[0].name}</p>
-      <p style={{ fontSize: 11, color: "var(--text-tertiary)" }}>€{(payload[0].value as number).toFixed(2)}/mo</p>
-    </div>
-  );
-}
+const fmtSubTooltip = (v: number) => `€${v.toFixed(2)}/mo`;
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 
@@ -75,7 +71,7 @@ function ToastList({ toasts }: { toasts: { id: string; msg: string }[] }) {
         {toasts.map((t) => (
           <motion.div key={t.id}
             initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }}
-            style={{ background: "rgba(17,17,17,0.97)", border: "1px solid rgba(201,169,110,0.3)", borderRadius: 10, padding: "11px 16px", fontSize: 13, color: "#fff", maxWidth: 320, boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
+            style={{ background: "rgba(17,17,17,0.97)", border: "1px solid rgba(232,255,0,0.3)", borderRadius: 10, padding: "11px 16px", fontSize: 13, color: "#fff", maxWidth: 320, boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
             {t.msg}
           </motion.div>
         ))}
@@ -187,9 +183,9 @@ export default function Subscriptions() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const next_billing_date = firstBilling
-        ? firstBilling.toISOString().slice(0, 10)
-        : data.start_date;
+      // First billing date is the start date itself to avoid skipping the initial charge.
+      // Subsequent billing dates will use billing_day via calculateNextBillingDate.
+      const next_billing_date = data.start_date;
 
       const newSub: Subscription = {
         ...data,
@@ -203,40 +199,47 @@ export default function Subscriptions() {
 
       // Process immediately if start_date is today or past
       if (startDate <= today && user) {
-        localAdd(
-          {
-            user_id: user.id,
-            type: "expense",
-            amount: data.amount,
-            currency: data.currency ?? "EUR",
-            category: data.category,
-            description: `Subscription: ${data.name}`,
-            date: today.toISOString().slice(0, 10),
-            is_recurring: true,
-            recurring_interval: "monthly",
-          },
-          user.id,
-          portalId,
-        );
-        broadcastFinanceUpdate("transaction_added");
+        // Block charge if balance would go negative
+        if (balance < data.amount) {
+          addToast(
+            `⚠ ${data.name} added but first charge skipped — insufficient balance (€${balance.toFixed(2)})`,
+          );
+        } else {
+          localAdd(
+            {
+              user_id: user.id,
+              type: "expense",
+              amount: data.amount,
+              currency: data.currency ?? "EUR",
+              category: data.category,
+              description: `Subscription: ${data.name}`,
+              date: today.toISOString().slice(0, 10),
+              is_recurring: true,
+              recurring_interval: "monthly",
+            },
+            user.id,
+            portalId,
+          );
+          broadcastFinanceUpdate("transaction_added");
 
-        // Advance next_billing_date past today
-        const nextDate = calculateNextBillingDate(
-          firstBilling ?? today,
-          data.billing_cycle,
-          data.billing_day,
-        );
-        setSubs((prev) =>
-          prev.map((s) =>
-            s.id === newSub.id
-              ? { ...s, next_billing_date: nextDate.toISOString().slice(0, 10) }
-              : s,
-          ),
-        );
+          // Advance next_billing_date past today
+          const nextDate = calculateNextBillingDate(
+            firstBilling ?? today,
+            data.billing_cycle,
+            data.billing_day,
+          );
+          setSubs((prev) =>
+            prev.map((s) =>
+              s.id === newSub.id
+                ? { ...s, next_billing_date: nextDate.toISOString().slice(0, 10) }
+                : s,
+            ),
+          );
 
-        addToast(
-          `✓ ${data.name} added — first charge €${data.amount.toFixed(2)} recorded`,
-        );
+          addToast(
+            `✓ ${data.name} added — first charge €${data.amount.toFixed(2)} recorded`,
+          );
+        }
       } else {
         addToast(
           `✓ ${data.name} added — first charge on ${firstBilling?.toLocaleDateString("en-US", { day: "numeric", month: "long" }) ?? data.start_date}`,
@@ -270,6 +273,7 @@ export default function Subscriptions() {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
+    <ModuleErrorBoundary moduleName="Subscriptions">
     <div className="space-y-5">
       <LiquidGlassFilter />
       <ToastList toasts={toasts} />
@@ -282,7 +286,7 @@ export default function Subscriptions() {
       >
         {[
           { label: "Active",           value: String(activeSubs.length),                                        color: "#4A9EFF" },
-          { label: "Monthly Total",   value: `€${totalMonthly.toFixed(2)}`,                                    color: "#C9A84C" },
+          { label: "Monthly Total",   value: `€${totalMonthly.toFixed(2)}`,                                    color: "#e8ff00" },
           { label: "Annual Cost",     value: `€${totalAnnual.toLocaleString("en-US", { minimumFractionDigits: 2 })}`, color: "#FF5A5A" },
         ].map((s) => (
           <div key={s.label} style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 14, padding: "14px 18px" }}>
@@ -472,16 +476,20 @@ export default function Subscriptions() {
               </AnimatePresence>
 
               {visibleSubs.length === 0 && (
-                <div style={{ textAlign: "center", padding: "32px 0", color: "var(--text-quaternary)", fontSize: 13 }}>
-                  No subscriptions. Click "New Subscription" to get started.
-                </div>
+                <EmptyState
+                  icon={<Zap style={{ width: 48, height: 48 }} />}
+                  title="NO SUBSCRIPTIONS YET"
+                  description="Track your recurring expenses by adding a subscription."
+                  actionLabel="ADD SUBSCRIPTION"
+                  onAction={openCreate}
+                />
               )}
             </div>
           </LiquidGlassCard>
         </div>
 
         {/* ── Pie chart ── */}
-        <LiquidGlassCard accentColor="#C9A84C" hover={false}>
+        <LiquidGlassCard accentColor="#e8ff00" hover={false}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>By Category</h3>
           {catData.length > 0 ? (
             <ResponsiveContainer width="100%" height={160}>
@@ -489,7 +497,7 @@ export default function Subscriptions() {
                 <Pie data={catData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={42} outerRadius={68} paddingAngle={3}>
                   {catData.map((d, i) => <Cell key={i} fill={d.color} opacity={0.88} />)}
                 </Pie>
-                <Tooltip content={<SubTooltip />} />
+                <Tooltip content={<GlassTooltip formatter={fmtSubTooltip} />} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -511,7 +519,7 @@ export default function Subscriptions() {
           <div style={{ marginTop: 14, paddingTop: 12, borderTop: "0.5px solid var(--glass-border)" }}>
             <div className="flex justify-between">
               <span style={{ fontSize: 12, color: "var(--text-quaternary)" }}>Monthly (norm.)</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#C9A84C" }}>€{totalMonthly.toFixed(2)}/mo</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#e8ff00" }}>€{totalMonthly.toFixed(2)}/mo</span>
             </div>
             <div className="flex justify-between mt-1">
               <span style={{ fontSize: 12, color: "var(--text-quaternary)" }}>Annual</span>
@@ -538,12 +546,13 @@ export default function Subscriptions() {
                 start_date: editingSub.start_date,
                 category: editingSub.category,
                 description: editingSub.description ?? "",
-                color: editingSub.color ?? "#c9a96e",
+                color: editingSub.color ?? "#e8ff00",
                 is_active: editingSub.is_active,
               }
             : undefined
         }
       />
     </div>
+    </ModuleErrorBoundary>
   );
 }

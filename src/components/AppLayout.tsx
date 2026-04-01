@@ -2,11 +2,14 @@ import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 export function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+
+  useKeyboardShortcuts();
 
   return (
     <div className="h-screen w-full relative flex items-center justify-center p-2 md:p-4 overflow-hidden">

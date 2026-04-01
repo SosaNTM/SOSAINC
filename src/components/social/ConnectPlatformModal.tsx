@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { X, Check, XCircle } from "lucide-react";
+import { X, Check, XCircle, Zap } from "lucide-react";
 import { MorphingSquare } from "@/components/ui/morphing-square";
+import { toast } from "@/hooks/use-toast";
 
 export interface PlatformDef {
   id: string;
@@ -29,8 +30,19 @@ const WONT_DO_LIST = [
   "Follow or unfollow accounts",
 ];
 
+// Platforms that have OAuth credentials wired up in the edge function
+const OAUTH_SUPPORTED_PLATFORMS = new Set([
+  "instagram",
+  "facebook",
+  "tiktok",
+  "youtube",
+  "linkedin",
+  "twitter",
+]);
+
 export function ConnectPlatformModal({ platform, onClose, onConnected }: ConnectPlatformModalProps) {
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
 
   async function handleConnect() {
     setLoading(true);
@@ -39,6 +51,69 @@ export function ConnectPlatformModal({ platform, onClose, onConnected }: Connect
     onConnected(platform.id);
     onClose();
   }
+
+  async function handleOAuthConnect() {
+    setOauthLoading(true);
+    try {
+      const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string) ?? "";
+      const anonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) ?? "";
+
+      // Request the OAuth authorization URL from the edge function
+      const resp = await fetch(
+        `${supabaseUrl}/functions/v1/social-oauth?action=auth_url&platform=${platform.id}`,
+        { headers: { apikey: anonKey } },
+      );
+
+      const result = (await resp.json()) as { auth_url?: string; error?: string };
+
+      if (!resp.ok || result.error) {
+        toast({
+          title: "Not configured",
+          description: result.error ?? "Could not get authorization URL",
+          variant: "destructive",
+        });
+        setOauthLoading(false);
+        return;
+      }
+
+      // Open the OAuth flow in a popup window
+      const popup = window.open(
+        result.auth_url,
+        "oauth_connect",
+        "width=600,height=700,scrollbars=yes,resizable=yes",
+      );
+
+      if (!popup) {
+        toast({
+          title: "Popup blocked",
+          description: "Please allow popups for this site, then try again.",
+          variant: "destructive",
+        });
+        setOauthLoading(false);
+        return;
+      }
+
+      // Poll until the popup is closed, then treat as connected
+      const poll = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(poll);
+          setOauthLoading(false);
+          onConnected(platform.id);
+          onClose();
+        }
+      }, 500);
+    } catch (err: unknown) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
+      setOauthLoading(false);
+    }
+  }
+
+  const isOAuthSupported = OAUTH_SUPPORTED_PLATFORMS.has(platform.id);
+  const anyLoading = loading || oauthLoading;
 
   return (
     <div
@@ -154,40 +229,88 @@ export function ConnectPlatformModal({ platform, onClose, onConnected }: Connect
             </div>
           </div>
 
-          {/* Connect button */}
+          {/* OAuth connect button (shown for supported platforms) */}
+          {isOAuthSupported && (
+            <button
+              type="button"
+              onClick={handleOAuthConnect}
+              disabled={anyLoading}
+              style={{
+                width: "100%",
+                padding: "14px 20px",
+                borderRadius: 13,
+                background: oauthLoading
+                  ? `${platform.color}60`
+                  : `linear-gradient(135deg, ${platform.color}, ${platform.color}cc)`,
+                border: "none",
+                color: "#fff",
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: anyLoading ? "not-allowed" : "pointer",
+                fontFamily: "inherit",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                transition: "opacity 0.2s, box-shadow 0.2s",
+                boxShadow: oauthLoading ? "none" : `0 6px 20px ${platform.color}40`,
+                marginBottom: 10,
+              }}
+              onMouseEnter={(e) => { if (!anyLoading) e.currentTarget.style.opacity = "0.88"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+            >
+              {oauthLoading ? (
+                <>
+                  <MorphingSquare size={16} className="bg-white" />
+                  Opening OAuth…
+                </>
+              ) : (
+                <>
+                  <Zap style={{ width: 15, height: 15 }} />
+                  {`Connect with ${platform.name} →`}
+                </>
+              )}
+            </button>
+          )}
+
+          {/* Manual / demo connect button */}
           <button type="button"
             onClick={handleConnect}
-            disabled={loading}
+            disabled={anyLoading}
             style={{
               width: "100%",
-              padding: "14px 20px",
+              padding: isOAuthSupported ? "10px 20px" : "14px 20px",
               borderRadius: 13,
-              background: loading
-                ? `${platform.color}60`
-                : `linear-gradient(135deg, ${platform.color}, ${platform.color}cc)`,
-              border: "none",
-              color: "#fff",
-              fontSize: 14,
-              fontWeight: 700,
-              cursor: loading ? "not-allowed" : "pointer",
+              background: isOAuthSupported
+                ? "rgba(255,255,255,0.04)"
+                : (loading
+                    ? `${platform.color}60`
+                    : `linear-gradient(135deg, ${platform.color}, ${platform.color}cc)`),
+              border: isOAuthSupported
+                ? "1px solid rgba(255,255,255,0.08)"
+                : "none",
+              color: isOAuthSupported ? "rgba(255,255,255,0.45)" : "#fff",
+              fontSize: isOAuthSupported ? 12 : 14,
+              fontWeight: 600,
+              cursor: anyLoading ? "not-allowed" : "pointer",
               fontFamily: "inherit",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
               transition: "opacity 0.2s, box-shadow 0.2s",
-              boxShadow: loading ? "none" : `0 6px 20px ${platform.color}40`,
+              boxShadow: (loading || isOAuthSupported) ? "none" : `0 6px 20px ${platform.color}40`,
             }}
-            onMouseEnter={(e) => { if (!loading) e.currentTarget.style.opacity = "0.88"; }}
+            onMouseEnter={(e) => { if (!anyLoading) e.currentTarget.style.opacity = "0.88"; }}
             onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
           >
             {loading ? (
               <>
-                <MorphingSquare size={16} className="bg-white" />
+                <MorphingSquare size={16} className={isOAuthSupported ? "bg-white/40" : "bg-white"} />
                 Connecting…
               </>
             ) : (
-              `Connect with ${platform.name} →`
+              isOAuthSupported ? "Add manually instead" : `Connect with ${platform.name} →`
             )}
           </button>
 

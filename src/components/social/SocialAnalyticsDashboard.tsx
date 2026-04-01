@@ -42,7 +42,7 @@ function timeSince(iso: string | null) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-// ── Custom Tooltip ───────────────────────────────────────────────────────────
+// NOTE: Custom tooltip — too specialized for GlassTooltip (extra color fallback prop + fmtN formatting)
 
 function GlassTooltip({ active, payload, label, color }: any) {
   if (!active || !payload?.length) return null;

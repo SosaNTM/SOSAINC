@@ -1,3 +1,4 @@
+// TODO: removed from navigation during audit — routes disabled in App.tsx. Re-enable when business finance module is ready.
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
@@ -148,13 +149,13 @@ export default function BusinessFinanceDashboard() {
               width: 32,
               height: 32,
               borderRadius: 10,
-              background: "rgba(201,169,110,0.12)",
+              background: "rgba(232,255,0,0.12)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <BarChart3 style={{ width: 16, height: 16, color: "#c9a96e" }} />
+            <BarChart3 style={{ width: 16, height: 16, color: "#e8ff00" }} />
           </div>
           <h2
             style={{

@@ -15,10 +15,12 @@ import {
 } from "recharts";
 import { Download } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
+import { GlassTooltip } from "@/components/ui/GlassTooltip";
 
 // ── Period logic ──────────────────────────────────────────────────────────────
 
-const TODAY = new Date("2026-03-05");
+const TODAY = new Date();
 
 function getPeriodDays(period: string): number {
   switch (period) {
@@ -56,6 +58,7 @@ const PERIODS = [
 
 // ── CSV export ────────────────────────────────────────────────────────────────
 
+// TODO: Replace mockSocialAccounts with real connected accounts from Supabase when OAuth is implemented
 function exportCSV(days: number, platformFilter: string) {
   const accounts = platformFilter === "all"
     ? mockSocialAccounts
@@ -83,27 +86,8 @@ function exportCSV(days: number, platformFilter: string) {
   toast({ title: "Exported", description: `${rows.length - 1} rows downloaded.` });
 }
 
-// ── Custom tooltip ────────────────────────────────────────────────────────────
-
-function GlassTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ background: "rgba(8,12,24,0.97)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: "10px 14px", boxShadow: "0 8px 32px rgba(0,0,0,0.5)", minWidth: 130 }}>
-      <p style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>{label}</p>
-      {payload.map((entry: any, i: number) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: i < payload.length - 1 ? 3 : 0 }}>
-          <div style={{ width: 6, height: 6, borderRadius: "50%", background: entry.color ?? entry.fill }} />
-          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>{entry.name}:</span>
-          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.85)", fontWeight: 700 }}>
-            {typeof entry.value === "number" && entry.value > 999
-              ? formatSocialNumber(entry.value)
-              : entry.value}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
+const fmtSocialTooltip = (v: number) =>
+  typeof v === "number" && v > 999 ? formatSocialNumber(v) : String(v);
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -195,6 +179,7 @@ export default function SocialAnalytics() {
   const maxEngRate = contentPerf[0]?.avgEngRate ?? 1;
 
   return (
+    <ModuleErrorBoundary moduleName="Social Analytics">
     <div style={{ maxWidth: 1400, margin: "0 auto", paddingBottom: 48 }}>
 
       {/* ── Header ── */}
@@ -278,7 +263,7 @@ export default function SocialAnalytics() {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
               <XAxis dataKey="week" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.2)" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 9, fill: "rgba(255,255,255,0.2)" }} axisLine={false} tickLine={false} width={40} tickFormatter={formatSocialNumber} />
-              <Tooltip content={<GlassTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
+              <Tooltip content={<GlassTooltip formatter={fmtSocialTooltip} />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
               <Bar dataKey="Likes"    stackId="a" fill="#f43f5e" animationDuration={800} animationEasing="ease-out" />
               <Bar dataKey="Comments" stackId="a" fill="#3b82f6" animationDuration={800} animationEasing="ease-out" />
               <Bar dataKey="Shares"   stackId="a" fill="#10b981" animationDuration={800} animationEasing="ease-out" />
@@ -313,7 +298,7 @@ export default function SocialAnalytics() {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
               <XAxis dataKey="date" tick={{ fontSize: 9, fill: "rgba(255,255,255,0.2)" }} axisLine={false} tickLine={false} interval={tickInterval} />
               <YAxis tick={{ fontSize: 9, fill: "rgba(255,255,255,0.2)" }} axisLine={false} tickLine={false} width={44} tickFormatter={formatSocialNumber} />
-              <Tooltip content={<GlassTooltip />} cursor={{ stroke: "rgba(255,255,255,0.1)", strokeDasharray: "4 4" }} />
+              <Tooltip content={<GlassTooltip formatter={fmtSocialTooltip} />} cursor={{ stroke: "rgba(255,255,255,0.1)", strokeDasharray: "4 4" }} />
               <Area type="monotone" dataKey="Impressions" stroke="#6366f1" strokeWidth={2} fill="url(#imp-grad-analytics)" dot={false} activeDot={{ r: 5, fill: "#6366f1", stroke: "#0d1117", strokeWidth: 2, style: { filter: "drop-shadow(0 0 4px #6366f1)" } }} animationDuration={800} animationEasing="ease-out" />
               <Area type="monotone" dataKey="Reach" stroke="rgba(255,255,255,0.45)" strokeWidth={1.5} fill="transparent" dot={false} activeDot={{ r: 4, fill: "rgba(255,255,255,0.5)", stroke: "#0d1117", strokeWidth: 2 }} animationDuration={800} animationEasing="ease-out" />
             </AreaChart>
@@ -362,5 +347,6 @@ export default function SocialAnalytics() {
 
       {activeMetric && <SocialAnalyticsModal metric={activeMetric} onClose={() => setActiveMetric(null)} />}
     </div>
+    </ModuleErrorBoundary>
   );
 }

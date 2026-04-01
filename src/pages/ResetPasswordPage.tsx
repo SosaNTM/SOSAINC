@@ -3,6 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, CheckCircle } from "lucide-react";
 import { MorphingSquare } from "@/components/ui/morphing-square";
 import { toast } from "sonner";
+import { updatePassword } from "@/lib/supabaseAuth";
+
+const USE_REAL_AUTH = import.meta.env.VITE_USE_REAL_AUTH === "true";
 
 function getStrength(pw: string): { label: string; percent: number; color: string } {
   let score = 0;
@@ -32,11 +35,20 @@ const ResetPasswordPage = () => {
     e.preventDefault();
     if (mismatch) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    setLoading(false);
-    setDone(true);
-    toast.success("Password reset successfully");
-    setTimeout(() => navigate("/login"), 2000);
+    try {
+      if (USE_REAL_AUTH) {
+        await updatePassword(password);
+      } else {
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+      setDone(true);
+      toast.success("Password reset successfully");
+      setTimeout(() => navigate("/login"), 2000);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to reset password. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

@@ -3,11 +3,15 @@ import { useAuth } from "@/lib/authContext";
 import { addAuditEntry } from "@/lib/adminStore";
 import { usePermission } from "@/lib/permissions";
 import { getVaultItems, LOCKED_FOLDER_PASSWORD, type VaultItem, type VaultItemType } from "@/lib/vaultStore";
+import { STORAGE_VAULT_ITEMS, SESSION_VAULT_UNLOCKED } from "@/constants/storageKeys";
 import { formatFileSize } from "@/lib/cloudStore";
 import { Lock, Unlock, Eye, EyeOff, Copy, Check, Search, Plus, MoreVertical, X, Key, Globe, FileText, StickyNote, Shield, Trash2, ExternalLink, Dice5, AlertTriangle, Link as LinkIcon, Download } from "lucide-react";
 import { ActionMenu, type ActionMenuEntry } from "@/components/ActionMenu";
 import { formatDistanceToNow, differenceInDays, format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 type Category = "all" | "credentials" | "api_keys" | "documents" | "locked";
 
@@ -422,25 +426,28 @@ const VaultPage = () => {
 
   const [items, setItems] = useState<VaultItem[]>(() => {
     try {
-      const saved = localStorage.getItem("iconoff_vault_items");
+      const saved = localStorage.getItem(STORAGE_VAULT_ITEMS);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id) {
           return parsed.map((v: any) => ({ ...v, createdAt: v.createdAt ? new Date(v.createdAt) : new Date(), expiresAt: v.expiresAt ? new Date(v.expiresAt) : null }));
         }
       }
-    } catch { localStorage.removeItem("iconoff_vault_items"); }
+    } catch { localStorage.removeItem(STORAGE_VAULT_ITEMS); }
     return getVaultItems();
   });
 
-  useEffect(() => { localStorage.setItem("iconoff_vault_items", JSON.stringify(items)); }, [items]);
+  useEffect(() => { localStorage.setItem(STORAGE_VAULT_ITEMS, JSON.stringify(items)); }, [items]);
 
   const [category, setCategory] = useState<Category>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showNewModal, setShowNewModal] = useState(false);
 
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => { setIsLoading(false); }, []);
+
   // Locked folder state
-  const [isUnlocked, setIsUnlocked] = useState(() => sessionStorage.getItem("vault_locked_unlocked") === "true");
+  const [isUnlocked, setIsUnlocked] = useState(() => sessionStorage.getItem(SESSION_VAULT_UNLOCKED) === "true");
   const [lockPassword, setLockPassword] = useState("");
   const [lockError, setLockError] = useState("");
   const [failedAttempts, setFailedAttempts] = useState(0);
@@ -452,7 +459,7 @@ const VaultPage = () => {
     if (autoLockTimerRef.current) clearTimeout(autoLockTimerRef.current);
     autoLockTimerRef.current = setTimeout(() => {
       setIsUnlocked(false);
-      sessionStorage.removeItem("vault_locked_unlocked");
+      sessionStorage.removeItem(SESSION_VAULT_UNLOCKED);
       toast({ title: "Vault Locked", description: "Locked folder auto-locked after 10 minutes of inactivity" });
     }, 10 * 60 * 1000);
   }, [toast]);
@@ -472,7 +479,7 @@ const VaultPage = () => {
       setLockError("");
       setFailedAttempts(0);
       setLockPassword("");
-      if (rememberSession) sessionStorage.setItem("vault_locked_unlocked", "true");
+      if (rememberSession) sessionStorage.setItem(SESSION_VAULT_UNLOCKED, "true");
       resetAutoLock();
     } else {
       const attempts = failedAttempts + 1;
@@ -490,7 +497,7 @@ const VaultPage = () => {
 
   const lockFolder = () => {
     setIsUnlocked(false);
-    sessionStorage.removeItem("vault_locked_unlocked");
+    sessionStorage.removeItem(SESSION_VAULT_UNLOCKED);
     if (autoLockTimerRef.current) clearTimeout(autoLockTimerRef.current);
   };
 
@@ -541,7 +548,20 @@ const VaultPage = () => {
     );
   };
 
+  if (isLoading) return (
+    <div className="p-6 space-y-4">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-10 w-full rounded-lg" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-40 rounded-xl" />
+        ))}
+      </div>
+    </div>
+  );
+
   return (
+    <ModuleErrorBoundary moduleName="Vault">
     <div className="flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -588,19 +608,27 @@ const VaultPage = () => {
                 {renderSection("API Keys", apiKeyItems)}
                 {renderSection("Documents & Notes", docItems)}
                 {filtered.length === 0 && (
-                  <div className="flex flex-col items-center justify-center gap-2 py-16" style={{ color: "var(--text-quaternary)" }}>
-                    <Shield className="w-8 h-8" />
-                    <p style={{ fontSize: 13 }}>{searchQuery ? "No items found" : "Vault is empty"}</p>
-                  </div>
+                  <EmptyState
+                    icon={<Shield style={{ width: 48, height: 48 }} />}
+                    title="VAULT IS EMPTY"
+                    description={searchQuery ? "No items match your search." : "Securely store passwords, notes, and sensitive information."}
+                    actionLabel="ADD ITEM"
+                    onAction={() => setShowNewModal(true)}
+                  />
                 )}
               </>
             ) : (
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                 {filtered.map((item) => <VaultCard key={item.id} item={item} onDelete={deleteItem} canManage={canManage} />)}
                 {filtered.length === 0 && (
-                  <div className="col-span-2 flex flex-col items-center justify-center gap-2 py-16" style={{ color: "var(--text-quaternary)" }}>
-                    <Shield className="w-8 h-8" />
-                    <p style={{ fontSize: 13 }}>No items in this category</p>
+                  <div className="col-span-2">
+                    <EmptyState
+                      icon={<Shield style={{ width: 48, height: 48 }} />}
+                      title="VAULT IS EMPTY"
+                      description="No items in this category."
+                      actionLabel="ADD ITEM"
+                      onAction={() => setShowNewModal(true)}
+                    />
                   </div>
                 )}
               </div>
@@ -666,6 +694,7 @@ const VaultPage = () => {
 
       {showNewModal && <NewItemModal onClose={() => setShowNewModal(false)} onAdd={addItem} userId={user?.id || ""} />}
     </div>
+    </ModuleErrorBoundary>
   );
 };
 

@@ -19,6 +19,7 @@
 // supabase functions deploy telegram-webhook --no-verify-jwt
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkRateLimit } from "../_shared/rateLimit.ts";
 
 // ─────────────────────────────────────────────────────────────────
 // Types
@@ -197,8 +198,8 @@ const CMD_TEXT = `
 📎 Documento
 → Invia un file direttamente in chat per salvarlo come nota
 
-🎙 Vocale
-→ Invia un messaggio vocale per salvarlo come nota
+🎙 Vocale → (coming soon)
+Invia un messaggio vocale per salvarlo come nota
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 ⚙️ *IMPOSTAZIONI*
@@ -971,6 +972,18 @@ Deno.serve(async (req) => {
   // Telegram sends POST; return 200 immediately on GET (health check)
   if (req.method !== "POST") {
     return new Response("ICONOFF Telegram Webhook — OK", { status: 200 });
+  }
+
+  const rl = checkRateLimit(req);
+  if (rl) return rl;
+
+  // Verify Telegram secret token to ensure requests originate from Telegram
+  const telegramSecret = Deno.env.get("TELEGRAM_SECRET_TOKEN");
+  if (telegramSecret) {
+    const incomingSecret = req.headers.get("x-telegram-bot-api-secret-token") ?? "";
+    if (incomingSecret !== telegramSecret) {
+      return new Response("Forbidden", { status: 403 });
+    }
   }
 
   let update: TelegramUpdate;

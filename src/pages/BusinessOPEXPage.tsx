@@ -1,3 +1,4 @@
+// TODO: removed from navigation during audit — routes disabled in App.tsx. Re-enable when business finance module is ready.
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Building2, Plus, Pencil, Trash2, X } from "lucide-react";
@@ -10,7 +11,7 @@ import { OPEX_CATEGORIES } from "@/portals/finance/types/businessFinance";
 import type { BusinessOPEX } from "@/portals/finance/types/businessFinance";
 import { toast } from "sonner";
 
-const AREA_COLORS = ["#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#c9a96e", "#14b8a6", "#f97316", "#6366f1"];
+const AREA_COLORS = ["#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#e8ff00", "#14b8a6", "#f97316", "#6366f1"];
 
 const FREQ_LABELS: Record<string, string> = {
   monthly: "Mensile",
@@ -50,6 +51,7 @@ const EMPTY_FORM: ModalData = {
   frequency: "monthly",
 };
 
+// NOTE: Custom tooltip — too specialized for GlassTooltip (colored category boxes, EUR formatting per entry)
 function StackedAreaTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (

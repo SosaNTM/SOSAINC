@@ -1,16 +1,17 @@
-import { Moon, Sun, Palette, Check } from "lucide-react";
-import { useTheme } from "@/lib/theme";
+import { useState } from "react";
+import { Palette, Check } from "lucide-react";
 import { useAccent, ACCENT_PRESETS } from "@/lib/accent";
 import { useNumberFormat } from "@/lib/numberFormat";
 import {
   SettingsPageHeader,
   SettingsCard,
 } from "@/components/settings";
+import { getStoredLanguage, setLanguage, SUPPORTED_LANGUAGES } from "@/i18n";
 
 export default function Appearance() {
-  const { theme, setTheme } = useTheme();
   const { accent, setAccent } = useAccent();
   const { format, setFormat, formatCurrency } = useNumberFormat();
+  const [lang, setLang] = useState(getStoredLanguage());
 
   return (
     <div style={{ maxWidth: 860 }}>
@@ -20,110 +21,7 @@ export default function Appearance() {
         description="Personalizza il tema e i colori della piattaforma"
       />
 
-      {/* ── Card 1: Tema ── */}
-      <SettingsCard title="Tema">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          {/* Dark theme card */}
-          <button
-            type="button"
-            onClick={() => setTheme("dark")}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 12,
-              padding: "28px 20px",
-              borderRadius: "var(--radius-lg)",
-              background: "var(--glass-bg)",
-              border:
-                theme === "dark"
-                  ? "1.5px solid var(--accent-primary)"
-                  : "0.5px solid var(--glass-border)",
-              boxShadow:
-                theme === "dark"
-                  ? "0 0 20px var(--accent-primary-glow, rgba(0,0,0,0.15))"
-                  : "none",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-            }}
-          >
-            <Moon
-              size={28}
-              style={{
-                color:
-                  theme === "dark"
-                    ? "var(--accent-primary)"
-                    : "var(--text-tertiary)",
-              }}
-            />
-            <span
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: 14,
-                fontWeight: theme === "dark" ? 600 : 500,
-                color:
-                  theme === "dark"
-                    ? "var(--accent-primary)"
-                    : "var(--text-secondary)",
-              }}
-            >
-              Tema Scuro
-            </span>
-          </button>
-
-          {/* Light theme card */}
-          <button
-            type="button"
-            onClick={() => setTheme("light")}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 12,
-              padding: "28px 20px",
-              borderRadius: "var(--radius-lg)",
-              background: "var(--glass-bg)",
-              border:
-                theme === "light"
-                  ? "1.5px solid var(--accent-primary)"
-                  : "0.5px solid var(--glass-border)",
-              boxShadow:
-                theme === "light"
-                  ? "0 0 20px var(--accent-primary-glow, rgba(0,0,0,0.15))"
-                  : "none",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-            }}
-          >
-            <Sun
-              size={28}
-              style={{
-                color:
-                  theme === "light"
-                    ? "var(--accent-primary)"
-                    : "var(--text-tertiary)",
-              }}
-            />
-            <span
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: 14,
-                fontWeight: theme === "light" ? 600 : 500,
-                color:
-                  theme === "light"
-                    ? "var(--accent-primary)"
-                    : "var(--text-secondary)",
-              }}
-            >
-              Tema Chiaro
-            </span>
-          </button>
-        </div>
-      </SettingsCard>
-
-      {/* ── Card 2: Colore Accento ── */}
+      {/* ── Card 1: Colore Accento ── */}
       <SettingsCard title="Colore Accento">
         <div
           style={{
@@ -310,6 +208,47 @@ export default function Appearance() {
                 {formatCurrency(9020)}
               </p>
             </div>
+          </div>
+        </div>
+      </SettingsCard>
+
+      {/* ── Card 3: Language ── */}
+      <SettingsCard title="Language">
+        <div>
+          <h3
+            style={{
+              fontFamily: "'Bebas Neue', sans-serif",
+              color: "#e8ff00",
+              fontSize: 14,
+              letterSpacing: "0.08em",
+              margin: "0 0 8px",
+            }}
+          >
+            LANGUAGE
+          </h3>
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            {SUPPORTED_LANGUAGES.map((l) => (
+              <button
+                key={l.code}
+                type="button"
+                onClick={() => {
+                  setLang(l.code);
+                  setLanguage(l.code);
+                }}
+                style={{
+                  padding: "6px 16px",
+                  borderRadius: 6,
+                  border: `1px solid ${lang === l.code ? "#e8ff00" : "rgba(255,255,255,0.15)"}`,
+                  background: lang === l.code ? "#e8ff00" : "transparent",
+                  color: lang === l.code ? "#000" : "rgba(255,255,255,0.7)",
+                  fontFamily: "'Space Mono', monospace",
+                  fontSize: 11,
+                  cursor: "pointer",
+                }}
+              >
+                {l.label}
+              </button>
+            ))}
           </div>
         </div>
       </SettingsCard>

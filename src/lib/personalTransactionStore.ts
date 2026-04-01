@@ -4,8 +4,10 @@
 
 import type { PersonalTransaction, NewPersonalTransaction, TransactionFilters } from "@/types/finance";
 
-const KEY_PREFIX = "personal_transactions_local";
-const LEGACY_KEY = "personal_transactions_local"; // old non-portal key (migration source)
+import { STORAGE_PERSONAL_TX_PREFIX, STORAGE_PERSONAL_TX_LEGACY } from "@/constants/storageKeys";
+
+const KEY_PREFIX = STORAGE_PERSONAL_TX_PREFIX;
+const LEGACY_KEY = STORAGE_PERSONAL_TX_LEGACY; // old non-portal key (migration source)
 
 function storageKey(portalId: string): string {
   return `${KEY_PREFIX}_${portalId}`;

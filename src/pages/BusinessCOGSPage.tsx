@@ -1,3 +1,4 @@
+// TODO: removed from navigation during audit — routes disabled in App.tsx. Re-enable when business finance module is ready.
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Package, Plus, Pencil, Trash2, X } from "lucide-react";
@@ -8,7 +9,7 @@ import { COGS_CATEGORIES } from "@/portals/finance/types/businessFinance";
 import type { BusinessCOGS } from "@/portals/finance/types/businessFinance";
 import { toast } from "sonner";
 
-const PIE_COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#c9a96e"];
+const PIE_COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#e8ff00"];
 
 function formatEUR(v: number): string {
   return `€${v.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -19,6 +20,7 @@ function categoryLabel(cat: string): string {
   return found ? found.label : cat;
 }
 
+// NOTE: Custom tooltip — too specialized for GlassTooltip (uses payload[0].payload.fill for dynamic color)
 function DonutTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   return (

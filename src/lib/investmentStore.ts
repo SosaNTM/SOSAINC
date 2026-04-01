@@ -30,8 +30,10 @@ export const INVESTMENT_TYPE_EMOJIS: Record<InvestmentType, string> = {
   other:       "💼",
 };
 
-const KEY_PREFIX  = "finance_investments";
-const LEGACY_KEY  = "finance_investments";
+import { STORAGE_INVESTMENTS_PREFIX, STORAGE_INVESTMENTS_LEGACY } from "@/constants/storageKeys";
+
+const KEY_PREFIX  = STORAGE_INVESTMENTS_PREFIX;
+const LEGACY_KEY  = STORAGE_INVESTMENTS_LEGACY;
 
 function storageKey(portalId: string): string {
   return `${KEY_PREFIX}_${portalId}`;

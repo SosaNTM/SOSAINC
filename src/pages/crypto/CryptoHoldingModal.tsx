@@ -4,7 +4,7 @@ import type { CoinOption, CryptoPrice, EnrichedHolding } from "@/portals/finance
 import { useCoinSelector } from "@/portals/finance/hooks/useCoinSelector";
 import { formatEUR } from "@/portals/finance/utils/currency";
 
-const GOLD = "#c9a96e";
+const GOLD = "#e8ff00";
 const INPUT_STYLE: React.CSSProperties = {
   width: "100%", padding: "10px 14px", borderRadius: 10, fontSize: 13,
   background: "var(--btn-glass-bg)", border: "0.5px solid var(--btn-glass-border)",

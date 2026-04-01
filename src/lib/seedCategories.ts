@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { dynamicSupabase } from './portalDb';
 
 type PortalPrefix = 'sosa' | 'keylo' | 'redx' | 'trustme';
 
@@ -36,8 +36,7 @@ const DEFAULT_INCOME_CATEGORIES: DefaultCategory[] = [
   { name: 'Other', slug: 'other-income', icon: '📌', color: '#94a3b8', type: 'income', sort_order: 99 },
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const sb = supabase as any;
+const sb = dynamicSupabase;
 
 export async function seedDefaultCategories(portal: PortalPrefix, userId: string): Promise<void> {
   const tableName = `${portal}_transaction_categories`;
@@ -58,5 +57,6 @@ export async function seedDefaultCategories(portal: PortalPrefix, userId: string
   }));
 
   const { error } = await sb.from(tableName).insert(allCategories);
+  // TODO: Replace with structured error logging (Sentry, etc.)
   if (error) console.error(`Failed to seed categories for ${portal}:`, error);
 }

@@ -25,7 +25,7 @@ export function GiftCardCodePopup({ card, onClose }: Props) {
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         onClick={(e) => e.stopPropagation()}
-        style={{ background: "#1a1a1a", border: "1px solid rgba(201,169,110,0.15)", borderRadius: 16, padding: 24, width: "100%", maxWidth: 400 }}>
+        style={{ background: "#1a1a1a", border: "1px solid rgba(232,255,0,0.15)", borderRadius: 16, padding: 24, width: "100%", maxWidth: 400 }}>
 
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">

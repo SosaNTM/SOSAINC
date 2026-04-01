@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { STORAGE_PORTAL_LAST_ACCESSED_PREFIX } from "@/constants/storageKeys";
 
 export interface PortalConfig {
   id: "sosa" | "keylo" | "redx" | "trustme";
@@ -61,7 +62,7 @@ export function PortalProvider({ children }: { children: React.ReactNode }) {
     if (portal) {
       document.documentElement.style.setProperty("--portal-accent", portal.accent);
       // Store last accessed time
-      localStorage.setItem(`portal_last_accessed_${portal.id}`, new Date().toISOString());
+      localStorage.setItem(`${STORAGE_PORTAL_LAST_ACCESSED_PREFIX}${portal.id}`, new Date().toISOString());
     } else {
       document.documentElement.style.removeProperty("--portal-accent");
     }
@@ -85,5 +86,5 @@ export function getPortalById(id: string): PortalConfig | undefined {
 }
 
 export function getLastAccessed(portalId: string): string | null {
-  return localStorage.getItem(`portal_last_accessed_${portalId}`);
+  return localStorage.getItem(`${STORAGE_PORTAL_LAST_ACCESSED_PREFIX}${portalId}`);
 }

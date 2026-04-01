@@ -8,6 +8,8 @@ import { useBudgetState } from "@/portals/finance/hooks/useBudgetState";
 import { useBudgetData } from "@/portals/finance/hooks/useBudgetData";
 import { BudgetCategoryPanel } from "@/portals/finance/components/BudgetCategoryPanel";
 import { BudgetManagerModal } from "@/portals/finance/components/BudgetManagerModal";
+import { GlassTooltip } from "@/components/ui/GlassTooltip";
+import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -32,17 +34,7 @@ const MONTH_NAMES = [
   "July","August","September","October","November","December",
 ];
 
-// ── Pie tooltip ───────────────────────────────────────────────────────────────
-
-function BudgetTooltip({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 8, padding: "7px 12px" }}>
-      <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{payload[0].name}</p>
-      <p style={{ fontSize: 11, color: "var(--text-tertiary)", margin: "2px 0 0" }}>€{(payload[0].value as number).toLocaleString("en-US")}</p>
-    </div>
-  );
-}
+const fmtEurTooltip = (v: number) => `€${Number(v).toLocaleString("en-US")}`;
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -63,6 +55,7 @@ export default function Budget() {
   const remaining  = totalBudget - totalSpent;
 
   return (
+    <ModuleErrorBoundary moduleName="Budget">
     <div className="space-y-5">
       <LiquidGlassFilter />
 
@@ -74,7 +67,7 @@ export default function Budget() {
       >
         {[
           { label: "Total Budget",  value: `€${totalBudget.toLocaleString("en-US")}`,  color: "#4A9EFF" },
-          { label: "Total Spent",  value: `€${totalSpent.toLocaleString("en-US")}`,    color: totalSpent > totalBudget ? "#FF5A5A" : "#C9A84C" },
+          { label: "Total Spent",  value: `€${totalSpent.toLocaleString("en-US")}`,    color: totalSpent > totalBudget ? "#FF5A5A" : "#e8ff00" },
           { label: "Remaining",    value: `€${Math.abs(remaining).toLocaleString("en-US")}${remaining < 0 ? " -" : ""}`, color: remaining < 0 ? "#FF5A5A" : "#2ECC71" },
         ].map((s) => (
           <div key={s.label} style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 14, padding: "14px 18px" }}>
@@ -92,12 +85,12 @@ export default function Budget() {
       >
         {/* Left: Budget Breakdown ──────────────────────────────── */}
         <div className="lg:col-span-2">
-          <LiquidGlassCard accentColor="#C9A84C" hover={false}>
+          <LiquidGlassCard accentColor="#e8ff00" hover={false}>
             {/* Card header */}
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2.5">
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(201,168,76,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Wallet style={{ width: 16, height: 16, color: "#C9A84C" }} />
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(232,255,0,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Wallet style={{ width: 16, height: 16, color: "#e8ff00" }} />
                 </div>
                 <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Monthly Budget</h3>
               </div>
@@ -108,9 +101,9 @@ export default function Budget() {
                   onClick={() => setManagerOpen(true)}
                   style={{
                     height: 30, padding: "0 10px", borderRadius: 8,
-                    background: "rgba(201,168,76,0.10)",
-                    border: "1px solid rgba(201,168,76,0.25)",
-                    color: "#C9A84C", fontSize: 11, fontWeight: 600,
+                    background: "rgba(232,255,0,0.10)",
+                    border: "1px solid rgba(232,255,0,0.25)",
+                    color: "#e8ff00", fontSize: 11, fontWeight: 600,
                     cursor: "pointer", display: "flex", alignItems: "center", gap: 5,
                   }}
                 >
@@ -160,8 +153,8 @@ export default function Budget() {
                       padding: "10px 12px",
                       borderRadius: 10,
                       cursor: "pointer",
-                      borderLeft: isSelected ? "3px solid #C9A84C" : "3px solid transparent",
-                      background: isSelected ? "rgba(201,168,76,0.07)" : "transparent",
+                      borderLeft: isSelected ? "3px solid #e8ff00" : "3px solid transparent",
+                      background: isSelected ? "rgba(232,255,0,0.07)" : "transparent",
                       transition: "all 0.18s ease",
                     }}
                     whileHover={{ scale: 1.005, transition: { duration: 0.15 } }}
@@ -243,7 +236,7 @@ export default function Budget() {
                         <Pie data={categories} dataKey="spent" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3}>
                           {categories.map((cat) => <Cell key={cat.id} fill={cat.color} opacity={0.85} />)}
                         </Pie>
-                        <Tooltip content={<BudgetTooltip />} />
+                        <Tooltip content={<GlassTooltip formatter={fmtEurTooltip} />} />
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="flex flex-col gap-2 mt-2">
@@ -308,5 +301,6 @@ export default function Budget() {
         onUpdateLimit={updateBudgetLimit}
       />
     </div>
+    </ModuleErrorBoundary>
   );
 }

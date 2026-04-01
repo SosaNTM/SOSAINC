@@ -1,22 +1,38 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkRateLimit } from "../_shared/rateLimit.ts";
 
 const COINGECKO_API = "https://api.coingecko.com/api/v3";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+const ALLOWED_ORIGINS = [
+  Deno.env.get("FRONTEND_URL") || "http://localhost:8080",
+  "https://iconoff.io",
+  "https://www.iconoff.io",
+];
+
+function corsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders(req) });
   }
 
+  const rl = checkRateLimit(req);
+  if (rl) return rl;
+
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error("Missing required env vars: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY");
+    }
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // 1. Get all coin_ids from crypto_prices (seeded + user-added)
@@ -29,7 +45,7 @@ serve(async (req) => {
     if (coinIds.length === 0) {
       return new Response(
         JSON.stringify({ message: "No coins to update" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { headers: { ...corsHeaders(req), "Content-Type": "application/json" } },
       );
     }
 
@@ -83,14 +99,15 @@ serve(async (req) => {
       recorded_at: new Date().toISOString(),
     }));
 
-    await supabase.from("crypto_price_history").insert(historyData);
+    const { error: insertErr } = await supabase.from("crypto_price_history").insert(historyData);
+    if (insertErr) console.error("Failed to insert crypto price history:", insertErr);
 
     // 6. Update USD/EUR rate from Tether price
     const tetherCoin = coins.find(
       (c: Record<string, unknown>) => c.id === "tether",
     );
     if (tetherCoin && tetherCoin.current_price) {
-      await supabase.from("exchange_rates").upsert(
+      const { error: rateErr } = await supabase.from("exchange_rates").upsert(
         {
           from_currency: "USD",
           to_currency: "EUR",
@@ -99,6 +116,7 @@ serve(async (req) => {
         },
         { onConflict: "from_currency,to_currency" },
       );
+      if (rateErr) console.error("Failed to upsert exchange rate:", rateErr);
     }
 
     return new Response(
@@ -112,7 +130,7 @@ serve(async (req) => {
               `${c.symbol}: €${c.price_eur}`,
           ),
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { headers: { ...corsHeaders(req), "Content-Type": "application/json" } },
     );
   } catch (error) {
     console.error("Error:", error);
@@ -120,7 +138,7 @@ serve(async (req) => {
       JSON.stringify({ error: (error as Error).message }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       },
     );
   }

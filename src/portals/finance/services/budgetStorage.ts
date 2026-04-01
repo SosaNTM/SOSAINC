@@ -15,8 +15,16 @@ export interface StoredBudget {
 /** Map of lowercase category name → monthly budget limit */
 export type BudgetLimitMap = Record<string, number>;
 
-const LIMITS_KEY_PREFIX       = "finance_budget_limits";
-const TOTAL_BUDGET_KEY_PREFIX = "finance_total_budget";
+import {
+  STORAGE_BUDGET_LIMITS_PREFIX,
+  STORAGE_BUDGET_TOTAL_PREFIX,
+  STORAGE_BUDGET_TOTAL_LEGACY,
+  STORAGE_BUDGET_LIMITS_LEGACY,
+  STORAGE_BUDGET_OLD_ARRAY_LEGACY,
+} from "@/constants/storageKeys";
+
+const LIMITS_KEY_PREFIX       = STORAGE_BUDGET_LIMITS_PREFIX;
+const TOTAL_BUDGET_KEY_PREFIX = STORAGE_BUDGET_TOTAL_PREFIX;
 
 const DEFAULT_TOTAL_BUDGET = 2400;
 
@@ -52,7 +60,7 @@ export function loadTotalBudget(portalId: string): number {
     if (raw !== null) return Number(raw);
     // Legacy migration (sosa only)
     if (portalId === "sosa") {
-      const legacy = localStorage.getItem("finance_total_budget");
+      const legacy = localStorage.getItem(STORAGE_BUDGET_TOTAL_LEGACY);
       if (legacy !== null) return Number(legacy);
     }
   } catch { /* fallthrough */ }
@@ -69,13 +77,13 @@ export function saveTotalBudget(portalId: string, amount: number): void {
 function migrateFromLegacy(portalId: string): BudgetLimitMap | null {
   if (portalId !== "sosa") return null;
   try {
-    const raw = localStorage.getItem("finance_budget_limits");
+    const raw = localStorage.getItem(STORAGE_BUDGET_LIMITS_LEGACY);
     if (raw) {
       const parsed = JSON.parse(raw) as BudgetLimitMap;
       if (typeof parsed === "object" && parsed !== null) return parsed;
     }
     // Try even older StoredBudget[] format
-    const rawOld = localStorage.getItem("finance_budgets");
+    const rawOld = localStorage.getItem(STORAGE_BUDGET_OLD_ARRAY_LEGACY);
     if (rawOld) {
       const arr = JSON.parse(rawOld) as StoredBudget[];
       if (Array.isArray(arr) && arr.length > 0) {

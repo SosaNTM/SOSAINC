@@ -3,13 +3,14 @@ import { mockSocialPosts, PLATFORM_CONFIG, formatSocialNumber, type SocialPost }
 import { PostDetailModal } from "@/components/social/PostDetailModal";
 import { PlatformIcon } from "@/components/social/PlatformIcon";
 import { Heart, MessageCircle, Repeat2, Bookmark, Eye, Trophy, Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, List } from "lucide-react";
+import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
 
 type ViewMode = "feed" | "calendar";
 
-const TODAY_DATE = new Date("2026-03-05");
-const TODAY_DAY   = TODAY_DATE.getDate();      // 5
-const TODAY_MONTH = TODAY_DATE.getMonth();     // 2 (March)
-const TODAY_YEAR  = TODAY_DATE.getFullYear();  // 2026
+const TODAY_DATE = new Date();
+const TODAY_DAY   = TODAY_DATE.getDate();
+const TODAY_MONTH = TODAY_DATE.getMonth();
+const TODAY_YEAR  = TODAY_DATE.getFullYear();
 
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
@@ -37,7 +38,7 @@ export default function SocialContent() {
   const [platformFilter, setPlatformFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter]   = useState<string>("all");
   const [sortBy, setSortBy]               = useState<string>("recent");
-  const [calMonth, setCalMonth]           = useState(new Date(2026, 2)); // March 2026
+  const [calMonth, setCalMonth]           = useState(new Date(TODAY_YEAR, TODAY_MONTH));
 
   const filtered = useMemo(() => {
     let posts = [...mockSocialPosts];
@@ -79,6 +80,7 @@ export default function SocialContent() {
   const platforms = Array.from(new Set(mockSocialPosts.map((p) => p.platform)));
 
   return (
+    <ModuleErrorBoundary moduleName="Social Content">
     <div style={{ paddingBottom: 40, maxWidth: 1400, margin: "0 auto" }}>
 
       {/* ── Header ── */}
@@ -529,5 +531,6 @@ export default function SocialContent() {
 
       {selectedPost && <PostDetailModal post={selectedPost} onClose={() => setSelectedPost(null)} />}
     </div>
+    </ModuleErrorBoundary>
   );
 }

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { STORAGE_ACCENT } from "@/constants/storageKeys";
 
-export type AccentColor = "emerald" | "ocean" | "night" | "rose" | "sunset" | "royal" | "grape" | "pink" | "amber" | "teal";
+export type AccentColor = "hustler" | "emerald" | "ocean" | "night" | "rose" | "sunset" | "royal" | "grape" | "pink" | "amber" | "teal";
 
 export interface AccentPreset {
   id: AccentColor;
@@ -9,6 +10,7 @@ export interface AccentPreset {
 }
 
 export const ACCENT_PRESETS: AccentPreset[] = [
+  { id: "hustler", label: "Hustler", swatch: "#e8ff00" },
   { id: "emerald", label: "Emerald", swatch: "#059669" },
   { id: "ocean",   label: "Ocean",   swatch: "#2563eb" },
   { id: "night",   label: "Night",   swatch: "#1e40af" },
@@ -30,13 +32,13 @@ const AccentContext = createContext<AccentContextType | undefined>(undefined);
 
 export function AccentProvider({ children }: { children: React.ReactNode }) {
   const [accent, setAccentState] = useState<AccentColor>(() => {
-    const saved = localStorage.getItem("iconoff-accent");
-    return (saved as AccentColor) || "emerald";
+    const saved = localStorage.getItem(STORAGE_ACCENT);
+    return (saved as AccentColor) || "hustler";
   });
 
   useEffect(() => {
     document.documentElement.setAttribute("data-color", accent);
-    localStorage.setItem("iconoff-accent", accent);
+    localStorage.setItem(STORAGE_ACCENT, accent);
   }, [accent]);
 
   const setAccent = (a: AccentColor) => setAccentState(a);

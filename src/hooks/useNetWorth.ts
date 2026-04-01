@@ -29,6 +29,7 @@ export interface NetWorthBreakdown {
   savingsRate: number;
   lastMonthChange: number;
   balanceTrend: { label: string; balance: number }[];
+  isCryptoStale: boolean;
 }
 
 function daysAgo(n: number): Date {
@@ -70,6 +71,8 @@ export function useNetWorth(): NetWorthBreakdown {
     const cryptoValue = cryptoSummary?.totalValueEur ?? 0;
     const cryptoChange24h = cryptoSummary?.change24hEur ?? 0;
     const cryptoChange24hPercent = cryptoSummary?.change24hPercent ?? 0;
+    // Stale if there are known holdings but totalValueEur is 0 (price fetch failed)
+    const isCryptoStale = (cryptoSummary?.holdingsCount ?? 0) > 0 && cryptoValue === 0;
 
     // ── Gift Cards ──────────────────────────────────────────────────────
     const giftCardsValue = gcSummary.totalRemainingEur;
@@ -115,6 +118,7 @@ export function useNetWorth(): NetWorthBreakdown {
       savingsRate,
       lastMonthChange,
       balanceTrend,
+      isCryptoStale,
     };
   }, [transactions, totalMonthly, totalValue, cryptoSummary, gcSummary]);
 }

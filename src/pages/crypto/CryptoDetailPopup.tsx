@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { STORAGE_CRYPTO_TX_HISTORY_PREFIX, STORAGE_CRYPTO_TX_HISTORY_LEGACY } from "@/constants/storageKeys";
 import { X, Plus, Minus, TrendingUp, TrendingDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
@@ -10,8 +11,9 @@ import { broadcastFinanceUpdate } from "@/lib/financeRealtime";
 import { addAuditEntry } from "@/lib/adminStore";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
+import { GlassTooltip } from "@/components/ui/GlassTooltip";
 
-const GOLD = "#c9a96e";
+const GOLD = "#e8ff00";
 
 const PERIODS = [
   { label: "7G", days: 7 },
@@ -32,7 +34,7 @@ interface CryptoTx {
 }
 
 function txHistoryKey(portalId: string): string {
-  return `crypto_tx_history_${portalId}`;
+  return `${STORAGE_CRYPTO_TX_HISTORY_PREFIX}_${portalId}`;
 }
 
 function readTxHistory(coinId: string, portalId: string): CryptoTx[] {
@@ -41,7 +43,7 @@ function readTxHistory(coinId: string, portalId: string): CryptoTx[] {
     let raw = localStorage.getItem(key);
     // Migrate from old global key
     if (!raw) {
-      const legacy = localStorage.getItem("crypto_tx_history");
+      const legacy = localStorage.getItem(STORAGE_CRYPTO_TX_HISTORY_LEGACY);
       if (legacy) { localStorage.setItem(key, legacy); raw = legacy; }
     }
     const all: CryptoTx[] = raw ? JSON.parse(raw) : [];
@@ -59,17 +61,7 @@ function saveTx(tx: CryptoTx, portalId: string): void {
   } catch { /* noop */ }
 }
 
-// ── Chart tooltip ─────────────────────────────────────────────────────────────
-
-function ChartTip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 8, padding: "6px 12px" }}>
-      <p style={{ fontSize: 10, color: "var(--text-quaternary)", marginBottom: 2 }}>{label}</p>
-      <p style={{ fontSize: 13, fontWeight: 700, color: GOLD }}>{formatEUR(payload[0].value)}</p>
-    </div>
-  );
-}
+const fmtCryptoTooltip = (v: number) => formatEUR(v);
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -292,7 +284,7 @@ export function CryptoDetailPopup({ holding, onClose, onUpdateQuantity }: Props)
                 </defs>
                 <XAxis dataKey="date" tick={{ fontSize: 9, fill: "var(--text-quaternary)" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
                 <YAxis hide domain={["dataMin * 0.97", "dataMax * 1.03"]} />
-                <Tooltip content={<ChartTip />} />
+                <Tooltip content={<GlassTooltip formatter={fmtCryptoTooltip} />} />
                 <Area type="monotone" dataKey="price" stroke={chartColor} strokeWidth={2} fill={`url(#detailGrad-${holding.coin_id})`} dot={false} animationDuration={600} />
               </AreaChart>
             </ResponsiveContainer>

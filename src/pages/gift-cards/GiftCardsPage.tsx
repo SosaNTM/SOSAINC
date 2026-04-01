@@ -14,6 +14,7 @@ import { GiftCardCodePopup } from "./GiftCardCodePopup";
 import { addAuditEntry } from "@/lib/adminStore";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const FILTER_LABELS: { value: GiftCardFilter; label: string }[] = [
   { value: "all", label: "Tutte" },
@@ -108,8 +109,8 @@ export default function GiftCardsPage() {
         transition={{ duration: 0.35 }}
         className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(201,168,76,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Gift style={{ width: 18, height: 18, color: "#c9a96e" }} />
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(232,255,0,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Gift style={{ width: 18, height: 18, color: "#e8ff00" }} />
           </div>
           <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>Gift Cards</h2>
         </div>
@@ -122,7 +123,7 @@ export default function GiftCardsPage() {
       <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.06 } } }}
         className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "SALDO TOTALE", value: formatEUR(summary.totalRemainingEur), sub: `su ${summary.activeCount + summary.partiallyUsedCount} card`, color: "#c9a96e" },
+          { label: "SALDO TOTALE", value: formatEUR(summary.totalRemainingEur), sub: `su ${summary.activeCount + summary.partiallyUsedCount} card`, color: "#e8ff00" },
           { label: "CARD ATTIVE", value: String(summary.activeCount + summary.partiallyUsedCount), sub: "", color: "#4ade80" },
           { label: "USATO", value: formatEUR(summary.totalUsedEur), sub: summary.totalInitialEur > 0 ? `${((summary.totalUsedEur / summary.totalInitialEur) * 100).toFixed(1)}%` : "0%", color: "var(--text-primary)" },
           { label: "IN SCADENZA", value: String(summary.expiringSoonCount), sub: "entro 30gg", color: summary.expiringSoonCount > 0 ? "#ef4444" : "var(--text-quaternary)" },
@@ -186,14 +187,13 @@ export default function GiftCardsPage() {
       ) : filteredCards.length === 0 ? (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <LiquidGlassCard hover={false}>
-            <div style={{ textAlign: "center", padding: "48px 20px" }}>
-              <Gift style={{ width: 40, height: 40, color: "var(--text-quaternary)", margin: "0 auto 16px" }} />
-              <p style={{ fontSize: 15, fontWeight: 600, color: "var(--text-tertiary)", marginBottom: 6 }}>Nessuna gift card registrata</p>
-              <p style={{ fontSize: 12, color: "var(--text-quaternary)", marginBottom: 20 }}>Aggiungi le tue gift card per tenere traccia del saldo e non dimenticare le scadenze</p>
-              <button type="button" onClick={openAdd} className="glass-btn-primary flex items-center gap-1.5 mx-auto" style={{ fontSize: 12, padding: "8px 16px", borderRadius: 8 }}>
-                <Plus className="w-3.5 h-3.5" /> Aggiungi Gift Card
-              </button>
-            </div>
+            <EmptyState
+              icon={<Gift style={{ width: 48, height: 48 }} />}
+              title="NO GIFT CARDS"
+              description="Track your gift card balances in one place."
+              actionLabel="ADD GIFT CARD"
+              onAction={openAdd}
+            />
           </LiquidGlassCard>
         </motion.div>
       ) : (
@@ -298,7 +298,7 @@ function GiftCardItem({
       <div className="flex items-center justify-between mb-3">
         <button type="button"
           onClick={(e) => { e.stopPropagation(); onToggleFavorite(card.id, !card.is_favorite); }}
-          style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: card.is_favorite ? "#c9a96e" : "rgba(255,255,255,0.15)", transition: "color 0.15s" }}>
+          style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: card.is_favorite ? "#e8ff00" : "rgba(255,255,255,0.15)", transition: "color 0.15s" }}>
           ★
         </button>
 

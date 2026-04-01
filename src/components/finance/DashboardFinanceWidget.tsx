@@ -13,22 +13,13 @@ import { LiquidGlassCard } from "@/components/ui/liquid-glass-card";
 import { AddTransactionModal } from "./AddTransactionModal";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useFinanceSummary, currentMonthRange } from "@/hooks/useFinanceSummary";
+import { GlassTooltip } from "@/components/ui/GlassTooltip";
 
 function fmtEur(n: number): string {
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function ChartTip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 7, padding: "5px 9px" }}>
-      <p style={{ fontSize: 10, color: "var(--text-quaternary)", margin: 0 }}>{label}</p>
-      <p style={{ fontSize: 11, color: "#FF5A5A", margin: "1px 0 0", fontWeight: 700 }}>
-        €{Number(payload[0].value).toLocaleString("en-US")}
-      </p>
-    </div>
-  );
-}
+const fmtEurTooltip = (v: number) => `€${Number(v).toLocaleString("en-US")}`;
 
 export function DashboardFinanceWidget() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -60,12 +51,12 @@ export function DashboardFinanceWidget() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
     >
-      <LiquidGlassCard accentColor="#C9A84C" hover={false}>
+      <LiquidGlassCard accentColor="#e8ff00" hover={false}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(201,168,76,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Zap style={{ width: 14, height: 14, color: "#C9A84C" }} />
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(232,255,0,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Zap style={{ width: 14, height: 14, color: "#e8ff00" }} />
             </div>
             <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Monthly Finances</span>
           </div>
@@ -137,7 +128,7 @@ export function DashboardFinanceWidget() {
               <ResponsiveContainer width="100%" height={80}>
                 <BarChart data={sparkData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                   <XAxis dataKey="day" hide />
-                  <Tooltip content={<ChartTip />} />
+                  <Tooltip content={<GlassTooltip formatter={fmtEurTooltip} />} />
                   <Bar dataKey="amount" fill="#FF5A5A" opacity={0.7} radius={[2, 2, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>

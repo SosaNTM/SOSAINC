@@ -16,6 +16,7 @@ import {
 const cm = monthlyRecords.map(computeMonth);
 const totals = computeAnnualTotals(monthlyRecords);
 
+// NOTE: Custom tooltip — too specialized for GlassTooltip (mixed percentage/EUR formatting, glass-tooltip CSS class)
 const Tip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (

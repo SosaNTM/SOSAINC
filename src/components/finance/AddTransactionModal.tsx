@@ -177,7 +177,7 @@ export function AddTransactionModal({ open, onClose, onSave }: Props) {
               <div style={{ display: "flex", gap: 6 }}>
                 {(["expense", "income", "transfer"] as const).map((t) => {
                   const labels = { expense: "Expense", income: "Income", transfer: "Transfer" };
-                  const colors = { expense: "#ef4444", income: "#4ade80", transfer: "#C9A84C" };
+                  const colors = { expense: "#ef4444", income: "#4ade80", transfer: "#e8ff00" };
                   const active = type === t;
                   return (
                     <button key={t} onClick={() => setType(t)}
@@ -211,7 +211,7 @@ export function AddTransactionModal({ open, onClose, onSave }: Props) {
             <div style={{ marginBottom: 16 }}>
               <Label>Amount</Label>
               <div style={{ position: "relative" }}>
-                <Euro style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: "#C9A84C" }} />
+                <Euro style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: "#e8ff00" }} />
                 <input
                   type="number" min="0" step="0.01"
                   value={amount} onChange={(e) => setAmount(e.target.value)}
@@ -301,7 +301,7 @@ export function AddTransactionModal({ open, onClose, onSave }: Props) {
                 <button onClick={() => setIsRecurring(!isRecurring)}
                   style={{
                     width: 40, height: 22, borderRadius: 99, cursor: "pointer", border: "none",
-                    background: isRecurring ? "#C9A84C" : "#d1d5db",
+                    background: isRecurring ? "#e8ff00" : "#d1d5db",
                     position: "relative", transition: "background 0.2s",
                   }}>
                   <div style={{
@@ -320,9 +320,9 @@ export function AddTransactionModal({ open, onClose, onSave }: Props) {
                       <button key={iv} onClick={() => setRecurInterval(iv)}
                         style={{
                           flex: 1, padding: "6px 4px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer",
-                          background: active ? "#C9A84C18" : "#ffffff",
-                          border: active ? "1px solid #C9A84C55" : "1px solid #e5e7eb",
-                          color: active ? "#b8860b" : "#6b7280", transition: "all 0.15s",
+                          background: active ? "#e8ff0018" : "#ffffff",
+                          border: active ? "1px solid #e8ff0055" : "1px solid #e5e7eb",
+                          color: active ? "#b8cc00" : "#6b7280", transition: "all 0.15s",
                         }}>
                         {labels[iv]}
                       </button>
@@ -338,10 +338,10 @@ export function AddTransactionModal({ open, onClose, onSave }: Props) {
               <div style={{ ...FIELD, padding: "8px 10px", display: "flex", flexWrap: "wrap", gap: 6, minHeight: 42, cursor: "text" }}
                 onClick={() => tagRef.current?.focus()}>
                 {tags.map((t) => (
-                  <span key={t} style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 8px 2px 6px", borderRadius: 99, background: "#C9A84C22", border: "1px solid #C9A84C44", color: "#C9A84C", fontSize: 11, fontWeight: 600 }}>
+                  <span key={t} style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 8px 2px 6px", borderRadius: 99, background: "#e8ff0022", border: "1px solid #e8ff0044", color: "#e8ff00", fontSize: 11, fontWeight: 600 }}>
                     <TagIcon style={{ width: 10, height: 10 }} />
                     {t}
-                    <button onClick={() => removeTag(t)} style={{ background: "none", border: "none", cursor: "pointer", color: "#C9A84C", padding: 0, lineHeight: 1, marginLeft: 2 }}>x</button>
+                    <button onClick={() => removeTag(t)} style={{ background: "none", border: "none", cursor: "pointer", color: "#e8ff00", padding: 0, lineHeight: 1, marginLeft: 2 }}>x</button>
                   </span>
                 ))}
                 <input

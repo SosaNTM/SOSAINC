@@ -11,6 +11,7 @@ export function useCryptoPortfolio() {
   const {
     prices, isLoading: pricesLoading, lastUpdated,
     refreshPrices, isRefreshing, getPriceForCoin,
+    isStale: isPriceStale,
   } = useCryptoPrices();
 
   const enrichedHoldings = useMemo<EnrichedHolding[]>(() => {
@@ -104,6 +105,7 @@ export function useCryptoPortfolio() {
     error,
     lastUpdated,
     isRefreshing,
+    isPriceStale,
     refreshAll,
     refreshPrices,
     getPriceForCoin,

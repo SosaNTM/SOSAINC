@@ -3,6 +3,7 @@ import { Trash2, AlertTriangle, RotateCcw, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
+import { STORAGE_PERSONAL_TX_PREFIX, STORAGE_FINANCE_CATEGORIES_PREFIX } from "@/constants/storageKeys";
 import { SettingsPageHeader, SettingsCard } from "@/components/settings";
 import { SettingsDeleteConfirm } from "@/components/settings/SettingsDeleteConfirm";
 
@@ -31,7 +32,7 @@ export default function DangerZone() {
       icon: RotateCcw,
       onConfirm: () => {
         const keys = Object.keys(localStorage).filter(k =>
-          k.startsWith("personal_transactions_local_") ||
+          k.startsWith(`${STORAGE_PERSONAL_TX_PREFIX}_`) ||
           k.startsWith("finance_") ||
           k.startsWith("investments_")
         );
@@ -46,7 +47,7 @@ export default function DangerZone() {
       icon: Settings,
       onConfirm: () => {
         const keys = Object.keys(localStorage).filter(k =>
-          k.startsWith("finance_categories_") ||
+          k.startsWith(`${STORAGE_FINANCE_CATEGORIES_PREFIX}_`) ||
           k.startsWith("portal_profile_")
         );
         keys.forEach(k => localStorage.removeItem(k));

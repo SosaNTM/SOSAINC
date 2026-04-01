@@ -28,7 +28,7 @@ export function getDaysUntilExpiry(expiryDate: string | null): number | null {
 export function getStatusColor(status: string): string {
   switch (status) {
     case "active": return "#4ade80";
-    case "partially_used": return "#c9a96e";
+    case "partially_used": return "#e8ff00";
     case "fully_used": return "#6b7280";
     case "expired": return "#ef4444";
     case "archived": return "#4b5563";
@@ -74,6 +74,6 @@ export function getCategoryEmoji(category: string): string {
 export function getProgressColor(percent: number): string {
   if (percent <= 0) return "#6b7280";
   if (percent < 20) return "#ef4444";
-  if (percent < 50) return "#c9a96e";
+  if (percent < 50) return "#e8ff00";
   return "#4ade80";
 }

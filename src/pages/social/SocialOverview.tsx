@@ -16,6 +16,7 @@ import {
   Area, AreaChart, Line, LineChart,
   ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
+import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
 
 // ── Period logic ──────────────────────────────────────────────────────────────
 
@@ -55,29 +56,8 @@ const PERIODS = [
   { label: "This quarter", value: "quarter" },
 ];
 
-// ── Custom tooltip ────────────────────────────────────────────────────────────
-
-function GlassTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ background: "rgba(8,12,24,0.97)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: "10px 14px", boxShadow: "0 8px 32px rgba(0,0,0,0.5)", minWidth: 130 }}>
-      <p style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Day {label}</p>
-      {payload.map((entry: any, i: number) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: i < payload.length - 1 ? 3 : 0 }}>
-          <div style={{ width: 6, height: 6, borderRadius: "50%", background: entry.color }} />
-          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>{entry.name}:</span>
-          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.85)", fontWeight: 700 }}>
-            {typeof entry.value === "number" && entry.value > 999
-              ? formatSocialNumber(entry.value)
-              : typeof entry.value === "number"
-              ? entry.value.toFixed(2)
-              : entry.value}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
+// Local GlassTooltip removed — shared component available at @/components/ui/GlassTooltip
+// The charts in this file use Recharts contentStyle/labelStyle/itemStyle props instead of content={}.
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -180,6 +160,7 @@ export default function SocialOverview() {
   });
 
   return (
+    <ModuleErrorBoundary moduleName="Social Overview">
     <div style={{ paddingBottom: 40, maxWidth: 1400, margin: "0 auto" }}>
 
       {/* ── Header ── */}
@@ -546,5 +527,6 @@ export default function SocialOverview() {
       {selectedPost && <PostDetailModal post={selectedPost} onClose={() => setSelectedPost(null)} />}
       {activeKpi && <SocialKpiModal metric={activeKpi} onClose={() => setActiveKpi(null)} />}
     </div>
+    </ModuleErrorBoundary>
   );
 }

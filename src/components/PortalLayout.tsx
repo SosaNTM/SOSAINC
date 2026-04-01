@@ -9,7 +9,7 @@ import { AppLayout } from "./AppLayout";
 export function PortalLayout() {
   const { portalId } = useParams<{ portalId: string }>();
   const { setPortal } = usePortal();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const { setCurrentPortalBySlug } = usePortalDB();
 
   const portal = portalId ? getPortalById(portalId) : undefined;
@@ -24,6 +24,9 @@ export function PortalLayout() {
     }
     return () => setPortal(null);
   }, [portal?.id, hasAccess, portalId, setPortal, setCurrentPortalBySlug]);
+
+  // Wait for auth to resolve before evaluating access
+  if (isLoading) return null;
 
   if (!portal || !hasAccess) {
     return <Navigate to="/hub" replace />;

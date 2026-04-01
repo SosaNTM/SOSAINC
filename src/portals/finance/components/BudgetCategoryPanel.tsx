@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Search, ArrowUpRight, ArrowDownRight, Receipt } from "lucide-react";
 import { useBudgetCategoryTransactions } from "../hooks/useBudgetCategoryTransactions";
@@ -60,8 +60,8 @@ function TxRow({ tx, isExpanded, onToggle }: { tx: PersonalTransaction; isExpand
           display: "flex",
           alignItems: "center",
           gap: 10,
-          borderLeft: isExpanded ? "2px solid #C9A84C" : "2px solid transparent",
-          background: isExpanded ? "rgba(201,168,76,0.06)" : "transparent",
+          borderLeft: isExpanded ? "2px solid #e8ff00" : "2px solid transparent",
+          background: isExpanded ? "rgba(232,255,0,0.06)" : "transparent",
           transition: "background 0.15s, border-color 0.15s",
         }}
       >
@@ -99,7 +99,7 @@ function TxRow({ tx, isExpanded, onToggle }: { tx: PersonalTransaction; isExpand
             <div style={{
               padding: "8px 16px 12px 58px",
               background: "#f9fafb",
-              borderLeft: "2px solid #C9A84C",
+              borderLeft: "2px solid #e8ff00",
             }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 12px" }}>
                 {[
@@ -122,7 +122,7 @@ function TxRow({ tx, isExpanded, onToggle }: { tx: PersonalTransaction; isExpand
   );
 }
 
-export function BudgetCategoryPanel({ category, month, year, onClose }: Props) {
+export const BudgetCategoryPanel = React.memo(function BudgetCategoryPanel({ category, month, year, onClose }: Props) {
   const [filter, setFilter]   = useState<TxFilter>("all");
   const [search, setSearch]   = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -242,9 +242,9 @@ export function BudgetCategoryPanel({ category, month, year, onClose }: Props) {
             style={{
               padding: "4px 10px", borderRadius: 20,
               fontSize: 11, fontWeight: 600, cursor: "pointer",
-              border: filter === f ? "1px solid #C9A84C" : "1px solid #e5e7eb",
-              background: filter === f ? "rgba(201,168,76,0.10)" : "transparent",
-              color: filter === f ? "#b8860b" : "#6b7280",
+              border: filter === f ? "1px solid #e8ff00" : "1px solid #e5e7eb",
+              background: filter === f ? "rgba(232,255,0,0.10)" : "transparent",
+              color: filter === f ? "#b8cc00" : "#6b7280",
               textTransform: "capitalize",
               transition: "all 0.15s",
               flexShrink: 0,
@@ -318,4 +318,4 @@ export function BudgetCategoryPanel({ category, month, year, onClose }: Props) {
       )}
     </div>
   );
-}
+});

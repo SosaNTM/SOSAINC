@@ -26,5 +26,5 @@ export function getBudgetIcon(name: string, size = 16): React.ReactElement {
 export const BUDGET_COLORS = [
   "#f59e0b", "#ef4444", "#ec4899", "#8b5cf6",
   "#3b82f6", "#06b6d4", "#10b981", "#84cc16",
-  "#f97316", "#C9A84C", "#64748b", "#1f2937",
+  "#f97316", "#e8ff00", "#64748b", "#1f2937",
 ];

@@ -1,15 +1,13 @@
 import { Navigate, Outlet, useParams } from "react-router-dom";
-import { useAuth } from "@/lib/authContext";
+import { usePermission } from "@/lib/permissions";
 import { toast } from "sonner";
 import { useEffect, useRef } from "react";
 
 export function AdminRoute() {
-  const { user } = useAuth();
   const { portalId } = useParams<{ portalId: string }>();
   const toastShown = useRef(false);
 
-  const role = user?.role;
-  const isAllowed = role === "owner" || role === "admin";
+  const isAllowed = usePermission("admin:access");
 
   useEffect(() => {
     if (!isAllowed && !toastShown.current) {

@@ -21,7 +21,9 @@ export function getPortalName(portalId: string): string {
 }
 
 /* ── Persistent audit log store ── */
-const AUDIT_STORAGE_KEY = "iconoff_audit_log";
+import { STORAGE_AUDIT_LOG } from "@/constants/storageKeys";
+
+const AUDIT_STORAGE_KEY = STORAGE_AUDIT_LOG;
 const MAX_AUDIT_ENTRIES = 200;
 
 function loadAuditLog(): AuditLogEntry[] {

@@ -6,9 +6,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
-import { supabase as _supabase } from "@/lib/supabase";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const supabase = _supabase as any;
+import { dynamicSupabase as supabase } from "@/lib/portalDb";
 import { broadcastFinanceUpdate, subscribeToFinanceUpdates } from "@/lib/financeRealtime";
 import { useAuth } from "@/lib/authContext";
 import { addAuditEntry } from "@/lib/adminStore";
@@ -135,7 +133,7 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
       if (isSupabaseConfigured()) {
         const { error: err } = await supabase
           .from("personal_transactions")
-          .insert({ ...data, user_id: user.id, portal_id: portalId } as any);
+          .insert({ ...data, user_id: user.id, portal_id: portalId });
         if (err) throw err;
       } else {
         localAdd(data, user.id, portalId);
@@ -160,11 +158,25 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
 
   const updateTransaction = useCallback(async (id: string, changes: Partial<NewPersonalTransaction>): Promise<boolean> => {
     if (!user) return false;
+
+    // Validate cost_classification against transaction type
+    const effectiveType = changes.type ?? all.find((t) => t.id === id)?.type;
+    const validCostClassifications = ["cogs", "opex"];
+    if (effectiveType === "income") {
+      // Income transactions must not have a cost_classification
+      changes = { ...changes, cost_classification: undefined };
+    } else if (effectiveType === "expense" && changes.cost_classification != null) {
+      if (!validCostClassifications.includes(changes.cost_classification)) {
+        toast.error(`Invalid cost classification "${changes.cost_classification}". Must be "cogs" or "opex".`);
+        return false;
+      }
+    }
+
     try {
       if (isSupabaseConfigured()) {
         const { error: err } = await supabase
           .from("personal_transactions")
-          .update(changes as any)
+          .update(changes)
           .eq("id", id)
           .eq("portal_id", portalId);
         if (err) throw err;

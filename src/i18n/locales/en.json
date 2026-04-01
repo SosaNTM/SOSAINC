@@ -1,0 +1,63 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "loading": "Loading...",
+    "noData": "No data",
+    "comingSoon": "Coming Soon",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "transactions": "Transactions",
+    "subscriptions": "Subscriptions",
+    "budget": "Budget",
+    "goals": "Goals",
+    "crypto": "Crypto",
+    "giftCards": "Gift Cards",
+    "vault": "Vault",
+    "cloud": "Cloud",
+    "tasks": "Tasks",
+    "notes": "Notes",
+    "analytics": "Analytics",
+    "social": "Social",
+    "settings": "Settings",
+    "reports": "Reports",
+    "forecast": "Forecast"
+  },
+  "finance": {
+    "revenue": "Revenue",
+    "expenses": "Expenses",
+    "netProfit": "Net Profit",
+    "grossMargin": "Gross Margin",
+    "cogs": "COGS",
+    "opex": "OPEX",
+    "income": "Income",
+    "expense": "Expense",
+    "transfer": "Transfer",
+    "balance": "Balance",
+    "amount": "Amount",
+    "category": "Category",
+    "date": "Date",
+    "description": "Description"
+  },
+  "auth": {
+    "login": "Sign In",
+    "logout": "Sign Out",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "resetPassword": "Reset Password",
+    "contactAdmin": "Contact your admin for access"
+  }
+}

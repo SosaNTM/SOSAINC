@@ -19,7 +19,9 @@ export interface DashboardSubscription {
   active: boolean;
 }
 
-const KEY_PREFIX = "finance_subscriptions";
+import { STORAGE_SUBSCRIPTIONS_PREFIX, STORAGE_SUBSCRIPTIONS_LEGACY } from "@/constants/storageKeys";
+
+const KEY_PREFIX = STORAGE_SUBSCRIPTIONS_PREFIX;
 
 function storageKey(portalId: string): string {
   return `${KEY_PREFIX}_${portalId}`;
@@ -35,7 +37,7 @@ function readFromStorage(portalId: string): Subscription[] {
     if (raw) return JSON.parse(raw) as Subscription[];
     // Legacy migration: sosa reads from old non-portal key
     if (portalId === "sosa") {
-      const legacy = localStorage.getItem("finance_subscriptions");
+      const legacy = localStorage.getItem(STORAGE_SUBSCRIPTIONS_LEGACY);
       if (legacy) return JSON.parse(legacy) as Subscription[];
     }
   } catch { /* corrupted */ }

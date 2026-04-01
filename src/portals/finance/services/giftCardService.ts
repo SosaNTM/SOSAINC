@@ -1,6 +1,7 @@
 // ── Gift Card Service — Supabase CRUD with localStorage fallback ─────────────
 
 import { supabase } from "@/lib/supabase";
+import { STORAGE_GIFT_CARDS_PREFIX, STORAGE_GIFT_CARD_TX_PREFIX, STORAGE_GIFT_CARDS_LEGACY, STORAGE_GIFT_CARD_TX_LEGACY } from "@/constants/storageKeys";
 import type {
   GiftCard, GiftCardBrand, GiftCardTransaction, GiftCardCurrency,
 } from "../types/giftCards";
@@ -8,19 +9,19 @@ import type {
 // ── Local Storage Fallback (portal-scoped) ───────────────────────────────────
 
 // Portal-scoped localStorage keys
-let CK = "gift_cards_sosa";
-let TK = "gift_card_transactions_sosa";
+let CK = `${STORAGE_GIFT_CARDS_PREFIX}_sosa`;
+let TK = `${STORAGE_GIFT_CARD_TX_PREFIX}_sosa`;
 
 export function setGiftCardPortal(portalId: string): void {
-  CK = `gift_cards_${portalId}`;
-  TK = `gift_card_transactions_${portalId}`;
+  CK = `${STORAGE_GIFT_CARDS_PREFIX}_${portalId}`;
+  TK = `${STORAGE_GIFT_CARD_TX_PREFIX}_${portalId}`;
   // Migrate from old global keys on first access per portal
   if (!localStorage.getItem(CK)) {
-    const legacy = localStorage.getItem("gift_cards");
+    const legacy = localStorage.getItem(STORAGE_GIFT_CARDS_LEGACY);
     if (legacy) localStorage.setItem(CK, legacy);
   }
   if (!localStorage.getItem(TK)) {
-    const legacy = localStorage.getItem("gift_card_transactions");
+    const legacy = localStorage.getItem(STORAGE_GIFT_CARD_TX_LEGACY);
     if (legacy) localStorage.setItem(TK, legacy);
   }
 }

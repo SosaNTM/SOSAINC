@@ -1,5 +1,18 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { addAuditEntry } from "./adminStore";
+import {
+  signInWithEmail,
+  signOut as supabaseSignOut,
+  onAuthStateChange,
+  getUserPortalIds,
+} from "@/lib/supabaseAuth";
+
+// MOCK AUTH — DEVELOPMENT ONLY
+// See src/lib/supabaseAuth.ts for the production auth module.
+// Migration guide is in that file's header comment.
+// Set VITE_USE_REAL_AUTH=true to switch to real Supabase Auth.
+
+const USE_REAL_AUTH = import.meta.env.VITE_USE_REAL_AUTH === "true";
 
 export type PortalId = "sosa" | "keylo" | "redx" | "trustme";
 export const ALL_PORTAL_IDS: PortalId[] = ["sosa", "keylo", "redx", "trustme"];
@@ -22,27 +35,32 @@ interface MockUser extends User {
 
 const MOCK_USERS: MockUser[] = [
   {
-    id: "usr_001", email: "owner@iconoff.com", password: "owner123",
+    id: "usr_001", email: "owner@iconoff.com",
+    password: import.meta.env.VITE_MOCK_PASSWORD_OWNER || "dev_only_owner",
     displayName: "Alessandro", role: "owner", avatar: null, bio: "Founder & CEO",
     createdAt: new Date("2024-01-01"), portalAccess: [...ALL_PORTAL_IDS],
   },
   {
-    id: "usr_002", email: "admin@iconoff.com", password: "admin123",
+    id: "usr_002", email: "admin@iconoff.com",
+    password: import.meta.env.VITE_MOCK_PASSWORD_ADMIN || "dev_only_admin",
     displayName: "Marco", role: "admin", avatar: null, bio: "Operations Manager",
     createdAt: new Date("2024-02-15"), portalAccess: [...ALL_PORTAL_IDS],
   },
   {
-    id: "usr_003", email: "sara@iconoff.com", password: "sara123",
+    id: "usr_003", email: "sara@iconoff.com",
+    password: import.meta.env.VITE_MOCK_PASSWORD_SARA || "dev_only_sara",
     displayName: "Sara", role: "member", avatar: null, bio: "Marketing Specialist",
     createdAt: new Date("2024-03-10"), portalAccess: [...ALL_PORTAL_IDS],
   },
   {
-    id: "usr_004", email: "elena@iconoff.com", password: "elena123",
+    id: "usr_004", email: "elena@iconoff.com",
+    password: import.meta.env.VITE_MOCK_PASSWORD_ELENA || "dev_only_elena",
     displayName: "Elena", role: "member", avatar: null, bio: "Designer",
     createdAt: new Date("2024-04-20"), portalAccess: [...ALL_PORTAL_IDS],
   },
   {
-    id: "usr_005", email: "denis@iconoff.com", password: "Parola!1603",
+    id: "usr_005", email: "denis@iconoff.com",
+    password: import.meta.env.VITE_MOCK_PASSWORD_DENIS || "dev_only_denis",
     displayName: "Denis", role: "owner", avatar: null, bio: "",
     createdAt: new Date("2025-02-26"), portalAccess: [...ALL_PORTAL_IDS],
   },
@@ -128,7 +146,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const STORAGE_KEY = "iconoff_auth_user";
+import { STORAGE_AUTH_USER, STORAGE_LAST_LOGIN_PREFIX } from "@/constants/storageKeys";
+
+const STORAGE_KEY = STORAGE_AUTH_USER;
 
 function getStoredUser(): User | null {
   try {
@@ -139,7 +159,9 @@ function getStoredUser(): User | null {
       const live = MOCK_USERS.find(u => u.id === parsed.id);
       return { ...parsed, createdAt: new Date(parsed.createdAt), portalAccess: live?.portalAccess ?? parsed.portalAccess ?? ALL_PORTAL_IDS };
     }
-  } catch {}
+  } catch (err) {
+    console.warn("Failed to parse stored user:", err);
+  }
   return null;
 }
 
@@ -153,7 +175,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, []);
 
+  // Real Supabase Auth — listen for external sign-out and token expiry
+  useEffect(() => {
+    if (!USE_REAL_AUTH) return;
+
+    const unsub = onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || !session) {
+        setUser(null);
+        localStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(STORAGE_KEY);
+      }
+    });
+
+    return unsub;
+  }, []);
+
   const login = useCallback(async (email: string, password: string, remember: boolean) => {
+    if (USE_REAL_AUTH) {
+      const { user: supaUser } = await signInWithEmail(email, password);
+      if (!supaUser) throw new Error("Login failed");
+
+      const portalIds = await getUserPortalIds(supaUser.id);
+
+      const userData: User = {
+        id: supaUser.id,
+        email: supaUser.email ?? "",
+        displayName: (supaUser.user_metadata?.full_name as string | undefined) ?? supaUser.email ?? "",
+        role: ((supaUser.user_metadata?.role as User["role"] | undefined) ?? "member"),
+        portalAccess: portalIds.length > 0 ? (portalIds as PortalId[]) : [...ALL_PORTAL_IDS],
+        avatar: (supaUser.user_metadata?.avatar_url as string | undefined) ?? null,
+        bio: (supaUser.user_metadata?.bio as string | undefined) ?? "",
+        createdAt: new Date(supaUser.created_at),
+      };
+
+      const storage = remember ? localStorage : sessionStorage;
+      storage.setItem(STORAGE_KEY, JSON.stringify(userData));
+      storage.setItem(`${STORAGE_LAST_LOGIN_PREFIX}${userData.id}`, new Date().toISOString());
+      setUser(userData);
+      addAuditEntry({
+        userId: userData.id,
+        action: "Logged in",
+        category: "auth",
+        details: `Successful login — ${remember ? "remembered session" : "session only"}`,
+        icon: "👤",
+      });
+      return;
+    }
+
+    // Mock auth path
     await new Promise((r) => setTimeout(r, 800));
     const found = MOCK_USERS.find(
       (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
@@ -162,7 +231,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { password: _, ...userData } = found;
     const storage = remember ? localStorage : sessionStorage;
     storage.setItem(STORAGE_KEY, JSON.stringify(userData));
-    localStorage.setItem(`iconoff_last_login_${found.id}`, new Date().toISOString());
+    const timestampStorage = remember ? localStorage : sessionStorage;
+    timestampStorage.setItem(`${STORAGE_LAST_LOGIN_PREFIX}${found.id}`, new Date().toISOString());
     setUser(userData);
     addAuditEntry({
       userId: found.id,
@@ -174,6 +244,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    if (USE_REAL_AUTH) {
+      supabaseSignOut().catch(() => {});
+    }
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(STORAGE_KEY) || "null");
     if (stored?.id) {
       addAuditEntry({
@@ -205,7 +278,8 @@ export function useAuth() {
 /** Get the last login timestamp for a user. */
 export function getLastLogin(userId: string): Date | null {
   try {
-    const stored = localStorage.getItem(`iconoff_last_login_${userId}`);
+    const stored = localStorage.getItem(`${STORAGE_LAST_LOGIN_PREFIX}${userId}`)
+      || sessionStorage.getItem(`${STORAGE_LAST_LOGIN_PREFIX}${userId}`);
     return stored ? new Date(stored) : null;
   } catch {
     return null;

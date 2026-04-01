@@ -1,0 +1,49 @@
+/* ============================================================
+   ICONOFF — Responsive Utilities
+   Mobile-first additions for data-heavy pages
+   ============================================================ */
+
+/* Horizontally scrollable table wrapper */
+.responsive-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+}
+
+/* Ensure minimum touch target size (WCAG 2.1 AA) */
+@media (max-width: 768px) {
+  button,
+  a[role="button"],
+  [role="button"] {
+    min-height: 44px;
+  }
+
+  /* Stack chart controls vertically */
+  .chart-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px;
+  }
+
+  /* Reduce padding on mobile */
+  .page-container {
+    padding: 12px !important;
+  }
+
+  /* Chart spacing */
+  .recharts-wrapper {
+    margin: 0 !important;
+  }
+}
+
+/* Small phone (375px — iPhone SE) */
+@media (max-width: 375px) {
+  .stat-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .page-title-bebas {
+    font-size: 20px !important;
+  }
+}

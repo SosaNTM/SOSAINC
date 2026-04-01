@@ -3,12 +3,13 @@
 // transparently fall back to localStorage so the UI always works.
 
 import { supabase } from "@/lib/supabase";
+import { STORAGE_CRYPTO_HOLDINGS_PREFIX, STORAGE_CRYPTO_HOLDINGS_LEGACY } from "@/constants/storageKeys";
 import type { CryptoHolding, CryptoPrice, CoinOption } from "../types/crypto";
 
 // ── Local Storage Fallback (portal-scoped) ───────────────────────────────────
 
 function lsKey(portalId: string): string {
-  return `crypto_holdings_${portalId}`;
+  return `${STORAGE_CRYPTO_HOLDINGS_PREFIX}_${portalId}`;
 }
 
 function isSupabaseConfigured(): boolean {
@@ -21,7 +22,7 @@ function readLocalHoldings(portalId: string): CryptoHolding[] {
     const raw = localStorage.getItem(lsKey(portalId));
     if (raw) return JSON.parse(raw);
     // Migrate from old global key on first access
-    const legacy = localStorage.getItem("crypto_holdings");
+    const legacy = localStorage.getItem(STORAGE_CRYPTO_HOLDINGS_LEGACY);
     if (legacy) {
       localStorage.setItem(lsKey(portalId), legacy);
       return JSON.parse(legacy);

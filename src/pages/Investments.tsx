@@ -5,17 +5,11 @@ import { LiquidGlassCard, LiquidGlassFilter } from "@/components/ui/liquid-glass
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useInvestments } from "@/hooks/useInvestments";
 import { InvestmentModal } from "@/components/InvestmentModal";
+import { GlassTooltip } from "@/components/ui/GlassTooltip";
 import { calcCurrentValue, calcPnL, calcROI, type Investment, INVESTMENT_TYPE_LABELS } from "@/lib/investmentStore";
 
-function AllocTooltip({ active, payload }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 8, padding: "6px 12px" }}>
-      <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>{payload[0].name}</p>
-      <p style={{ fontSize: 11, color: payload[0].payload.color }}>€{payload[0].value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-    </div>
-  );
-}
+const fmtAllocTooltip = (v: number) =>
+  `€${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function Investments() {
   const { investments, totalValue, totalCost, totalPnL, totalROI, addInvestment, updateInvestment, deleteInvestment } = useInvestments();
@@ -196,7 +190,7 @@ export default function Investments() {
                     <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={3} dataKey="value" strokeWidth={0}>
                       {investments.map((inv) => <Cell key={inv.id} fill={inv.color} />)}
                     </Pie>
-                    <Tooltip content={<AllocTooltip />} />
+                    <Tooltip content={<GlassTooltip formatter={fmtAllocTooltip} />} />
                   </PieChart>
                 </ResponsiveContainer>
 

@@ -15,6 +15,7 @@ export function useGiftCardDetail(cardId: string | null) {
       const data = await fetchCardTransactions(cardId);
       setTransactions(data);
     } catch (err) {
+      // TODO: Replace with structured error logging (Sentry, etc.)
       console.error("Failed to load transactions:", err);
     } finally {
       setIsLoading(false);

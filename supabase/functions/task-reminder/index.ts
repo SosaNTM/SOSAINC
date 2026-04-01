@@ -18,17 +18,17 @@
 // Per-user notification_time is stored; hourly cron filtering is a future iteration.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkRateLimit } from "../_shared/rateLimit.ts";
 
 // ─────────────────────────────────────────────────────────────────
 // Supabase client
 // ─────────────────────────────────────────────────────────────────
 
 function getSupabase() {
-  return createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) throw new Error("Missing required env vars: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY");
+  return createClient(url, key, { auth: { persistSession: false } });
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -80,6 +80,7 @@ function yesterdayStartISO(): string {
 // Italian date header
 // ─────────────────────────────────────────────────────────────────
 
+// TODO: Support user locale preference. Currently hardcoded to Italian.
 const GIORNI = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
 const MESI   = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
                  "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
@@ -265,6 +266,9 @@ function buildBriefing(tasks: UserTasks, firstName: string | null): string {
 // ─────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
+  const rl = checkRateLimit(req);
+  if (rl) return rl;
+
   // Health check
   if (req.method === "GET") {
     return new Response(JSON.stringify({ status: "ok", fn: "task-reminder" }), {

@@ -12,6 +12,7 @@ import {
   PieChart, Pie, Cell, LineChart, Line, CartesianGrid,
 } from "recharts";
 import { ChannelDetailPanel } from "./ChannelDetailPanel";
+import { GlassTooltip } from "@/components/ui/GlassTooltip";
 
 /* ── Add/Edit Modal ── */
 function ChannelModal({ channel, onClose }: { channel?: Channel; onClose: () => void }) {
@@ -219,24 +220,7 @@ function ChannelCard({ ch, totalRevAll, onClick }: { ch: Channel; totalRevAll: n
   );
 }
 
-/* ── Custom Tooltip ── */
-function GlassTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{
-      background: "rgba(255, 255, 255, 0.85)", border: "1px solid rgba(255, 255, 255, 0.40)",
-      borderRadius: 12, padding: "10px 14px", boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
-      backdropFilter: "blur(16px)",
-    }}>
-      <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>{label}</p>
-      {payload.map((p: any) => (
-        <p key={p.dataKey} style={{ fontSize: 12, color: p.color, display: "flex", gap: 8, justifyContent: "space-between" }}>
-          <span>{p.name}</span> <span style={{ fontWeight: 600 }}>{fmtEurShort(p.value)}</span>
-        </p>
-      ))}
-    </div>
-  );
-}
+const fmtChannelTooltip = (v: number) => fmtEurShort(v);
 
 /* ── CHANNELS TAB ── */
 export function ChannelsTab() {
@@ -322,7 +306,7 @@ export function ChannelsTab() {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
               <XAxis dataKey="month" tick={{ fill: "var(--chart-axis)", fontSize: 11 }} />
               <YAxis tick={{ fill: "var(--chart-axis)", fontSize: 11 }} tickFormatter={v => fmtEurShort(v)} />
-              <Tooltip content={<GlassTooltip />} cursor={{ fill: "var(--row-hover)" }} />
+              <Tooltip content={<GlassTooltip formatter={fmtChannelTooltip} />} cursor={{ fill: "var(--row-hover)" }} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               {channels.map(c => (
                 <Bar key={c.id} dataKey={c.name} stackId="a" fill={c.color} cursor="pointer"
@@ -347,7 +331,7 @@ export function ChannelsTab() {
               >
                 {donutData.map((d, i) => <Cell key={i} fill={d.color} />)}
               </Pie>
-              <Tooltip content={<GlassTooltip />} />
+              <Tooltip content={<GlassTooltip formatter={fmtChannelTooltip} />} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
             </PieChart>
           </ResponsiveContainer>
@@ -362,7 +346,7 @@ export function ChannelsTab() {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
               <XAxis dataKey="month" tick={{ fill: "var(--chart-axis)", fontSize: 11 }} />
               <YAxis tick={{ fill: "var(--chart-axis)", fontSize: 11 }} tickFormatter={v => fmtEurShort(v)} />
-              <Tooltip content={<GlassTooltip />} cursor={{ stroke: "var(--glass-border)", strokeDasharray: "4 4" }} />
+              <Tooltip content={<GlassTooltip formatter={fmtChannelTooltip} />} cursor={{ stroke: "var(--glass-border)", strokeDasharray: "4 4" }} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               {channels.map(c => (
                 <Line key={c.id} type="monotone" dataKey={c.name} stroke={c.color} strokeWidth={2}

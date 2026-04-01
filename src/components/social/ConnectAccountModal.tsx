@@ -120,7 +120,7 @@ export function ConnectAccountModal({ platform, onClose, onConnected }: ConnectA
           <div style={{ display: "flex", alignItems: "flex-start", gap: 8, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "10px 12px", marginBottom: 20 }}>
             <Info style={{ width: 14, height: 14, color: p.color, flexShrink: 0, marginTop: 1 }} />
             <p style={{ fontSize: 11.5, color: "var(--text-tertiary)", lineHeight: 1.5 }}>
-              OAuth automatic sync coming soon. For now, enter your details manually.
+              Manual connection only. Enter your account handle below. Automatic OAuth sync is planned for a future release.
             </p>
           </div>
 

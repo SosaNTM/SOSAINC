@@ -25,7 +25,7 @@ interface Props {
   totals: AnnualTotals;
 }
 
-export function PLWaterfallChart({ totals }: Props) {
+export const PLWaterfallChart = React.memo(function PLWaterfallChart({ totals }: Props) {
   const { theme } = useTheme();
   const { formatCurrency } = useNumberFormat();
   const fmtShort = (v: number) => formatCurrency(v, true);
@@ -234,4 +234,4 @@ export function PLWaterfallChart({ totals }: Props) {
       </div>
     </div>
   );
-}
+});

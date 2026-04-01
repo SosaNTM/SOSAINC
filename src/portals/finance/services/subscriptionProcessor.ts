@@ -1,7 +1,7 @@
 import { supabase as _supabase } from "@/lib/supabase";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase = _supabase as any;
-import { localAdd } from "@/lib/personalTransactionStore";
+import { localAdd, localGetAll } from "@/lib/personalTransactionStore";
 import { broadcastFinanceUpdate } from "@/lib/financeRealtime";
 import {
   type Subscription,
@@ -13,9 +13,18 @@ import {
 export interface ProcessResult {
   processed: number;
   failed: number;
+  skippedInsufficientFunds: number;
   totalAmount: number;
   updatedSubs: Subscription[];
   toasts: string[];
+}
+
+/** Compute current balance from local transaction store. */
+function computeBalance(portalId: string): number {
+  return localGetAll(portalId).reduce(
+    (acc, t) => (t.type === "income" ? acc + Number(t.amount) : acc - Number(t.amount)),
+    0,
+  );
 }
 
 /**
@@ -30,7 +39,7 @@ export async function processSubscription(
   sub: Subscription,
   userId: string,
   portalId: string,
-): Promise<{ updatedSub: Subscription; processed: number; failed: number; totalAmount: number }> {
+): Promise<{ updatedSub: Subscription; processed: number; failed: number; totalAmount: number; skippedInsufficientFunds?: boolean }> {
   if (!sub.is_active || sub.deleted_at) {
     return { updatedSub: sub, processed: 0, failed: 0, totalAmount: 0 };
   }
@@ -50,6 +59,13 @@ export async function processSubscription(
     if (billingDate > today) break;
 
     const billingDateStr = current.next_billing_date;
+
+    // 0. Check if balance is sufficient before charging
+    const currentBalance = computeBalance(portalId);
+    if (currentBalance < current.amount) {
+      // Insufficient funds — skip this charge cycle entirely
+      return { updatedSub: current, processed, failed, totalAmount, skippedInsufficientFunds: true };
+    }
 
     // 1. Add to personal_transactions (appears in Finance → Transactions, Budget, Analytics)
     try {
@@ -140,6 +156,7 @@ export async function processAllDueSubscriptions(
 
   let processed = 0;
   let failed = 0;
+  let skippedInsufficientFunds = 0;
   let totalAmount = 0;
   const toasts: string[] = [];
   const updatedMap = new Map<string, Subscription>();
@@ -152,7 +169,12 @@ export async function processAllDueSubscriptions(
       failed += result.failed;
       totalAmount += result.totalAmount;
 
-      if (result.processed > 0) {
+      if (result.skippedInsufficientFunds) {
+        skippedInsufficientFunds++;
+        toasts.push(
+          `⚠ ${sub.name} skipped — insufficient balance for €${sub.amount.toFixed(2)} charge`,
+        );
+      } else if (result.processed > 0) {
         const cycles = result.processed > 1 ? ` (${result.processed}×)` : "";
         toasts.push(
           `💳 ${sub.name}${cycles} — €${(sub.amount * result.processed).toFixed(2)} charged`,
@@ -169,5 +191,5 @@ export async function processAllDueSubscriptions(
     broadcastFinanceUpdate("transaction_added");
   }
 
-  return { processed, failed, totalAmount, updatedSubs, toasts };
+  return { processed, failed, skippedInsufficientFunds, totalAmount, updatedSubs, toasts };
 }

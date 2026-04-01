@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
+import { STORAGE_AVATAR_PREFIX } from "@/constants/storageKeys";
 import { UserAvatar } from "@/components/UserAvatar";
 import { RoleBadge } from "@/components/RoleBadge";
 import {
@@ -25,14 +26,14 @@ export function SidebarProfileWidget({ collapsed, onMobileClose }: SidebarProfil
   // Read avatar from localStorage
   const [localAvatar, setLocalAvatar] = useState<string | null>(null);
   useEffect(() => {
-    const stored = localStorage.getItem("iconoff_avatar_" + user?.id);
+    const stored = localStorage.getItem(STORAGE_AVATAR_PREFIX + user?.id);
     if (stored) setLocalAvatar(stored);
   }, [user?.id]);
 
   // Listen for avatar changes from profile page
   useEffect(() => {
     const handler = () => {
-      const stored = localStorage.getItem("iconoff_avatar_" + user?.id);
+      const stored = localStorage.getItem(STORAGE_AVATAR_PREFIX + user?.id);
       setLocalAvatar(stored);
     };
     window.addEventListener("storage", handler);

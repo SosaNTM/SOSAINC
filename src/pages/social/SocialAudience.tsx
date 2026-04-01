@@ -11,6 +11,7 @@ import {
   Area, AreaChart, Bar, BarChart, ResponsiveContainer,
   XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell,
 } from "recharts";
+import { GlassTooltip } from "@/components/ui/GlassTooltip";
 
 const TODAY = new Date("2026-03-05");
 
@@ -35,25 +36,8 @@ const AUDIENCE_ACTIVE_TIMES: number[][] = [
   [0.15, 0.25, 0.44, 0.82, 0.88, 0.75], // Sun
 ];
 
-function GlassTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ background: "rgba(8,12,24,0.97)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: "10px 14px", boxShadow: "0 8px 32px rgba(0,0,0,0.5)", minWidth: 140 }}>
-      <p style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>{label}</p>
-      {payload.map((entry: any, i: number) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: i < payload.length - 1 ? 3 : 0 }}>
-          <div style={{ width: 6, height: 6, borderRadius: "50%", background: entry.color ?? entry.fill }} />
-          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>{entry.name}:</span>
-          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.85)", fontWeight: 700 }}>
-            {typeof entry.value === "number" && Math.abs(entry.value) >= 1000
-              ? formatSocialNumber(Math.abs(entry.value))
-              : entry.value}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
+const fmtSocialTooltip = (v: number) =>
+  typeof v === "number" && Math.abs(v) >= 1000 ? formatSocialNumber(Math.abs(v)) : String(v);
 
 // Shared hover-card wrapper
 function ClickCard({ children, onClick, style }: { children: React.ReactNode; onClick: () => void; style?: React.CSSProperties }) {
@@ -229,7 +213,7 @@ export default function SocialAudience() {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
               <XAxis dataKey="date" tick={{ fontSize: 9, fill: "rgba(255,255,255,0.2)" }} axisLine={false} tickLine={false} interval={tickInterval} />
               <YAxis tick={{ fontSize: 9, fill: "rgba(255,255,255,0.2)" }} axisLine={false} tickLine={false} width={50} tickFormatter={formatSocialNumber} />
-              <Tooltip content={<GlassTooltip />} cursor={{ stroke: "rgba(255,255,255,0.1)", strokeDasharray: "4 4" }} />
+              <Tooltip content={<GlassTooltip formatter={fmtSocialTooltip} />} cursor={{ stroke: "rgba(255,255,255,0.1)", strokeDasharray: "4 4" }} />
               {filteredAccounts.map((a) => (
                 <Area
                   key={a.id}
@@ -262,7 +246,7 @@ export default function SocialAudience() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
                 <XAxis dataKey="week" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.2)" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: "rgba(255,255,255,0.2)" }} axisLine={false} tickLine={false} width={40} tickFormatter={(v) => String(Math.abs(v))} />
-                <Tooltip content={<GlassTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
+                <Tooltip content={<GlassTooltip formatter={fmtSocialTooltip} />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
                 <Bar dataKey="gained" name="Gained" fill="#10b981" radius={[4, 4, 0, 0]} animationDuration={800} animationEasing="ease-out" />
                 <Bar dataKey="lost"   name="Lost"   fill="#ef4444" radius={[0, 0, 4, 4]} animationDuration={800} animationEasing="ease-out" />
               </BarChart>

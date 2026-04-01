@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
+import { STORAGE_AVATAR_PREFIX } from "@/constants/storageKeys";
 import {
   Menu, Search, X, LogOut, Bell, ChevronDown, ArrowLeft,
   LayoutDashboard, BarChart3, PieChart, ArrowLeftRight, Layers,
@@ -53,13 +54,13 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
 
   useEffect(() => {
     if (!user) return;
-    const stored = localStorage.getItem("iconoff_avatar_" + user.id);
+    const stored = localStorage.getItem(STORAGE_AVATAR_PREFIX + user.id);
     if (stored) setLocalAvatar(stored);
   }, [user?.id]);
 
   useEffect(() => {
     const handler = () => {
-      const stored = localStorage.getItem("iconoff_avatar_" + user?.id);
+      const stored = localStorage.getItem(STORAGE_AVATAR_PREFIX + user?.id);
       setLocalAvatar(stored ?? null);
     };
     window.addEventListener("storage", handler);

@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, ChevronLeft, ChevronRight, Plus,
-  ArrowUpRight, ArrowDownRight, ArrowLeftRight, Loader2, ChevronUp, ChevronDown, Trash2,
+  ArrowUpRight, ArrowDownRight, ArrowLeftRight, ChevronUp, ChevronDown, Trash2,
 } from "lucide-react";
 import { LiquidGlassCard, LiquidGlassFilter } from "@/components/ui/liquid-glass-card";
 import { AddTransactionModal } from "@/components/finance/AddTransactionModal";
@@ -12,6 +12,11 @@ import { useCategories } from "@/hooks/useCategories";
 import { usePortal } from "@/lib/portalContext";
 import type { PersonalTransaction, TransactionFilters, CostClassification } from "@/types/finance";
 import { PAYMENT_METHOD_LABELS, COST_CLASSIFICATION_CONFIG } from "@/types/finance";
+import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Receipt } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -29,19 +34,18 @@ function fmtEur(n: number): string {
 
 // ── Tx Row ────────────────────────────────────────────────────────────────────
 
-function TxRow({ tx, onDelete, getCatColor, getCatIcon }: {
+function TxRow({ tx, onRequestDelete, getCatColor, getCatIcon }: {
   tx: PersonalTransaction;
-  onDelete: (id: string) => void;
+  onRequestDelete: (id: string) => void;
   getCatColor: (name: string) => string;
   getCatIcon: (name: string) => string;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const isIncome    = tx.type === "income";
   const isTransfer  = tx.type === "transfer";
   const color       = getCatColor(tx.category);
   const icon        = getCatIcon(tx.category);
-  const amtColor    = isIncome ? "#4ade80" : isTransfer ? "#C9A84C" : "#FF5A5A";
+  const amtColor    = isIncome ? "#4ade80" : isTransfer ? "#e8ff00" : "#FF5A5A";
 
   return (
     <motion.div layout key={tx.id}>
@@ -52,8 +56,8 @@ function TxRow({ tx, onDelete, getCatColor, getCatIcon }: {
           borderRadius: 10,
           cursor: "pointer",
           display: "flex", alignItems: "center", gap: 10,
-          borderLeft: expanded ? "2px solid #C9A84C" : "2px solid transparent",
-          background: expanded ? "rgba(201,168,76,0.04)" : "transparent",
+          borderLeft: expanded ? "2px solid #e8ff00" : "2px solid transparent",
+          background: expanded ? "rgba(232,255,0,0.04)" : "transparent",
           transition: "background 0.15s, border-color 0.15s",
         }}
         onMouseEnter={(e) => { if (!expanded) e.currentTarget.style.background = "var(--nav-hover-bg)"; }}
@@ -120,7 +124,7 @@ function TxRow({ tx, onDelete, getCatColor, getCatIcon }: {
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             style={{ overflow: "hidden" }}
           >
-            <div style={{ padding: "8px 12px 10px 58px", background: "var(--glass-bg-subtle)", borderLeft: "2px solid #C9A84C", borderRadius: "0 0 10px 10px" }}>
+            <div style={{ padding: "8px 12px 10px 58px", background: "var(--glass-bg-subtle)", borderLeft: "2px solid #e8ff00", borderRadius: "0 0 10px 10px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px 16px", marginBottom: 8 }}>
                 {[
                   ["Category",  tx.category],
@@ -139,32 +143,16 @@ function TxRow({ tx, onDelete, getCatColor, getCatIcon }: {
               {tx.tags && tx.tags.length > 0 && (
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 }}>
                   {tx.tags.map((t) => (
-                    <span key={t} style={{ fontSize: 10, padding: "1px 7px", borderRadius: 99, background: "rgba(201,168,76,0.12)", color: "#C9A84C", fontWeight: 600 }}>{t}</span>
+                    <span key={t} style={{ fontSize: 10, padding: "1px 7px", borderRadius: 99, background: "rgba(232,255,0,0.12)", color: "#e8ff00", fontWeight: 600 }}>{t}</span>
                   ))}
                 </div>
               )}
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                {confirmDelete ? (
-                  <>
-                    <span style={{ fontSize: 11, color: "#FF5A5A", fontWeight: 600 }}>Delete?</span>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onDelete(tx.id); setConfirmDelete(false); }}
-                      style={{ padding: "4px 10px", borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: "pointer", background: "rgba(255,90,90,0.15)", border: "none", color: "#FF5A5A" }}>
-                      Yes
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setConfirmDelete(false); }}
-                      style={{ padding: "4px 10px", borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: "pointer", background: "rgba(255,255,255,0.06)", border: "none", color: "var(--text-quaternary)" }}>
-                      No
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
-                    style={{ padding: "4px 10px", borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: "pointer", background: "rgba(255,90,90,0.08)", border: "1px solid rgba(255,90,90,0.18)", color: "#FF5A5A", display: "flex", alignItems: "center", gap: 4 }}>
-                    <Trash2 style={{ width: 11, height: 11 }} />Delete
-                  </button>
-                )}
+                <button
+                  onClick={(e) => { e.stopPropagation(); onRequestDelete(tx.id); }}
+                  style={{ padding: "4px 10px", borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: "pointer", background: "rgba(255,90,90,0.08)", border: "1px solid rgba(255,90,90,0.18)", color: "#FF5A5A", display: "flex", alignItems: "center", gap: 4 }}>
+                  <Trash2 style={{ width: 11, height: 11 }} />Delete
+                </button>
               </div>
             </div>
           </motion.div>
@@ -189,6 +177,7 @@ export default function Transactions() {
   const [catFilter,   setCatFilter]   = useState("");
   const [search,      setSearch]      = useState("");
   const [modalOpen,   setModalOpen]   = useState(false);
+  const [deleteId,    setDeleteId]    = useState<string | null>(null);
 
   const { portal } = usePortal();
   const isBusinessPortal = portal?.id !== "sosa";
@@ -222,6 +211,7 @@ export default function Transactions() {
   }
 
   return (
+    <ModuleErrorBoundary moduleName="Transactions">
     <div className="space-y-5">
       <LiquidGlassFilter />
 
@@ -249,7 +239,7 @@ export default function Transactions() {
         initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
       >
-        <LiquidGlassCard accentColor="#C9A84C" hover={false}>
+        <LiquidGlassCard accentColor="#e8ff00" hover={false}>
           {/* Header */}
           <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
             <div className="flex items-center gap-2">
@@ -330,26 +320,28 @@ export default function Transactions() {
           {/* Rows */}
           <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
             {isLoading ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 0", gap: 8, color: "var(--text-quaternary)" }}>
-                <Loader2 className="animate-spin" style={{ width: 16, height: 16 }} />
-                <span style={{ fontSize: 13 }}>Loading...</span>
+              <div className="space-y-2 py-2">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <Skeleton key={i} className="h-14 w-full rounded-lg" />
+                ))}
               </div>
             ) : error ? (
               <p style={{ fontSize: 13, color: "#FF5A5A", textAlign: "center", padding: "28px 0" }}>{error}</p>
             ) : transactions.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "36px 0" }}>
-                <p style={{ fontSize: 13, color: "var(--text-quaternary)" }}>No transactions found</p>
-                <button onClick={() => setModalOpen(true)} style={{ marginTop: 10, padding: "6px 14px", borderRadius: 8, background: "rgba(201,168,76,0.12)", border: "1px solid rgba(201,168,76,0.25)", color: "#C9A84C", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                  + Add your first
-                </button>
-              </div>
+              <EmptyState
+                icon={<Receipt style={{ width: 48, height: 48 }} />}
+                title="NO TRANSACTIONS YET"
+                description="Start tracking your finances by adding your first transaction."
+                actionLabel="ADD TRANSACTION"
+                onAction={() => setModalOpen(true)}
+              />
             ) : (
               <AnimatePresence mode="popLayout">
                 {transactions.map((tx, i) => (
                   <motion.div key={tx.id} layout
                     initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
                     transition={{ delay: 0.02 * i, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}>
-                    <TxRow tx={tx} onDelete={deleteTransaction} getCatColor={getCategoryColor} getCatIcon={getCategoryIcon} />
+                    <TxRow tx={tx} onRequestDelete={setDeleteId} getCatColor={getCategoryColor} getCatIcon={getCategoryIcon} />
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -364,6 +356,21 @@ export default function Transactions() {
         onClose={() => setModalOpen(false)}
         onSave={addTransaction}
       />
+
+      {/* ── Delete Confirmation Dialog ────────────────────────── */}
+      <ConfirmDialog
+        open={!!deleteId}
+        onOpenChange={(o) => { if (!o) setDeleteId(null); }}
+        title="DELETE TRANSACTION"
+        description="This action cannot be undone. The transaction will be permanently removed."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          if (deleteId) deleteTransaction(deleteId);
+          setDeleteId(null);
+        }}
+      />
     </div>
+    </ModuleErrorBoundary>
   );
 }

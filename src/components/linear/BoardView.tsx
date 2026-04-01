@@ -3,6 +3,7 @@ import { getUserById } from "@/lib/authContext";
 import { ISSUE_STATUSES, ISSUE_LABELS, type Issue, type IssueStatus } from "@/lib/linearStore";
 import { StatusIcon } from "./StatusIcon";
 import { PriorityIcon } from "./PriorityIcon";
+import { toast } from "@/hooks/use-toast";
 
 interface Props {
   issues: Issue[];
@@ -30,7 +31,11 @@ export function BoardView({ issues, onSelectIssue, onUpdateStatus }: Props) {
             onDragOver={e => e.preventDefault()}
             onDrop={() => {
               if (dragId) {
-                onUpdateStatus(dragId, statusKey);
+                try {
+                  onUpdateStatus(dragId, statusKey);
+                } catch (err) {
+                  toast({ title: "Move failed", description: "Could not update issue status. Please try again." });
+                }
                 setDragId(null);
               }
             }}

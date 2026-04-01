@@ -31,6 +31,7 @@ export function useGiftCards() {
       setCards(cardsData);
       setBrands(brandsData);
     } catch (err) {
+      // TODO: Replace with structured error logging (Sentry, etc.)
       console.error("Failed to load gift cards:", err);
       setError(err instanceof Error ? err.message : "Failed to load gift cards");
     } finally {
@@ -43,9 +44,11 @@ export function useGiftCards() {
   const enrichedCards: EnrichedGiftCard[] = useMemo(() => {
     return cards.map((card) => {
       const brandData = brands.find((b) => b.brand_key === card.brand_key) ?? null;
-      const usedValue = card.initial_value - card.remaining_value;
+      // Clamp remaining_value to valid range: 0 <= remaining_value <= initial_value
+      const clampedRemaining = Math.max(0, Math.min(card.remaining_value, card.initial_value));
+      const usedValue = card.initial_value - clampedRemaining;
       const usedPercent = card.initial_value > 0 ? (usedValue / card.initial_value) * 100 : 0;
-      const remainingValueEur = convertToEur(card.remaining_value, card.currency);
+      const remainingValueEur = convertToEur(clampedRemaining, card.currency);
       const daysUntilExpiry = getDaysUntilExpiry(card.expiry_date);
       const isExpiringSoon = daysUntilExpiry !== null && daysUntilExpiry <= 30 && daysUntilExpiry > 0;
       const isExpired = card.status === "expired" || (daysUntilExpiry !== null && daysUntilExpiry <= 0);

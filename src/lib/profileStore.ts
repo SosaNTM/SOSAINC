@@ -62,7 +62,9 @@ export interface ProfileStats {
   pending: number;
 }
 
-const STORAGE_KEY = "iconoff_profile_";
+import { STORAGE_PROFILE_PREFIX } from "@/constants/storageKeys";
+
+const STORAGE_KEY = STORAGE_PROFILE_PREFIX;
 
 // Default profile factory
 function createDefaultProfile(userId: string, email: string, displayName: string): Profile {

@@ -1,8 +1,15 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { checkRateLimit, verifyJWT } from '../_shared/rateLimit.ts';
 
 const PORTALS = ['sosa', 'keylo', 'redx', 'trustme'] as const;
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  const rl = checkRateLimit(req);
+  if (rl) return rl;
+
+  const auth = await verifyJWT(req);
+  if (auth instanceof Response) return auth;
+
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!

@@ -50,7 +50,7 @@ const opexBreakdown = [
   { name: "Other", pct: 0.15 },
 ];
 
-/* ─── Mini Tooltip ─── */
+// NOTE: Custom tooltip — too specialized for GlassTooltip (mixed percentage/EUR formatting based on value magnitude)
 const MiniTip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (

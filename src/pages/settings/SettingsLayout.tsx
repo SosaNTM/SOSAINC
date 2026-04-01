@@ -13,7 +13,7 @@ const NAV_SECTIONS: { label: string; items: NavItemDef[] }[] = [
   {
     label: "GENERALE",
     items: [
-      { title: "Profilo Portale",  path: "general/profilo",  icon: Building2 },
+      { title: "Profilo Portale",  path: "general/profile",  icon: Building2 },
       { title: "Aspetto",          path: "general/aspetto",  icon: Palette   },
     ],
   },

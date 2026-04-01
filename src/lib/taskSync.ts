@@ -139,6 +139,7 @@ export async function loadProjectsFromSupabase(): Promise<Project[]> {
 export async function upsertTask(issue: Issue, userId: string): Promise<void> {
   try {
     const { error } = await supabase.from("tasks").upsert(issueToTaskRow(issue, userId), { onConflict: "id" });
+    // TODO: Replace with structured error logging (Sentry, etc.)
     if (error) console.warn("Failed to sync task to Supabase:", error.message);
   } catch {
     // Supabase not available — task lives in localStorage only
@@ -148,6 +149,7 @@ export async function upsertTask(issue: Issue, userId: string): Promise<void> {
 export async function deleteTask(id: string): Promise<void> {
   try {
     const { error } = await supabase.from("tasks").delete().eq("id", id);
+    // TODO: Replace with structured error logging (Sentry, etc.)
     if (error) console.warn("Failed to delete task from Supabase:", error.message);
   } catch {
     // Supabase not available
@@ -157,6 +159,7 @@ export async function deleteTask(id: string): Promise<void> {
 export async function upsertProject(project: Project, userId: string): Promise<void> {
   try {
     const { error } = await supabase.from("projects").upsert(projectToRow(project, userId), { onConflict: "id" });
+    // TODO: Replace with structured error logging (Sentry, etc.)
     if (error) console.warn("Failed to sync project to Supabase:", error.message);
   } catch {
     // Supabase not available

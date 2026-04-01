@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { STORAGE_DASHBOARD_PERIOD, STORAGE_DASHBOARD_CUSTOM_RANGE } from "@/constants/storageKeys";
 
 export type DashboardPeriod = "last-7-days" | "last-week" | "last-month" | "last-quarter" | "this-year" | "custom";
 
@@ -20,13 +21,13 @@ const defaultCustomRange: CustomRange = { from: "2025-01-01", to: "2025-12-31" }
 
 export function PeriodProvider({ children }: { children: React.ReactNode }) {
   const [period, setPeriodState] = useState<DashboardPeriod>(() => {
-    const saved = localStorage.getItem("dashboardPeriod");
+    const saved = localStorage.getItem(STORAGE_DASHBOARD_PERIOD);
     return (saved as DashboardPeriod) || "this-year";
   });
 
   const [customRange, setCustomRangeState] = useState<CustomRange>(() => {
     try {
-      const saved = localStorage.getItem("dashboardCustomRange");
+      const saved = localStorage.getItem(STORAGE_DASHBOARD_CUSTOM_RANGE);
       return saved ? JSON.parse(saved) : defaultCustomRange;
     } catch {
       return defaultCustomRange;
@@ -34,11 +35,11 @@ export function PeriodProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    localStorage.setItem("dashboardPeriod", period);
+    localStorage.setItem(STORAGE_DASHBOARD_PERIOD, period);
   }, [period]);
 
   useEffect(() => {
-    localStorage.setItem("dashboardCustomRange", JSON.stringify(customRange));
+    localStorage.setItem(STORAGE_DASHBOARD_CUSTOM_RANGE, JSON.stringify(customRange));
   }, [customRange]);
 
   const setPeriod = (p: DashboardPeriod) => setPeriodState(p);

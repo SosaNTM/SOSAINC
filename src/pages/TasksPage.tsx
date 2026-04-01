@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useAuth, ALL_USERS, getUserById } from "@/lib/authContext";
+import { STORAGE_TASKS, STORAGE_PROJECTS } from "@/constants/storageKeys";
 import {
   getInitialIssues, getInitialProjects, ISSUE_STATUSES, ISSUE_PRIORITIES, ISSUE_LABELS, ESTIMATE_OPTIONS,
   generateIssueId,
@@ -23,7 +24,7 @@ const TasksPage = () => {
   const { user } = useAuth();
   const [issues, setIssues] = useState<Issue[]>(() => {
     try {
-      const saved = localStorage.getItem("iconoff_tasks");
+      const saved = localStorage.getItem(STORAGE_TASKS);
       if (saved) {
         const parsed = JSON.parse(saved);
         return parsed.map((t: any) => ({
@@ -38,7 +39,7 @@ const TasksPage = () => {
   });
   const [projects, setProjects] = useState<Project[]>(() => {
     try {
-      const saved = localStorage.getItem("iconoff_projects");
+      const saved = localStorage.getItem(STORAGE_PROJECTS);
       if (saved) return JSON.parse(saved);
     } catch {}
     return getInitialProjects();
@@ -46,8 +47,8 @@ const TasksPage = () => {
   const [syncReady, setSyncReady] = useState(false);
 
   // Persist tasks & projects to localStorage on change
-  useEffect(() => { localStorage.setItem("iconoff_tasks", JSON.stringify(issues)); }, [issues]);
-  useEffect(() => { localStorage.setItem("iconoff_projects", JSON.stringify(projects)); }, [projects]);
+  useEffect(() => { localStorage.setItem(STORAGE_TASKS, JSON.stringify(issues)); }, [issues]);
+  useEffect(() => { localStorage.setItem(STORAGE_PROJECTS, JSON.stringify(projects)); }, [projects]);
 
   // Load live data from Supabase on mount — replaces static seed
   useEffect(() => {
@@ -134,7 +135,7 @@ const TasksPage = () => {
       }
       return next;
     });
-  }, [syncReady, user]);
+  }, [syncReady, user, issues]);
 
   const deleteIssue = useCallback((id: string) => {
     setIssues(prev => {
@@ -347,6 +348,7 @@ const TasksPage = () => {
               <option value="">Priority</option>
               {ISSUE_PRIORITIES.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
             </select>
+            {/* TODO: Fetch team members from Supabase portal_members table instead of hardcoded ALL_USERS */}
             <select value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)} style={{ fontSize: 11, padding: "5px 7px", borderRadius: 6, background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", color: "var(--text-tertiary)", cursor: "pointer" }}>
               <option value="">Assignee</option>
               {ALL_USERS.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}

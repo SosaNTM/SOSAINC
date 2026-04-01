@@ -58,6 +58,7 @@ export function useCryptoChart(holdings: CryptoHolding[], days: number = 30) {
 
       setChartData(sorted);
     } catch (err) {
+      // TODO: Replace with structured error logging (Sentry, etc.)
       console.error("Failed to load chart data:", err);
       setChartData([]);
     } finally {

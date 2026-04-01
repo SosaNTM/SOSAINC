@@ -4,7 +4,9 @@
 
 const FALLBACK_USD_EUR = 0.92;
 
-const LS_KEY = "iconoff_exchange_rates";
+import { STORAGE_EXCHANGE_RATES } from "@/constants/storageKeys";
+
+const LS_KEY = STORAGE_EXCHANGE_RATES;
 
 export interface ExchangeRates {
   USD_EUR: number;
@@ -28,12 +30,17 @@ export function saveRates(rates: ExchangeRates): void {
   localStorage.setItem(LS_KEY, JSON.stringify(rates));
 }
 
+const SUPPORTED_CURRENCIES = new Set(["EUR", "USD"]);
+
 /** Convert an amount to EUR. Supported source currencies: EUR, USD. */
 export function convertToEUR(amount: number, currency: string): number {
   const cur = (currency || "EUR").toUpperCase();
   if (cur === "EUR") return amount;
   if (cur === "USD") return amount * loadRates().USD_EUR;
-  // Unknown currency — treat as EUR (safe default)
+  // Unknown/unsupported currency — default to EUR (1:1) and log warning
+  if (!SUPPORTED_CURRENCIES.has(cur)) {
+    console.warn(`[convertToEUR] Unsupported currency "${cur}" — defaulting to EUR (1:1)`);
+  }
   return amount;
 }
 

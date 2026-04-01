@@ -141,7 +141,7 @@ function LimitForm({
           disabled={!valid}
           style={{
             flex: 2, height: 38, borderRadius: 9, border: "none",
-            background: valid ? "#C9A84C" : "#e5e7eb",
+            background: valid ? "#e8ff00" : "#e5e7eb",
             color: valid ? "#fff" : "#9ca3af",
             fontSize: 13, fontWeight: 700, cursor: valid ? "pointer" : "default",
             transition: "all 0.15s",
@@ -171,12 +171,12 @@ function TotalBudgetEditor({ value, onChange }: { value: number; onChange: (n: n
       display: "flex", alignItems: "center", gap: 10,
       padding: "12px 14px",
       borderRadius: 12,
-      background: "linear-gradient(135deg,rgba(201,168,76,0.08),rgba(201,168,76,0.04))",
-      border: "1px solid rgba(201,168,76,0.22)",
+      background: "linear-gradient(135deg,rgba(232,255,0,0.08),rgba(232,255,0,0.04))",
+      border: "1px solid rgba(232,255,0,0.22)",
       marginBottom: 16,
     }}>
       <div style={{ flex: 1 }}>
-        <p style={{ fontSize: 11, fontWeight: 700, color: "#b8860b", margin: 0, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: "#b8cc00", margin: 0, textTransform: "uppercase", letterSpacing: "0.06em" }}>
           Total Monthly Budget
         </p>
         {editing ? (
@@ -190,7 +190,7 @@ function TotalBudgetEditor({ value, onChange }: { value: number; onChange: (n: n
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
               onBlur={commit}
-              style={{ width: 100, height: 30, padding: "0 8px", borderRadius: 8, border: "1.5px solid #C9A84C", background: "#fff", fontSize: 14, fontWeight: 700, color: "#111827", outline: "none" }}
+              style={{ width: 100, height: 30, padding: "0 8px", borderRadius: 8, border: "1.5px solid #e8ff00", background: "#fff", fontSize: 14, fontWeight: 700, color: "#111827", outline: "none" }}
             />
           </div>
         ) : (
@@ -203,7 +203,7 @@ function TotalBudgetEditor({ value, onChange }: { value: number; onChange: (n: n
       {!editing && (
         <button
           onClick={startEdit}
-          style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(201,168,76,0.12)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#b8860b" }}
+          style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(232,255,0,0.12)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#b8cc00" }}
         >
           <Pencil style={{ width: 13, height: 13 }} />
         </button>
@@ -211,7 +211,7 @@ function TotalBudgetEditor({ value, onChange }: { value: number; onChange: (n: n
       {editing && (
         <button
           onClick={commit}
-          style={{ width: 30, height: 30, borderRadius: 8, background: "#C9A84C", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}
+          style={{ width: 30, height: 30, borderRadius: 8, background: "#e8ff00", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}
         >
           <Check style={{ width: 13, height: 13 }} />
         </button>

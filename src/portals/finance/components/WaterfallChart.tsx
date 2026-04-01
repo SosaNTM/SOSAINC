@@ -1,3 +1,4 @@
+import React from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
@@ -9,11 +10,12 @@ interface WaterfallChartProps {
 }
 
 function getFillColor(point: WaterfallDataPoint): string {
-  if (point.isTotal) return "#c9a96e";
+  if (point.isTotal) return "#e8ff00";
   if (point.isNegative) return "#ef4444";
   return "#22c55e";
 }
 
+// NOTE: Custom tooltip — too specialized for GlassTooltip (extra netRevenue prop, percentage calc, color by point type)
 function WaterfallTooltipContent({ active, payload, netRevenue }: any) {
   if (!active || !payload?.length) return null;
   const point = payload[0]?.payload as WaterfallDataPoint | undefined;
@@ -45,11 +47,17 @@ function WaterfallTooltipContent({ active, payload, netRevenue }: any) {
   );
 }
 
-export function WaterfallChart({ data, netRevenue }: WaterfallChartProps) {
-  const chartData = data.map((d) => ({
-    ...d,
-    visible: Math.abs(d.end - d.start),
-  }));
+export const WaterfallChart = React.memo(function WaterfallChart({ data, netRevenue }: WaterfallChartProps) {
+  const chartData = data.map((d) => {
+    const isNegativeBar = d.end < d.start;
+    return {
+      ...d,
+      // For negative bars, start the invisible base at the lower value (end)
+      // so the visible bar extends upward to start
+      start: isNegativeBar ? d.end : d.start,
+      visible: Math.abs(d.end - d.start),
+    };
+  });
 
   return (
     <ResponsiveContainer width="100%" height={340}>
@@ -100,4 +108,4 @@ export function WaterfallChart({ data, netRevenue }: WaterfallChartProps) {
       </BarChart>
     </ResponsiveContainer>
   );
-}
+});

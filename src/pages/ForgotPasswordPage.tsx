@@ -2,18 +2,32 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Mail } from "lucide-react";
 import { MorphingSquare } from "@/components/ui/morphing-square";
+import { sendPasswordResetEmail } from "@/lib/supabaseAuth";
+
+const USE_REAL_AUTH = import.meta.env.VITE_USE_REAL_AUTH === "true";
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    setLoading(false);
-    setSent(true);
+    try {
+      if (USE_REAL_AUTH) {
+        await sendPasswordResetEmail(email);
+      } else {
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+      setSent(true);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to send reset link. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -67,12 +81,16 @@ const ForgotPasswordPage = () => {
                     type="email"
                     required
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); if (error) setError(null); }}
                     className="glass-input"
                     placeholder="you@iconoff.com"
                     style={{ padding: "10px 14px", fontSize: 14 }}
                   />
                 </div>
+
+                {error && (
+                  <p style={{ fontSize: 13, color: "#ef4444", margin: 0 }} role="alert">{error}</p>
+                )}
 
                 <button type="submit"
                   disabled={loading}

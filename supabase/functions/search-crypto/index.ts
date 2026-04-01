@@ -1,17 +1,33 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { checkRateLimit, verifyJWT } from "../_shared/rateLimit.ts";
 
 const COINGECKO_API = "https://api.coingecko.com/api/v3";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+const ALLOWED_ORIGINS = [
+  Deno.env.get("FRONTEND_URL") || "http://localhost:8080",
+  "https://iconoff.io",
+  "https://www.iconoff.io",
+];
+
+function corsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders(req) });
   }
+
+  const rl = checkRateLimit(req);
+  if (rl) return rl;
+
+  const auth = await verifyJWT(req);
+  if (auth instanceof Response) return auth;
 
   try {
     const { query } = await req.json();
@@ -19,7 +35,7 @@ serve(async (req) => {
     if (!query || typeof query !== "string" || query.length < 1) {
       return new Response(
         JSON.stringify({ coins: [] }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { headers: { ...corsHeaders(req), "Content-Type": "application/json" } },
       );
     }
 
@@ -47,7 +63,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ coins }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { headers: { ...corsHeaders(req), "Content-Type": "application/json" } },
     );
   } catch (error) {
     console.error("Error searching crypto:", error);
@@ -55,7 +71,7 @@ serve(async (req) => {
       JSON.stringify({ error: (error as Error).message, coins: [] }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       },
     );
   }

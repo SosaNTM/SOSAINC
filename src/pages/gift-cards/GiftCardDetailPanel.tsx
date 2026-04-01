@@ -80,7 +80,7 @@ export function GiftCardDetailPanel({
         style={{
           position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 95,
           width: "min(420px, 100vw)", background: "#141414",
-          borderLeft: "1px solid rgba(201,169,110,0.1)",
+          borderLeft: "1px solid rgba(232,255,0,0.1)",
           overflow: "auto",
         }}>
 
@@ -105,7 +105,7 @@ export function GiftCardDetailPanel({
             <p style={{ fontSize: 12, color: "var(--text-quaternary)", marginTop: 2 }}>Gift Card</p>
             <div className="flex items-center justify-center gap-4 mt-3">
               <button type="button" onClick={() => onToggleFavorite(!card.is_favorite)}
-                style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: card.is_favorite ? "#c9a96e" : "rgba(255,255,255,0.15)", fontWeight: 600 }}>
+                style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: card.is_favorite ? "#e8ff00" : "rgba(255,255,255,0.15)", fontWeight: 600 }}>
                 ★ {card.is_favorite ? "Preferita" : "Preferita"}
               </button>
               <div className="flex items-center gap-1.5">
@@ -135,7 +135,7 @@ export function GiftCardDetailPanel({
           {/* Use Balance Button */}
           {!isInactive && (
             <button type="button" onClick={() => setUseBalanceOpen(!useBalanceOpen)}
-              style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: "none", background: "#c9a96e", color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 16 }}>
+              style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: "none", background: "#e8ff00", color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 16 }}>
               <CreditCard style={{ width: 16, height: 16 }} /> Usa Saldo
             </button>
           )}
@@ -175,11 +175,11 @@ export function GiftCardDetailPanel({
 
                   <div className="flex gap-2">
                     <button type="button" onClick={useAll}
-                      style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "1px solid rgba(201,169,110,0.3)", background: "transparent", color: "#c9a96e", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                      style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "1px solid rgba(232,255,0,0.3)", background: "transparent", color: "#e8ff00", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                       Usa Tutto (€{card.remaining_value.toFixed(2)})
                     </button>
                     <button type="button" onClick={handleUseBalance} disabled={saving || numAmount <= 0 || numAmount > card.remaining_value}
-                      style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "none", background: "#c9a96e", color: "#000", fontSize: 12, fontWeight: 700, cursor: saving ? "wait" : "pointer", opacity: (saving || numAmount <= 0 || numAmount > card.remaining_value) ? 0.5 : 1 }}>
+                      style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "none", background: "#e8ff00", color: "#000", fontSize: 12, fontWeight: 700, cursor: saving ? "wait" : "pointer", opacity: (saving || numAmount <= 0 || numAmount > card.remaining_value) ? 0.5 : 1 }}>
                       {saving ? "..." : "Conferma Spesa"}
                     </button>
                   </div>
@@ -297,14 +297,14 @@ export function GiftCardDetailPanel({
                 </div>
               </div>
             ) : archiveConfirm ? (
-              <div style={{ padding: "16px", borderRadius: 12, background: "rgba(201,169,110,0.05)", border: "1px solid rgba(201,169,110,0.15)", marginBottom: 8 }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: "#c9a96e", marginBottom: 4 }}>📦 Archiviare la Gift Card {card.brand}?</p>
+              <div style={{ padding: "16px", borderRadius: 12, background: "rgba(232,255,0,0.05)", border: "1px solid rgba(232,255,0,0.15)", marginBottom: 8 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "#e8ff00", marginBottom: 4 }}>📦 Archiviare la Gift Card {card.brand}?</p>
                 <p style={{ fontSize: 11, color: "var(--text-quaternary)", marginBottom: 8 }}>La card verrà spostata nell'archivio. Puoi ripristinarla in qualsiasi momento.</p>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setArchiveConfirm(false)}
                     style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "transparent", color: "var(--text-tertiary)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Annulla</button>
                   <button type="button" onClick={onArchive}
-                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", background: "#c9a96e", color: "#000", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Archivia</button>
+                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", background: "#e8ff00", color: "#000", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Archivia</button>
                 </div>
               </div>
             ) : (

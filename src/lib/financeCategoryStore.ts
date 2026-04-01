@@ -14,8 +14,10 @@ export interface FinanceCategory {
   is_active: boolean;
 }
 
-const KEY_PREFIX = "finance_categories";
-const LEGACY_KEY = "finance_categories"; // old non-portal key (migration source)
+import { STORAGE_FINANCE_CATEGORIES_PREFIX, STORAGE_FINANCE_CATEGORIES_LEGACY } from "@/constants/storageKeys";
+
+const KEY_PREFIX = STORAGE_FINANCE_CATEGORIES_PREFIX;
+const LEGACY_KEY = STORAGE_FINANCE_CATEGORIES_LEGACY; // old non-portal key (migration source)
 
 /** Returns the portal-scoped localStorage key. */
 function storageKey(portalId: string): string {

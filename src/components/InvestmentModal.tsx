@@ -12,7 +12,7 @@ const TYPE_OPTIONS: InvestmentType[] = ["stock", "etf", "crypto", "bonds", "real
 
 const COLOR_PRESETS = [
   "#4A9EFF", "#2ECC71", "#f59e0b", "#ef4444", "#a78bfa",
-  "#C9A84C", "#ec4899", "#14b8a6", "#f97316", "#8b5cf6",
+  "#e8ff00", "#ec4899", "#14b8a6", "#f97316", "#8b5cf6",
 ];
 
 const EMPTY: Omit<Investment, "id"> = {

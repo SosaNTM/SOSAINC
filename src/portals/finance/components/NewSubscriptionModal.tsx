@@ -10,7 +10,7 @@ import { useCategories } from "@/hooks/useCategories";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const GOLD = "#c9a96e";
+const GOLD = "#e8ff00";
 
 const EMOJIS = [
   "🎬","🎵","☁️","🎨","🤖","🏋️","🔒","🦜","✨","📰",
@@ -20,7 +20,7 @@ const EMOJIS = [
 
 const PRESET_COLORS = [
   "#e50914","#1db954","#3b82f6","#f59e0b",
-  "#10a37f","#8b5cf6","#c9a96e","#ef4444",
+  "#10a37f","#8b5cf6","#e8ff00","#ef4444",
 ];
 
 // Categories loaded from useCategories hook (see component body)
@@ -108,7 +108,7 @@ const errorStyle: React.CSSProperties = {
 
 function focusBorder(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
   e.target.style.borderColor = GOLD;
-  e.target.style.boxShadow = `0 0 0 3px rgba(201,169,110,0.12)`;
+  e.target.style.boxShadow = `0 0 0 3px rgba(232,255,0,0.12)`;
 }
 function blurBorder(
   e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
@@ -355,7 +355,7 @@ export function NewSubscriptionModal({ isOpen, onClose, onSave, initialData }: P
               ))}
             </select>
             {nextBillingPreview && (
-              <p style={{ fontSize: 11.5, color: "rgba(201,169,110,0.7)", marginTop: 6 }}>
+              <p style={{ fontSize: 11.5, color: "rgba(232,255,0,0.7)", marginTop: 6 }}>
                 Next charge:{" "}
                 <strong style={{ color: GOLD }}>
                   {nextBillingPreview.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" })}
@@ -460,7 +460,7 @@ export function NewSubscriptionModal({ isOpen, onClose, onSave, initialData }: P
           <button type="button" onClick={handleSave} disabled={saving}
             style={{
               flex: 2, height: 48, borderRadius: 10, border: "none",
-              background: saving ? "rgba(201,169,110,0.5)" : GOLD,
+              background: saving ? "rgba(232,255,0,0.5)" : GOLD,
               color: "#000", fontSize: 13, cursor: saving ? "default" : "pointer",
               fontWeight: 600,
               transition: "filter 0.15s",

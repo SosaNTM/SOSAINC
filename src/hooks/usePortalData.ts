@@ -21,7 +21,7 @@ export function usePortalData<T extends { id: string }>(
   const optionsKey = JSON.stringify(options);
 
   const fetch = useCallback(async () => {
-    if (!currentPortalId) { setLoading(false); return; }
+    if (!currentPortalId) { setData([] as unknown as T[]); setLoading(false); return; }
     setLoading(true);
     setError(null);
 

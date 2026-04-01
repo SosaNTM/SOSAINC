@@ -19,7 +19,9 @@ export interface DashboardGoal {
   emoji?: string;
 }
 
-const KEY_PREFIX = "finance_goals";
+import { STORAGE_GOALS_PREFIX, STORAGE_GOALS_LEGACY } from "@/constants/storageKeys";
+
+const KEY_PREFIX = STORAGE_GOALS_PREFIX;
 
 function storageKey(portalId: string): string {
   return `${KEY_PREFIX}_${portalId}`;
@@ -35,7 +37,7 @@ function readGoals(portalId: string): DashboardGoal[] {
     if (raw) return JSON.parse(raw) as DashboardGoal[];
     // Legacy migration: sosa reads from old non-portal key
     if (portalId === "sosa") {
-      const legacy = localStorage.getItem("finance_goals");
+      const legacy = localStorage.getItem(STORAGE_GOALS_LEGACY);
       if (legacy) return JSON.parse(legacy) as DashboardGoal[];
     }
   } catch { /* corrupted */ }

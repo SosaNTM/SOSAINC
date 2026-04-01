@@ -21,10 +21,10 @@ export default {
         '3xl': '1920px',
       },
       fontFamily: {
-        sans: ['DM Sans', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        display: ['Cormorant Garamond', 'Georgia', 'serif'],
-        body: ['DM Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        mono: ['DM Mono', 'SF Mono', 'Fira Code', 'monospace'],
+        sans: ['Space Mono', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        display: ['Bebas Neue', 'Arial', 'sans-serif'],
+        body: ['Space Mono', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        mono: ['Space Mono', 'SF Mono', 'Fira Code', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",

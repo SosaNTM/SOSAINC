@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useAuth, ALL_USERS } from "@/lib/authContext";
+import { STORAGE_NOTES, STORAGE_NOTE_FOLDERS } from "@/constants/storageKeys";
 import { addAuditEntry } from "@/lib/adminStore";
 import { INITIAL_NOTES, INITIAL_FOLDERS, TAG_PRESETS, type Note, type NoteFolder, INITIAL_TELEGRAM_NOTES, telegramNoteToNote } from "@/lib/notesStore";
 import {
@@ -9,6 +10,8 @@ import {
   FolderPlus, Folder, FolderOpen, GripVertical, Smartphone, Mic, FileText,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 // ─── Tag Pill ───
 function TagPill({ tag, onRemove }: { tag: string; onRemove?: () => void }) {
@@ -67,7 +70,7 @@ const NotesPage = () => {
 
   const [notes, setNotes] = useState<Note[]>(() => {
     try {
-      const saved = localStorage.getItem("iconoff_notes");
+      const saved = localStorage.getItem(STORAGE_NOTES);
       if (saved) {
         const parsed = JSON.parse(saved);
         return parsed.map((n: any) => ({ ...n, createdAt: new Date(n.createdAt), updatedAt: new Date(n.updatedAt) }));
@@ -77,7 +80,7 @@ const NotesPage = () => {
   });
   const [folders, setFolders] = useState<NoteFolder[]>(() => {
     try {
-      const saved = localStorage.getItem("iconoff_note_folders");
+      const saved = localStorage.getItem(STORAGE_NOTE_FOLDERS);
       if (saved) {
         const parsed = JSON.parse(saved);
         return parsed.map((f: any) => ({ ...f, createdAt: new Date(f.createdAt), updatedAt: new Date(f.updatedAt) }));
@@ -87,8 +90,8 @@ const NotesPage = () => {
   });
 
   // Persist notes & folders to localStorage on change
-  useEffect(() => { localStorage.setItem("iconoff_notes", JSON.stringify(notes)); }, [notes]);
-  useEffect(() => { localStorage.setItem("iconoff_note_folders", JSON.stringify(folders)); }, [folders]);
+  useEffect(() => { localStorage.setItem(STORAGE_NOTES, JSON.stringify(notes)); }, [notes]);
+  useEffect(() => { localStorage.setItem(STORAGE_NOTE_FOLDERS, JSON.stringify(folders)); }, [folders]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [viewingUserId, setViewingUserId] = useState(user?.id || "");
@@ -530,7 +533,13 @@ const NotesPage = () => {
         )}
 
         {userNotes.length === 0 && (
-          <p style={{ fontSize: 12, color: "var(--text-quaternary)", textAlign: "center", padding: 32 }}>No notes yet</p>
+          <EmptyState
+            icon={<StickyNote style={{ width: 48, height: 48 }} />}
+            title="NO NOTES YET"
+            description="Capture ideas, meeting notes, and important information."
+            actionLabel="CREATE NOTE"
+            onAction={createNote}
+          />
         )}
       </div>
     </div>
@@ -774,6 +783,7 @@ const NotesPage = () => {
   const folderToDeleteName = deleteFolderConfirm ? folders.find((f) => f.id === deleteFolderConfirm)?.name : "";
 
   return (
+    <ModuleErrorBoundary moduleName="Notes">
     <div style={{ height: "calc(100vh - 72px)", display: "flex", flexDirection: "column", padding: "16px" }}>
       {/* Top bar */}
       <div className="flex items-center justify-between mb-4 gap-2">
@@ -988,6 +998,7 @@ const NotesPage = () => {
         </>
       )}
     </div>
+    </ModuleErrorBoundary>
   );
 };
 
