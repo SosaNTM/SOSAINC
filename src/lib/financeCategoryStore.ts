@@ -1,6 +1,7 @@
 // ── Personal Finance Category Store ──────────────────────────────────────────
 // localStorage persistence for personal finance categories.
 // All functions accept a portalId so each portal has isolated category data.
+// Supabase is the primary source — refreshFromSupabase() hydrates localStorage cache.
 
 export interface FinanceCategory {
   id: string;
@@ -163,4 +164,38 @@ export function reorderCategories(portalId: string, orderedIds: string[]): void 
   });
   save(updated, portalId);
   broadcast(portalId);
+}
+
+// ── Supabase hydration ───────────────────────────────────────────────────────
+
+/**
+ * Fetches categories from Supabase, saves to localStorage cache, and broadcasts.
+ * Call this on mount to ensure data is up-to-date. Never throws.
+ */
+export async function refreshFromSupabase(portalId: string): Promise<void> {
+  try {
+    const { fetchCategories } = await import("@/lib/services/categoryService");
+    const dbCats = await fetchCategories(portalId);
+    if (dbCats.length === 0) return;
+
+    const mapped: FinanceCategory[] = dbCats
+      .filter((c) => c.type === "income" || c.type === "expense")
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        icon: c.icon ?? "📌",
+        color: c.color ?? "#94a3b8",
+        type: c.type as "income" | "expense",
+        sort_order: c.sort_order,
+        is_default: c.is_default,
+        is_active: c.is_active,
+      }));
+
+    if (mapped.length === 0) return;
+    save(mapped, portalId);
+    broadcast(portalId);
+  } catch {
+    // Supabase unavailable — localStorage cache remains valid
+  }
 }

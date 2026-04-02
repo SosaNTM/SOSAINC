@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase as _supabase } from "@/lib/supabase";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase = _supabase as any;
+import { toPortalUUID } from "@/lib/portalUUID";
 import { subscribeToFinanceUpdates } from "@/lib/financeRealtime";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
@@ -74,7 +75,7 @@ export function useFinanceSummary(dateRange: DateRange = currentMonthRange()): {
       const { data, error } = await supabase
         .from("personal_transactions")
         .select("type, amount, category, date")
-        .eq("portal_id", portalId) // portal-shared
+        .eq("portal_id", toPortalUUID(portalId)) // portal-shared
         .gte("date", dateRange.from)
         .lte("date", dateRange.to)
         .order("date", { ascending: true });

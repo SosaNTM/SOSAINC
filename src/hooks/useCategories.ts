@@ -12,6 +12,7 @@ import {
   removeCategory as storeRemove,
   toggleActiveCategory as storeToggle,
   getCategoryUpdateEvent,
+  refreshFromSupabase,
   type FinanceCategory,
 } from "@/lib/financeCategoryStore";
 
@@ -35,9 +36,10 @@ export function useCategories() {
     setCategories(getAllCategories(portalId));
   }, [portalId]);
 
-  // Re-load when portal switches
+  // Re-load from localStorage when portal switches, then hydrate from Supabase
   useEffect(() => {
     setCategories(getAllCategories(portalId));
+    void refreshFromSupabase(portalId); // updates localStorage + broadcasts when data arrives
   }, [portalId]);
 
   // Listen for portal-scoped CustomEvent broadcasts

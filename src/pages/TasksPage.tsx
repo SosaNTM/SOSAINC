@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useAuth, ALL_USERS, getUserById } from "@/lib/authContext";
+import { usePortal } from "@/lib/portalContext";
 import { STORAGE_TASKS, STORAGE_PROJECTS } from "@/constants/storageKeys";
 import {
   getInitialIssues, getInitialProjects, ISSUE_STATUSES, ISSUE_PRIORITIES, ISSUE_LABELS, ESTIMATE_OPTIONS,
@@ -22,6 +23,8 @@ import { Plus, LayoutGrid, List, Filter, ChevronDown, ChevronRight, SlidersHoriz
 
 const TasksPage = () => {
   const { user } = useAuth();
+  const { portal } = usePortal();
+  const portalId = portal?.id ?? "sosa";
   const [issues, setIssues] = useState<Issue[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_TASKS);
@@ -52,12 +55,12 @@ const TasksPage = () => {
 
   // Load live data from Supabase on mount — replaces static seed
   useEffect(() => {
-    Promise.all([loadTasksFromSupabase(), loadProjectsFromSupabase()]).then(([sbTasks, sbProjects]) => {
+    Promise.all([loadTasksFromSupabase(portalId), loadProjectsFromSupabase(portalId)]).then(([sbTasks, sbProjects]) => {
       if (sbTasks.length > 0) setIssues(sbTasks);
       if (sbProjects.length > 0) setProjects(sbProjects);
       setSyncReady(true);
     });
-  }, []);
+  }, [portalId]); // eslint-disable-line react-hooks/exhaustive-deps
   const [sidebarView, setSidebarView] = useState<SidebarView>("all");
   const [viewMode, setViewMode] = useState<"list" | "board">("list");
   const [groupBy, setGroupBy] = useState<"status" | "priority" | "assignee" | "project">("status");

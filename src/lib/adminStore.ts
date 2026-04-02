@@ -9,6 +9,16 @@ export interface AuditLogEntry {
   portalId?: string;
 }
 
+// Lazy import to avoid circular deps — bridged at call-site
+let _supabaseAuditBridge: ((action: string, portalId: string, opts?: Record<string, unknown>) => Promise<void>) | null = null;
+async function getAuditBridge() {
+  if (!_supabaseAuditBridge) {
+    const mod = await import("@/lib/services/auditLogService");
+    _supabaseAuditBridge = mod.addAuditEntryForUser as typeof _supabaseAuditBridge;
+  }
+  return _supabaseAuditBridge;
+}
+
 const PORTAL_NAMES: Record<string, string> = {
   sosa:    "Sosa Inc",
   keylo:   "KEYLO",
@@ -55,6 +65,19 @@ export function addAuditEntry(
   ].slice(0, MAX_AUDIT_ENTRIES);
   saveAuditLog(_liveLog);
   _auditListeners.forEach((cb) => cb());
+
+  // Bridge to Supabase audit log (fire-and-forget — never throws)
+  if (entry.portalId) {
+    const portalId = entry.portalId;
+    getAuditBridge().then((bridge) => {
+      if (bridge) {
+        void bridge(entry.action, portalId, {
+          category: entry.category,
+          details: { userId: entry.userId, icon: entry.icon, text: entry.details },
+        });
+      }
+    }).catch(() => { /* audit failures must never propagate */ });
+  }
 }
 
 export function getAuditLog(): AuditLogEntry[] {

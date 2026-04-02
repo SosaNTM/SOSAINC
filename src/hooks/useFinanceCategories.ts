@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
+import { toPortalUUID } from "@/lib/portalUUID";
 import { usePortal } from "@/lib/portalContext";
 import { localGetAll } from "@/lib/personalTransactionStore";
 import type { FinanceCategory, CostClassification } from "@/types/finance";
@@ -66,7 +67,7 @@ export function useFinanceCategories() {
       const { data } = await supabase
         .from("finance_transaction_categories")
         .select("*")
-        .eq("portal_id", portalId)
+        .eq("portal_id", toPortalUUID(portalId))
         .order("type")
         .order("sort_order");
       setCategories((data as FinanceCategory[]) ?? []);
@@ -96,7 +97,7 @@ export function useFinanceCategories() {
           event: "*",
           schema: "public",
           table: "finance_transaction_categories",
-          filter: `portal_id=eq.${portalId}`,
+          filter: `portal_id=eq.${toPortalUUID(portalId)}`,
         },
         (payload: any) => {
           if (payload.eventType === "INSERT") {
@@ -128,7 +129,7 @@ export function useFinanceCategories() {
     if (isSupabaseConfigured()) {
       const { data, error } = await supabase
         .from("finance_transaction_categories")
-        .insert({ portal_id: portalId, name: input.name, slug, type: input.type, color: input.color ?? "#e8ff00", icon: input.icon ?? "tag", sort_order: categories.length })
+        .insert({ portal_id: toPortalUUID(portalId), name: input.name, slug, type: input.type, color: input.color ?? "#e8ff00", icon: input.icon ?? "tag", sort_order: categories.length })
         .select().single();
       if (error) return { error: error.message };
       setCategories(prev => [...prev, data as FinanceCategory]);
@@ -175,7 +176,7 @@ export function useFinanceCategories() {
         const { count, error: countErr } = await supabase
           .from("personal_transactions")
           .select("id", { count: "exact", head: true })
-          .eq("portal_id", portalId)
+          .eq("portal_id", toPortalUUID(portalId))
           .eq("category_id", id);
         if (!countErr && count != null) txCount = count;
       } else {

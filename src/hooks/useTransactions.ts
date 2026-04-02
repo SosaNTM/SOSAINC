@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { dynamicSupabase as supabase } from "@/lib/portalDb";
+import { toPortalUUID } from "@/lib/portalUUID";
 import { broadcastFinanceUpdate, subscribeToFinanceUpdates } from "@/lib/financeRealtime";
 import { useAuth } from "@/lib/authContext";
 import { addAuditEntry } from "@/lib/adminStore";
@@ -82,7 +83,7 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
       let q = supabase
         .from("personal_transactions")
         .select("*")
-        .eq("portal_id", portalId) // portal-shared: all members see all data
+        .eq("portal_id", toPortalUUID(portalId)) // portal-shared: all members see all data
         .order("date", { ascending: false })
         .order("created_at", { ascending: false });
 
@@ -133,7 +134,7 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
       if (isSupabaseConfigured()) {
         const { error: err } = await supabase
           .from("personal_transactions")
-          .insert({ ...data, user_id: user.id, portal_id: portalId });
+          .insert({ ...data, user_id: user.id, portal_id: toPortalUUID(portalId) });
         if (err) throw err;
       } else {
         localAdd(data, user.id, portalId);
@@ -178,7 +179,7 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
           .from("personal_transactions")
           .update(changes)
           .eq("id", id)
-          .eq("portal_id", portalId);
+          .eq("portal_id", toPortalUUID(portalId));
         if (err) throw err;
       } else {
         localUpdate(id, changes, portalId);
@@ -204,7 +205,7 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
           .from("personal_transactions")
           .delete()
           .eq("id", id)
-          .eq("portal_id", portalId);
+          .eq("portal_id", toPortalUUID(portalId));
         if (err) throw err;
       } else {
         localDelete(id, portalId);

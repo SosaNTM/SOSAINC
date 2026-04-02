@@ -10,6 +10,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase as _supabase } from "@/lib/supabase";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase = _supabase as any;
+import { toPortalUUID } from "@/lib/portalUUID";
 import { subscribeToFinanceUpdates } from "@/lib/financeRealtime";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
@@ -20,6 +21,7 @@ import { useFinanceCategories } from "@/hooks/useFinanceCategories";
 import type { FinanceCategory as TxCategory } from "@/types/finance";
 import { loadBudgetLimits, saveBudgetLimits, loadTotalBudget, saveTotalBudget } from "../services/budgetStorage";
 import type { BudgetLimitMap } from "../services/budgetStorage";
+import { fetchBudgetLimits, upsertBudgetLimit } from "@/lib/services/budgetService";
 import type { BudgetCategoryDef } from "../components/BudgetCategoryPanel";
 
 export interface BudgetDataResult {
@@ -51,10 +53,19 @@ export function useBudgetData(month: number, year: number): BudgetDataResult {
   // Finance transaction categories (for business portals)
   const { categories: financeCategories } = useFinanceCategories();
 
-  // Reload limits and total when portal changes
+  // Reload limits and total when portal changes, then hydrate from Supabase
   useEffect(() => {
     setLimits(loadBudgetLimits(portalId));
     setTotalBudgetState(loadTotalBudget(portalId));
+
+    // Background Supabase hydration — updates local state if DB has data
+    fetchBudgetLimits(portalId).then((dbLimits) => {
+      if (dbLimits.length === 0) return;
+      const map: BudgetLimitMap = {};
+      for (const b of dbLimits) map[b.category.toLowerCase()] = b.monthly_limit;
+      saveBudgetLimits(portalId, map);
+      setLimits(map);
+    }).catch(() => { /* Supabase unavailable — localStorage cache is sufficient */ });
   }, [portalId]);
 
   // Active expense categories from the unified category store
@@ -106,7 +117,7 @@ export function useBudgetData(month: number, year: number): BudgetDataResult {
       supabase
         .from("personal_transactions")
         .select("category, amount")
-        .eq("portal_id", portalId) // portal-shared
+        .eq("portal_id", toPortalUUID(portalId)) // portal-shared
         .eq("type", "expense")
         .gte("date", fromDate)
         .lte("date", toDate)
@@ -161,6 +172,11 @@ export function useBudgetData(month: number, year: number): BudgetDataResult {
     const updated = { ...limits, [categoryName.toLowerCase()]: limit };
     saveBudgetLimits(portalId, updated);
     setLimits(updated);
+    // Persist to Supabase (fire-and-forget)
+    void upsertBudgetLimit(
+      { user_id: null, category: categoryName.toLowerCase(), category_id: null, monthly_limit: limit, color: null, icon_name: null },
+      portalId,
+    );
   }, [portalId, limits]);
 
   const setTotalBudget = useCallback((amount: number) => {

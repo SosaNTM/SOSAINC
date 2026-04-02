@@ -11,6 +11,7 @@
  */
 
 import { supabase } from "@/lib/supabase";
+import { toPortalUUID } from "@/lib/portalUUID";
 import type { Issue, Project } from "@/lib/linearStore";
 
 // ── Row shapes returned by Supabase ──────────────────────────────────────────
@@ -113,23 +114,29 @@ function projectToRow(project: Project, userId: string) {
 
 // ── Load ─────────────────────────────────────────────────────────────────────
 
-export async function loadTasksFromSupabase(): Promise<Issue[]> {
-  const { data, error } = await supabase
+export async function loadTasksFromSupabase(portalId?: string): Promise<Issue[]> {
+  let query = supabase
     .from("tasks")
     .select("*")
     .order("created_at", { ascending: false });
 
+  if (portalId) query = query.eq("portal_id", toPortalUUID(portalId));
+
+  const { data, error } = await query;
   if (error || !data) return [];
   const rows = data as TaskRow[];
   return rows.map(r => taskRowToIssue(r, rows));
 }
 
-export async function loadProjectsFromSupabase(): Promise<Project[]> {
-  const { data, error } = await supabase
+export async function loadProjectsFromSupabase(portalId?: string): Promise<Project[]> {
+  let query = supabase
     .from("projects")
     .select("*")
     .order("created_at", { ascending: true });
 
+  if (portalId) query = query.eq("portal_id", toPortalUUID(portalId));
+
+  const { data, error } = await query;
   if (error || !data) return [];
   return (data as ProjectRow[]).map(projectRowToProject);
 }

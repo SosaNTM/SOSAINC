@@ -3,6 +3,7 @@
 // transparently fall back to localStorage so the UI always works.
 
 import { supabase } from "@/lib/supabase";
+import { toPortalUUID } from "@/lib/portalUUID";
 import { STORAGE_CRYPTO_HOLDINGS_PREFIX, STORAGE_CRYPTO_HOLDINGS_LEGACY } from "@/constants/storageKeys";
 import type { CryptoHolding, CryptoPrice, CoinOption } from "../types/crypto";
 
@@ -64,6 +65,7 @@ export async function fetchHoldings(portalId: string): Promise<CryptoHolding[]> 
     const { data, error } = await supabase
       .from("crypto_holdings")
       .select("*")
+      .eq("portal_id", toPortalUUID(portalId))
       .order("created_at", { ascending: true });
     if (error) throw error;
     return data || [];
@@ -86,7 +88,7 @@ export async function addHolding(holding: {
   try {
     const { data, error } = await supabase
       .from("crypto_holdings")
-      .insert(holding)
+      .insert({ ...holding, portal_id: toPortalUUID(portalId) })
       .select()
       .single();
     if (error) throw error;
@@ -119,6 +121,7 @@ export async function updateHolding(
       .from("crypto_holdings")
       .update(updates)
       .eq("id", id)
+      .eq("portal_id", toPortalUUID(portalId))
       .select()
       .single();
     if (error) throw error;
@@ -143,7 +146,8 @@ export async function deleteHolding(id: string, portalId: string): Promise<void>
     const { error } = await supabase
       .from("crypto_holdings")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .eq("portal_id", toPortalUUID(portalId));
     if (error) throw error;
   } catch {
     writeLocalHoldings(readLocalHoldings(portalId).filter((h) => h.id !== id), portalId);
