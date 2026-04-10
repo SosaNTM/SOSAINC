@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { STORAGE_GOALS_PREFIX, STORAGE_GOALS_LEGACY } from "@/constants/storageKeys";
 import { motion, AnimatePresence } from "framer-motion";
 import { Target, Plus, Pencil, Trash2, Check } from "lucide-react";
 import { LiquidGlassCard, LiquidGlassFilter } from "@/components/ui/liquid-glass-card";
@@ -9,58 +8,55 @@ import { useAuth } from "@/lib/authContext";
 import { addAuditEntry } from "@/lib/adminStore";
 import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { fetchGoals, createGoal as svcCreate, updateGoal as svcUpdate, deleteGoal as svcDelete } from "@/lib/services/goalsService";
+import { useNetWorth } from "@/hooks/useNetWorth";
 
 interface Goal {
-  id: number;
+  id: string;
   name: string;
   target: number;
-  saved: number;
   deadline: string;
   category: string;
   color: string;
   emoji: string;
 }
 
-const INITIAL_GOALS: Goal[] = [];
-
-const GOALS_KEY_PREFIX = STORAGE_GOALS_PREFIX;
-
-function goalsStorageKey(portalId: string): string {
-  return `${GOALS_KEY_PREFIX}_${portalId}`;
+function dbToGoal(g: { id: string; name: string; target: number; deadline?: string | null; category?: string | null; color?: string | null; emoji?: string | null }): Goal {
+  return {
+    id: g.id,
+    name: g.name,
+    target: g.target,
+    deadline: g.deadline ?? "",
+    category: g.category ?? "",
+    color: g.color ?? "#6b7280",
+    emoji: g.emoji ?? "🎯",
+  };
 }
 
-function loadGoals(portalId: string): Goal[] {
-  try {
-    const raw = localStorage.getItem(goalsStorageKey(portalId));
-    if (raw) return JSON.parse(raw) as Goal[];
-    // Legacy migration for sosa portal
-    if (portalId === "sosa") {
-      const legacy = localStorage.getItem(STORAGE_GOALS_LEGACY);
-      if (legacy) return JSON.parse(legacy) as Goal[];
-    }
-  } catch {}
-  return INITIAL_GOALS;
+function formatDeadline(deadline: string): string {
+  if (!deadline) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(deadline)) {
+    const d = new Date(deadline + "T00:00:00");
+    return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  }
+  return deadline;
 }
 
 export default function Goals() {
   const { portal } = usePortal();
   const portalId = portal?.id ?? "sosa";
   const { user } = useAuth();
+  const { netWorth } = useNetWorth();
 
-  const [goals, setGoals] = useState<Goal[]>(() => loadGoals(portalId));
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
 
-  // Reload when portal switches
+  // Load from Supabase (falls back to localStorage cache inside service)
   useEffect(() => {
-    setGoals(loadGoals(portalId));
+    fetchGoals(portalId).then((data) => setGoals(data.map(dbToGoal)));
   }, [portalId]);
-
-  // Persist to portal-scoped localStorage
-  useEffect(() => {
-    localStorage.setItem(goalsStorageKey(portalId), JSON.stringify(goals));
-  }, [goals, portalId]);
 
   function openCreate() {
     setEditingGoal(null);
@@ -77,26 +73,29 @@ export default function Goals() {
     setEditingGoal(null);
   }
 
-  function handleSave(data: NewGoalData) {
+  async function handleSave(data: NewGoalData) {
     if (editingGoal) {
       setGoals(prev => prev.map(g => g.id === editingGoal.id ? { ...data, id: g.id } : g));
+      await svcUpdate(editingGoal.id, data, portalId);
       if (user) addAuditEntry({ userId: user.id, action: `Updated goal "${data.name}"`, category: "finance", details: "", icon: "🎯", portalId });
     } else {
-      setGoals(prev => [...prev, { ...data, id: Date.now() }]);
+      const created = await svcCreate({ ...data, saved: 0, user_id: user?.id ?? "" }, portalId);
+      const newId = created?.id ?? crypto.randomUUID();
+      setGoals(prev => [...prev, { ...data, id: newId }]);
       if (user) addAuditEntry({ userId: user.id, action: `Created goal "${data.name}" — €${data.target.toLocaleString()} target`, category: "finance", details: "", icon: "🎯", portalId });
     }
   }
 
-  function deleteGoal(id: number) {
+  function handleDelete(id: string) {
     const goal = goals.find(g => g.id === id);
     setGoals(prev => prev.filter(g => g.id !== id));
     setDeleteId(null);
+    void svcDelete(id, portalId);
     if (user && goal) addAuditEntry({ userId: user.id, action: `Deleted goal "${goal.name}"`, category: "finance", details: "", icon: "🗑️", portalId });
   }
 
   const totalTarget = goals.reduce((s, g) => s + g.target, 0);
-  const totalSaved  = goals.reduce((s, g) => s + g.saved, 0);
-  const overallPct  = totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
+  const overallPct  = totalTarget > 0 ? Math.min(100, Math.max(0, Math.round((netWorth / totalTarget) * 100))) : 0;
 
   return (
     <ModuleErrorBoundary moduleName="Goals">
@@ -110,7 +109,7 @@ export default function Goals() {
         {[
           { label: "Total Goals",      value: String(goals.length),                        color: "#4A9EFF" },
           { label: "Total Target",     value: `€${totalTarget.toLocaleString("en-US")}`,   color: "var(--text-primary)" },
-          { label: "Total Saved",      value: `€${totalSaved.toLocaleString("en-US")}`,    color: "#2ECC71" },
+          { label: "Net Worth",        value: `€${Math.round(netWorth).toLocaleString("en-US")}`, color: "#2ECC71" },
           { label: "Overall Progress", value: `${overallPct}%`,                             color: "#e8ff00" },
         ].map((s) => (
           <div key={s.label} style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 14, padding: "14px 18px" }}>
@@ -148,7 +147,7 @@ export default function Goals() {
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             <AnimatePresence>
               {goals.map((goal, i) => {
-                const pct = Math.min(100, Math.round((goal.saved / goal.target) * 100));
+                const pct = Math.min(100, Math.max(0, Math.round((netWorth / goal.target) * 100)));
                 const isConfirm = deleteId === goal.id;
                 return (
                   <motion.div key={goal.id} layout
@@ -162,7 +161,7 @@ export default function Goals() {
                           <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{goal.name}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 99, background: `${goal.color}18`, color: goal.color }}>{goal.category}</span>
-                            <span style={{ fontSize: 10, color: "var(--text-quaternary)" }}>by {goal.deadline}</span>
+                            {goal.deadline && <span style={{ fontSize: 10, color: "var(--text-quaternary)" }}>by {formatDeadline(goal.deadline)}</span>}
                           </div>
                         </div>
                       </div>
@@ -179,7 +178,7 @@ export default function Goals() {
                         ) : (
                           <div className="flex items-center gap-1">
                             <span style={{ fontSize: 10, color: "#FF5A5A", marginRight: 2 }}>Delete?</span>
-                            <button type="button" onClick={() => deleteGoal(goal.id)} style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "rgba(255,90,90,0.2)", color: "#FF5A5A", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <button type="button" onClick={() => handleDelete(goal.id)} style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "rgba(255,90,90,0.2)", color: "#FF5A5A", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                               <Check style={{ width: 11, height: 11 }} />
                             </button>
                             <button type="button" onClick={() => setDeleteId(null)} style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "rgba(255,255,255,0.06)", color: "var(--text-quaternary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>✕</button>
@@ -196,12 +195,14 @@ export default function Goals() {
 
                     <div className="flex justify-between items-end">
                       <div>
-                        <p style={{ fontSize: 10, color: "var(--text-quaternary)" }}>Saved</p>
-                        <p style={{ fontSize: 16, fontWeight: 700, color: goal.color, letterSpacing: "-0.3px" }}>€{goal.saved.toLocaleString("en-US")}</p>
+                        <p style={{ fontSize: 10, color: "var(--text-quaternary)" }}>Net Worth</p>
+                        <p style={{ fontSize: 16, fontWeight: 700, color: goal.color, letterSpacing: "-0.3px" }}>€{Math.round(netWorth).toLocaleString("en-US")}</p>
                       </div>
                       <div style={{ textAlign: "center" }}>
                         <p style={{ fontSize: 10, color: "var(--text-quaternary)" }}>Progress</p>
-                        <p style={{ fontSize: 18, fontWeight: 700, color: pct >= 100 ? "#2ECC71" : "var(--text-primary)", letterSpacing: "-0.5px" }}>{pct}%</p>
+                        <p style={{ fontSize: 18, fontWeight: 700, color: pct >= 100 ? "#2ECC71" : "var(--text-primary)", letterSpacing: "-0.5px" }}>
+                          {pct >= 100 ? "🎉 " : ""}{pct}%
+                        </p>
                       </div>
                       <div style={{ textAlign: "right" }}>
                         <p style={{ fontSize: 10, color: "var(--text-quaternary)" }}>Target</p>
@@ -222,6 +223,7 @@ export default function Goals() {
         onClose={closeModal}
         onSave={handleSave}
         initialData={editingGoal ?? undefined}
+        netWorth={netWorth}
       />
     </div>
     </ModuleErrorBoundary>

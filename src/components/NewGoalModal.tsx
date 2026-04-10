@@ -14,7 +14,6 @@ const CATEGORIES = [
 export interface NewGoalData {
   name: string;
   target: number;
-  saved: number;
   deadline: string;
   category: string;
   color: string;
@@ -26,12 +25,12 @@ interface NewGoalModalProps {
   onClose: () => void;
   onSave: (data: NewGoalData) => void;
   initialData?: NewGoalData;
+  netWorth: number;
 }
 
 interface FormState {
   name: string;
   target: string;
-  saved: string;
   deadline: string;
   category: string;
   notes: string;
@@ -71,10 +70,10 @@ const errorStyle: React.CSSProperties = {
   marginTop: 4,
 };
 
-export function NewGoalModal({ open, onClose, onSave, initialData }: NewGoalModalProps) {
+export function NewGoalModal({ open, onClose, onSave, initialData, netWorth }: NewGoalModalProps) {
   const isEditing = !!initialData;
   const [form, setForm] = useState<FormState>({
-    name: "", target: "", saved: "0", deadline: "", category: "Savings", notes: "",
+    name: "", target: "", deadline: "", category: "Savings", notes: "",
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [saved, setSaved] = useState(false);
@@ -94,13 +93,12 @@ export function NewGoalModal({ open, onClose, onSave, initialData }: NewGoalModa
         setForm({
           name: initialData.name,
           target: String(initialData.target),
-          saved: String(initialData.saved),
           deadline: "",
           category: initialData.category,
           notes: "",
         });
       } else {
-        setForm({ name: "", target: "", saved: "0", deadline: "", category: "Savings", notes: "" });
+        setForm({ name: "", target: "", deadline: "", category: "Savings", notes: "" });
       }
       setErrors({});
       setSaved(false);
@@ -127,18 +125,10 @@ export function NewGoalModal({ open, onClose, onSave, initialData }: NewGoalModa
     if (!validate()) return;
     const cat = CATEGORIES.find(c => c.value === form.category) ?? CATEGORIES[3];
 
-    // Format deadline: ISO date → "Mon YYYY", keep existing if not changed
-    let deadlineStr = form.deadline;
-    if (form.deadline) {
-      const d = new Date(form.deadline + "T00:00:00");
-      deadlineStr = d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-    }
-
     onSave({
       name: form.name.trim(),
       target: Number(form.target),
-      saved: Number(form.saved) || 0,
-      deadline: deadlineStr || initialData?.deadline || "—",
+      deadline: form.deadline || initialData?.deadline || "",
       category: cat.value,
       color: cat.color,
       emoji: cat.emoji,
@@ -147,6 +137,9 @@ export function NewGoalModal({ open, onClose, onSave, initialData }: NewGoalModa
     setSaved(true);
     setTimeout(() => onClose(), 900);
   }
+
+  const target = Number(form.target) || 0;
+  const previewPct = target > 0 ? Math.min(100, Math.max(0, Math.round((netWorth / target) * 100))) : 0;
 
   const modal = (
     <div
@@ -207,6 +200,30 @@ export function NewGoalModal({ open, onClose, onSave, initialData }: NewGoalModa
         {/* Fields */}
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
 
+          {/* Live Net Worth banner */}
+          <div style={{
+            background: "#f0fdf4",
+            border: "1px solid #bbf7d0",
+            borderRadius: 10,
+            padding: "12px 16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}>
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "#6b7280", textTransform: "uppercase", marginBottom: 2 }}>Your Current Net Worth</p>
+              <p style={{ fontSize: 20, fontWeight: 700, color: "#16a34a", letterSpacing: "-0.5px" }}>
+                €{netWorth.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </p>
+            </div>
+            {target > 0 && (
+              <div style={{ textAlign: "right" }}>
+                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "#6b7280", textTransform: "uppercase", marginBottom: 2 }}>Progress Preview</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: previewPct >= 100 ? "#2ECC71" : "#111827" }}>{previewPct}%</p>
+              </div>
+            )}
+          </div>
+
           {/* Nome */}
           <div>
             <label style={labelStyle}>Goal Name *</label>
@@ -221,31 +238,18 @@ export function NewGoalModal({ open, onClose, onSave, initialData }: NewGoalModa
             {errors.name && <p style={errorStyle}>{errors.name}</p>}
           </div>
 
-          {/* Target + Current Amount */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div>
-              <label style={labelStyle}>Target Amount € *</label>
-              <input
-                type="number" min="0" max="999999999" step="0.01" placeholder="0.00"
-                value={form.target}
-                onChange={e => set("target", e.target.value)}
-                style={{ ...inputStyle, borderColor: errors.target ? "#FF5A5A" : "#e5e7eb" }}
-                onFocus={e => (e.target.style.borderColor = GOLD)}
-                onBlur={e => (e.target.style.borderColor = errors.target ? "#FF5A5A" : "#e5e7eb")}
-              />
-              {errors.target && <p style={errorStyle}>{errors.target}</p>}
-            </div>
-            <div>
-              <label style={labelStyle}>Current Amount €</label>
-              <input
-                type="number" min="0" max="999999999" step="0.01" placeholder="0.00"
-                value={form.saved}
-                onChange={e => set("saved", e.target.value)}
-                style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = GOLD)}
-                onBlur={e => (e.target.style.borderColor = "#e5e7eb")}
-              />
-            </div>
+          {/* Target Amount */}
+          <div>
+            <label style={labelStyle}>Target Amount € *</label>
+            <input
+              type="number" min="0" max="999999999" step="0.01" placeholder="0.00"
+              value={form.target}
+              onChange={e => set("target", e.target.value)}
+              style={{ ...inputStyle, borderColor: errors.target ? "#FF5A5A" : "#e5e7eb" }}
+              onFocus={e => (e.target.style.borderColor = GOLD)}
+              onBlur={e => (e.target.style.borderColor = errors.target ? "#FF5A5A" : "#e5e7eb")}
+            />
+            {errors.target && <p style={errorStyle}>{errors.target}</p>}
           </div>
 
           {/* Deadline + Category */}

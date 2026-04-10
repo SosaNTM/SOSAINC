@@ -1,3 +1,23 @@
+// ── Finance Section Audit — 2026-04-08 ──────────────────────────────────────
+// BROKEN (now fixed via migration 20260408000003_finance_missing_tables.sql):
+//   • financial_goals table was missing → goals never persisted to Supabase
+//   • investments table was missing → investment data localStorage-only
+//   • budget_limits table was missing → budget limits localStorage-only
+//   • personal_transactions missing columns: category_id, cost_classification
+//     (caused insert errors → silent fallback to localStorage)
+//   • personal_transactions / crypto_holdings / gift_cards / gift_card_transactions
+//     had NULL portal_id for all pre-2026-04-04 rows → portal queries returned nothing
+//     (backfilled to SOSA portal UUID in migration)
+// WORKING (confirmed, no changes needed):
+//   • Goals page ↔ Dashboard Goals widget sync: both use goalsService →
+//     same localStorage key; Dashboard remounts on navigation → re-fetches
+//   • Crypto / Gift Cards: proper Supabase + localStorage fallback
+//   • Transactions: localStorage primary + Supabase merge for new inserts
+//   • Subscriptions: localStorage-only by design (no DB table needed)
+// REMOVED in this session:
+//   • CryptoWidget / Portfolio cards: removed from Dashboard and KpiCards
+//   • Portfolio page (/investments route): removed from router + sidebar
+// ─────────────────────────────────────────────────────────────────────────────
 import React, { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Calendar, ChevronDown, X } from "lucide-react";
@@ -10,10 +30,7 @@ import { useFinancialGoals } from "@/hooks/useFinancialGoals";
 import { useDashboardSubscriptions } from "@/hooks/useDashboardSubscriptions";
 import { useDashboardTransactions } from "@/hooks/useDashboardTransactions";
 import { useCategories } from "@/hooks/useCategories";
-import { useInvestments } from "@/hooks/useInvestments";
 import { useNetWorth } from "@/hooks/useNetWorth";
-import { useCryptoChart } from "@/portals/finance/hooks/useCryptoChart";
-import { useCryptoPortfolio } from "@/portals/finance/hooks/useCryptoPortfolio";
 import { usePortal } from "@/lib/portalContext";
 import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,7 +39,6 @@ import type { WaterfallDataPoint } from "@/portals/finance/types/businessFinance
 import { KpiCards } from "./KpiCards";
 import { RevenueChart } from "./RevenueChart";
 import { GoalsWidget } from "./GoalsWidget";
-import { CryptoWidget } from "./CryptoWidget";
 import { SubscriptionsWidget } from "./SubscriptionsWidget";
 import { RecentTransactions } from "./RecentTransactions";
 
@@ -67,11 +83,7 @@ const Dashboard = () => {
   const { subs, totalMonthly, toggleSub } = useDashboardSubscriptions();
   const { transactions: allTransactions, rawTransactions } = useDashboardTransactions();
   const { getCategoryColor, getCategoryIcon } = useCategories();
-  const { investments, totalValue, totalCost, totalPnL, totalROI, addInvestment, updateInvestment, deleteInvestment } = useInvestments();
-
   const nw = useNetWorth();
-  const { enrichedHoldings } = useCryptoPortfolio();
-  const { chartData: cryptoChartData } = useCryptoChart(enrichedHoldings, 30);
 
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => { setIsLoading(false); }, []);
@@ -106,15 +118,8 @@ const Dashboard = () => {
     return allTransactions.filter((tx) => tx.date >= cutoff);
   }, [period, customRange, isCustomActive, allTransactions]);
 
-  const liveNetWorth    = nw.netWorth;
-  const liveInvestments = nw.portfolioValue;
-
-  const rawBalanceTrend = nw.balanceTrend;
-  const balanceTrend = rawBalanceTrend.length > 1
-    ? rawBalanceTrend
-    : cryptoChartData.length > 1
-      ? cryptoChartData.map((p) => ({ label: p.date, balance: p.value }))
-      : [];
+  const liveNetWorth = nw.netWorth;
+  const balanceTrend = nw.balanceTrend;
   const trendStart   = balanceTrend[0]?.balance ?? liveNetWorth;
   const trendEnd     = balanceTrend[balanceTrend.length - 1]?.balance ?? liveNetWorth;
   const trendDelta   = trendEnd - trendStart;
@@ -221,7 +226,6 @@ const Dashboard = () => {
         <KpiCards
           nw={nw}
           liveNetWorth={liveNetWorth}
-          liveInvestments={liveInvestments}
           isBusinessPortal={isBusinessPortal}
           periodIncome={periodIncome}
           periodExpenses={periodExpenses}
@@ -231,30 +235,16 @@ const Dashboard = () => {
         />
 
         {/* ── 2. Goals ─────────────────────────────────────────────── */}
-        <GoalsWidget goals={GOALS} />
+        <GoalsWidget goals={GOALS} netWorth={liveNetWorth} />
 
-        {/* ── 3. Investments (SOSA only) ──────────────────────────── */}
-        {!isBusinessPortal && (
-          <CryptoWidget
-            investments={investments}
-            totalValue={totalValue}
-            totalCost={totalCost}
-            totalPnL={totalPnL}
-            totalROI={totalROI}
-            addInvestment={addInvestment}
-            updateInvestment={updateInvestment}
-            deleteInvestment={deleteInvestment}
-          />
-        )}
-
-        {/* ── 4. Subscriptions ─────────────────────────────────────── */}
+        {/* ── 3. Subscriptions ─────────────────────────────────────── */}
         <SubscriptionsWidget
           subs={subs}
           totalMonthly={totalMonthly}
           toggleSub={toggleSub}
         />
 
-        {/* ── 5. Recent transactions ────────────────────────────────── */}
+        {/* ── 4. Recent transactions ────────────────────────────────── */}
         <RecentTransactions
           transactions={filteredTransactions}
           getCategoryColor={getCategoryColor}

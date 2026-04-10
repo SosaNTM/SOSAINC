@@ -4,6 +4,7 @@
 // Primary: Supabase via goalsService. Fallback: portal-scoped localStorage cache.
 
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { usePortal } from "@/lib/portalContext";
 import { fetchGoals } from "@/lib/services/goalsService";
 import { useRealtimeTable } from "@/lib/realtime/useRealtimeTable";
@@ -13,7 +14,6 @@ export interface DashboardGoal {
   id: string | number;
   name: string;
   target: number;
-  saved: number;
   deadline: string;
   category: string;
   color: string;
@@ -25,7 +25,6 @@ function dbGoalToDisplay(g: DbFinancialGoal): DashboardGoal {
     id: g.id,
     name: g.name,
     target: g.target,
-    saved: g.saved,
     deadline: g.deadline ?? "",
     category: g.category ?? "",
     color: g.color ?? "#6b7280",
@@ -45,6 +44,8 @@ export function useFinancialGoals() {
     try {
       const data = await fetchGoals(portalId);
       setGoals(data.map(dbGoalToDisplay));
+    } catch {
+      toast.warning("Goals: using cached data — server unreachable", { id: "goals-offline" });
     } finally {
       setIsLoading(false);
     }
