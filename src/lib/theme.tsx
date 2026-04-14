@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { STORAGE_THEME } from "@/constants/storageKeys";
 
-type Theme = "dark";
+export type Theme = "dark" | "light";
 
 interface ThemeContextType {
   theme: Theme;
@@ -11,16 +11,27 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+function applyTheme(theme: Theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem(STORAGE_THEME, theme);
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme] = useState<Theme>("dark");
+  const [theme, setThemeState] = useState<Theme>(() => {
+    const stored = localStorage.getItem(STORAGE_THEME) as Theme | null;
+    return stored === "light" ? "light" : "dark";
+  });
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", "dark");
-    localStorage.setItem(STORAGE_THEME, "dark");
-  }, []);
+    applyTheme(theme);
+  }, [theme]);
 
-  const setTheme = (_t: Theme) => { /* dark-only, no-op */ };
-  const toggleTheme = () => { /* dark-only, no-op */ };
+  const setTheme = (t: Theme) => {
+    setThemeState(t);
+    applyTheme(t);
+  };
+
+  const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>

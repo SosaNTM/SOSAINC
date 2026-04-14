@@ -7,6 +7,7 @@ import { useInvestments } from "@/hooks/useInvestments";
 import { InvestmentModal } from "@/components/InvestmentModal";
 import { GlassTooltip } from "@/components/ui/GlassTooltip";
 import { calcCurrentValue, calcPnL, calcROI, type Investment, INVESTMENT_TYPE_LABELS } from "@/lib/investmentStore";
+import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
 
 const fmtAllocTooltip = (v: number) =>
   `€${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -29,6 +30,7 @@ export default function Investments() {
   const pieData = investments.map((inv) => ({ name: inv.name, value: calcCurrentValue(inv), color: inv.color }));
 
   return (
+    <ModuleErrorBoundary moduleName="Investments">
     <div className="space-y-5">
       <LiquidGlassFilter />
 
@@ -224,5 +226,6 @@ export default function Investments() {
         initial={editingInv}
       />
     </div>
+    </ModuleErrorBoundary>
   );
 }

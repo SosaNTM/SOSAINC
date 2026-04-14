@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { X, Check, XCircle, Zap } from "lucide-react";
 import { MorphingSquare } from "@/components/ui/morphing-square";
 import { toast } from "@/hooks/use-toast";
@@ -43,6 +43,11 @@ const OAUTH_SUPPORTED_PLATFORMS = new Set([
 export function ConnectPlatformModal({ platform, onClose, onConnected }: ConnectPlatformModalProps) {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval>>();
+
+  useEffect(() => {
+    return () => clearInterval(pollRef.current);
+  }, []);
 
   async function handleConnect() {
     setLoading(true);
@@ -94,9 +99,9 @@ export function ConnectPlatformModal({ platform, onClose, onConnected }: Connect
       }
 
       // Poll until the popup is closed, then treat as connected
-      const poll = setInterval(() => {
+      pollRef.current = setInterval(() => {
         if (popup.closed) {
-          clearInterval(poll);
+          clearInterval(pollRef.current);
           setOauthLoading(false);
           onConnected(platform.id);
           onClose();

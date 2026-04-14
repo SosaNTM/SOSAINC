@@ -105,17 +105,11 @@ export const PLATFORM_CONFIG: Record<SocialPlatform, { label: string; icon: stri
 };
 
 // ── Mock Accounts ──
-export const mockSocialAccounts: SocialAccount[] = [
-  { id: "sa_1", platform: "instagram", accountName: "@iconoff_official", displayName: "ICONOFF", profileUrl: "https://instagram.com/iconoff_official", isActive: true, connectedAt: "2025-06-15T10:00:00Z", lastSyncedAt: "2026-03-04T08:00:00Z", followersCount: 12450, followingCount: 890, postsCount: 892, color: "#E1306C" },
-  { id: "sa_2", platform: "linkedin", accountName: "ICONOFF", displayName: "ICONOFF", profileUrl: "https://linkedin.com/company/iconoff", isActive: true, connectedAt: "2025-07-01T10:00:00Z", lastSyncedAt: "2026-03-04T07:00:00Z", followersCount: 8320, followingCount: 245, postsCount: 456, color: "#0A66C2" },
-  { id: "sa_3", platform: "twitter", accountName: "@iconoff_hq", displayName: "ICONOFF HQ", profileUrl: "https://twitter.com/iconoff_hq", isActive: true, connectedAt: "2025-08-10T10:00:00Z", lastSyncedAt: "2026-03-04T09:00:00Z", followersCount: 2180, followingCount: 432, postsCount: 1204, color: "#1DA1F2" },
-  { id: "sa_4", platform: "youtube", accountName: "ICONOFF", displayName: "ICONOFF", profileUrl: "https://youtube.com/@iconoff", isActive: true, connectedAt: "2025-09-20T10:00:00Z", lastSyncedAt: "2026-03-04T05:00:00Z", followersCount: 1240, followingCount: 0, postsCount: 38, color: "#FF0000" },
-  { id: "sa_5", platform: "tiktok", accountName: "@iconoff", displayName: "ICONOFF", profileUrl: "https://tiktok.com/@iconoff", isActive: true, connectedAt: "2025-11-01T10:00:00Z", lastSyncedAt: "2026-03-04T04:00:00Z", followersCount: 642, followingCount: 120, postsCount: 52, color: "#FE2C55" },
-];
+export const mockSocialAccounts: SocialAccount[] = [];
 
 // ── Mock Posts ──
-export const mockSocialPosts: SocialPost[] = [
-  // ── Published posts (spread across last 60 days) ──
+export const mockSocialPosts: SocialPost[] = [];
+const _removedPosts = [
   { id: "sp_1",  accountId: "sa_1", platform: "instagram", contentText: "Excited to announce our new product line! After months of development, we're finally ready to share what we've been working on. Stay tuned for the full reveal next week!", mediaType: "carousel", postUrl: "https://instagram.com/p/abc123", status: "published", publishedAt: "2026-03-01T18:00:00Z", likes: 1240, comments: 89, shares: 156, saves: 320, impressions: 45200, reach: 32100, clicks: 210, engagementRate: 8.2, tags: ["product", "launch", "spring"], campaign: "Spring Launch" },
   { id: "sp_2",  accountId: "sa_2", platform: "linkedin", contentText: "We're hiring! Looking for a Senior Full-Stack Engineer to join our growing team. If you're passionate about building beautiful products, we'd love to hear from you.", mediaType: "image", postUrl: "https://linkedin.com/posts/abc", status: "published", publishedAt: "2026-02-28T09:30:00Z", likes: 890, comments: 124, shares: 67, saves: 95, impressions: 38100, reach: 28400, clicks: 180, engagementRate: 6.8, tags: ["hiring", "engineering"], campaign: "Hiring Q1" },
   { id: "sp_3",  accountId: "sa_3", platform: "twitter",   contentText: "Thread: 5 things we learned building our product in 2025. 1/ Start with the problem, not the solution. 2/ Ship weekly. 3/ Talk to users every week...", mediaType: "text", postUrl: "https://twitter.com/iconoff_hq/status/123", status: "published", publishedAt: "2026-03-02T10:00:00Z", likes: 420, comments: 38, shares: 380, saves: 45, impressions: 22000, reach: 18500, clicks: 95, engagementRate: 5.1, tags: ["thread", "learnings"], campaign: "Thought Leadership" },
@@ -150,19 +144,10 @@ export const mockSocialPosts: SocialPost[] = [
 ];
 
 // ── Mock Goals ──
-export const mockSocialGoals: SocialGoal[] = [
-  { id: "g_1", metric: "followers", targetValue: 15000, currentValue: 12450, accountId: "sa_1", period: "quarterly", label: "Reach 15K IG followers by Apr 30", startDate: "2026-01-01", endDate: "2026-04-30", status: "active" },
-  { id: "g_2", metric: "engagement_rate", targetValue: 5.0, currentValue: 5.2, accountId: null, period: "monthly", label: "Maintain 5%+ engagement rate", startDate: "2026-03-01", endDate: "2026-03-31", status: "completed" },
-  { id: "g_3", metric: "posts_per_month", targetValue: 50, currentValue: 47, accountId: null, period: "monthly", label: "Post 50 times this month", startDate: "2026-03-01", endDate: "2026-03-31", status: "active" },
-  { id: "g_4", metric: "website_clicks", targetValue: 500, currentValue: 310, accountId: null, period: "monthly", label: "Get 500 website clicks/month", startDate: "2026-03-01", endDate: "2026-03-31", status: "active" },
-];
+export const mockSocialGoals: SocialGoal[] = [];
 
 // ── Mock Competitors ──
-export const mockCompetitors: SocialCompetitor[] = [
-  { id: "c_1", platform: "instagram", accountName: "@designstudio_co", displayName: "DesignStudio Co", followersCount: 45200, engagementRate: 3.2, postsPerWeek: 15, growthRate: 2.1, notes: "Strong visual content, heavy on reels" },
-  { id: "c_2", platform: "instagram", accountName: "@creative_labs", displayName: "Creative Labs", followersCount: 31800, engagementRate: 5.1, postsPerWeek: 8, growthRate: 4.8, notes: "Great engagement, quality over quantity" },
-  { id: "c_3", platform: "instagram", accountName: "@pixel_works", displayName: "Pixel Works", followersCount: 18500, engagementRate: 6.3, postsPerWeek: 10, growthRate: 7.2, notes: "Fast growing, niche audience" },
-];
+export const mockCompetitors: SocialCompetitor[] = [];
 
 // ── Helper: generate daily metrics for last N days ──
 function generateDailyMetrics(accountId: string, days: number, baseFollowers: number): SocialMetric[] {
@@ -212,13 +197,7 @@ function generateDailyMetrics(accountId: string, days: number, baseFollowers: nu
   return metrics;
 }
 
-export const mockMetrics: Record<string, SocialMetric[]> = {
-  sa_1: generateDailyMetrics("sa_1", 90, 12450),
-  sa_2: generateDailyMetrics("sa_2", 90, 8320),
-  sa_3: generateDailyMetrics("sa_3", 90, 2180),
-  sa_4: generateDailyMetrics("sa_4", 90, 1240),
-  sa_5: generateDailyMetrics("sa_5", 90, 642),
-};
+export const mockMetrics: Record<string, SocialMetric[]> = {};
 
 // ── Aggregation helpers ──
 export function getMetricsForPeriod(accountId: string, days: number): SocialMetric[] {
@@ -361,34 +340,10 @@ export const unconnectedPlatforms: SocialPlatform[] = ["facebook", "threads", "p
 
 // ── Per-portal account seeds ──────────────────────────────────────────────────
 const PORTAL_ACCOUNTS: Record<string, SocialAccount[]> = {
-  sosa: [
-    { id: "sa_1", platform: "instagram", accountName: "@sosa_inc", displayName: "SOSA INC.", profileUrl: "https://instagram.com/sosa_inc", isActive: true, connectedAt: "2025-06-15T10:00:00Z", lastSyncedAt: "2026-03-04T08:00:00Z", followersCount: 12450, followingCount: 890, postsCount: 892, color: "#E1306C" },
-    { id: "sa_2", platform: "linkedin", accountName: "SOSA INC.", displayName: "SOSA INC.", profileUrl: "https://linkedin.com/company/sosa-inc", isActive: true, connectedAt: "2025-07-01T10:00:00Z", lastSyncedAt: "2026-03-04T07:00:00Z", followersCount: 8320, followingCount: 245, postsCount: 456, color: "#0A66C2" },
-    { id: "sa_3", platform: "twitter", accountName: "@sosainc_hq", displayName: "SOSA INC. HQ", profileUrl: "https://twitter.com/sosainc_hq", isActive: true, connectedAt: "2025-08-10T10:00:00Z", lastSyncedAt: "2026-03-04T09:00:00Z", followersCount: 2180, followingCount: 432, postsCount: 1204, color: "#1DA1F2" },
-    { id: "sa_4", platform: "youtube", accountName: "SOSA INC.", displayName: "SOSA INC.", profileUrl: "https://youtube.com/@sosainc", isActive: true, connectedAt: "2025-09-20T10:00:00Z", lastSyncedAt: "2026-03-04T05:00:00Z", followersCount: 1240, followingCount: 0, postsCount: 38, color: "#FF0000" },
-    { id: "sa_5", platform: "tiktok", accountName: "@sosainc", displayName: "SOSA INC.", profileUrl: "https://tiktok.com/@sosainc", isActive: true, connectedAt: "2025-11-01T10:00:00Z", lastSyncedAt: "2026-03-04T04:00:00Z", followersCount: 642, followingCount: 120, postsCount: 52, color: "#FE2C55" },
-  ],
-  keylo: [
-    { id: "sa_1", platform: "tiktok", accountName: "@keylobrand", displayName: "KEYLO", profileUrl: "https://tiktok.com/@keylobrand", isActive: true, connectedAt: "2025-05-01T10:00:00Z", lastSyncedAt: "2026-03-04T08:00:00Z", followersCount: 84200, followingCount: 320, postsCount: 412, color: "#FE2C55" },
-    { id: "sa_2", platform: "instagram", accountName: "@keylo.official", displayName: "KEYLO", profileUrl: "https://instagram.com/keylo.official", isActive: true, connectedAt: "2025-04-15T10:00:00Z", lastSyncedAt: "2026-03-04T07:00:00Z", followersCount: 52400, followingCount: 1200, postsCount: 980, color: "#E1306C" },
-    { id: "sa_3", platform: "youtube", accountName: "KEYLO", displayName: "KEYLO Shop", profileUrl: "https://youtube.com/@keylo", isActive: true, connectedAt: "2025-06-10T10:00:00Z", lastSyncedAt: "2026-03-04T06:00:00Z", followersCount: 8900, followingCount: 0, postsCount: 145, color: "#FF0000" },
-    { id: "sa_4", platform: "pinterest", accountName: "KEYLO Brand", displayName: "KEYLO Brand", profileUrl: "https://pinterest.com/keylobrand", isActive: true, connectedAt: "2025-07-20T10:00:00Z", lastSyncedAt: "2026-03-04T05:00:00Z", followersCount: 12800, followingCount: 0, postsCount: 620, color: "#E60023" },
-    { id: "sa_5", platform: "twitter", accountName: "@keylo_shop", displayName: "KEYLO Shop", profileUrl: "https://twitter.com/keylo_shop", isActive: true, connectedAt: "2025-09-01T10:00:00Z", lastSyncedAt: "2026-03-04T04:00:00Z", followersCount: 3100, followingCount: 580, postsCount: 890, color: "#1DA1F2" },
-  ],
-  redx: [
-    { id: "sa_1", platform: "instagram", accountName: "@redx.agency", displayName: "REDX Agency", profileUrl: "https://instagram.com/redx.agency", isActive: true, connectedAt: "2025-03-01T10:00:00Z", lastSyncedAt: "2026-03-04T08:00:00Z", followersCount: 28400, followingCount: 1100, postsCount: 1240, color: "#E1306C" },
-    { id: "sa_2", platform: "linkedin", accountName: "REDX", displayName: "REDX Creative Agency", profileUrl: "https://linkedin.com/company/redx-agency", isActive: true, connectedAt: "2025-03-15T10:00:00Z", lastSyncedAt: "2026-03-04T07:00:00Z", followersCount: 14200, followingCount: 380, postsCount: 680, color: "#0A66C2" },
-    { id: "sa_3", platform: "youtube", accountName: "REDX Studio", displayName: "REDX Studio", profileUrl: "https://youtube.com/@redxstudio", isActive: true, connectedAt: "2025-04-10T10:00:00Z", lastSyncedAt: "2026-03-04T06:00:00Z", followersCount: 6400, followingCount: 0, postsCount: 92, color: "#FF0000" },
-    { id: "sa_4", platform: "twitter", accountName: "@redxagency", displayName: "REDX Agency", profileUrl: "https://twitter.com/redxagency", isActive: true, connectedAt: "2025-05-20T10:00:00Z", lastSyncedAt: "2026-03-04T09:00:00Z", followersCount: 5800, followingCount: 760, postsCount: 2100, color: "#1DA1F2" },
-    { id: "sa_5", platform: "tiktok", accountName: "@redxcreative", displayName: "REDX Creative", profileUrl: "https://tiktok.com/@redxcreative", isActive: true, connectedAt: "2025-08-01T10:00:00Z", lastSyncedAt: "2026-03-04T04:00:00Z", followersCount: 9200, followingCount: 210, postsCount: 180, color: "#FE2C55" },
-  ],
-  trustme: [
-    { id: "sa_1", platform: "linkedin", accountName: "TrustMe", displayName: "TrustMe Compliance", profileUrl: "https://linkedin.com/company/trustme-compliance", isActive: true, connectedAt: "2025-01-15T10:00:00Z", lastSyncedAt: "2026-03-04T07:00:00Z", followersCount: 22800, followingCount: 480, postsCount: 890, color: "#0A66C2" },
-    { id: "sa_2", platform: "twitter", accountName: "@trustme_corp", displayName: "TrustMe Corp", profileUrl: "https://twitter.com/trustme_corp", isActive: true, connectedAt: "2025-02-10T10:00:00Z", lastSyncedAt: "2026-03-04T09:00:00Z", followersCount: 8400, followingCount: 620, postsCount: 3200, color: "#1DA1F2" },
-    { id: "sa_3", platform: "youtube", accountName: "TrustMe Compliance", displayName: "TrustMe", profileUrl: "https://youtube.com/@trustmecompliance", isActive: true, connectedAt: "2025-04-01T10:00:00Z", lastSyncedAt: "2026-03-04T06:00:00Z", followersCount: 3200, followingCount: 0, postsCount: 48, color: "#FF0000" },
-    { id: "sa_4", platform: "instagram", accountName: "@trustme.corp", displayName: "TrustMe Corp", profileUrl: "https://instagram.com/trustme.corp", isActive: true, connectedAt: "2025-06-01T10:00:00Z", lastSyncedAt: "2026-03-04T08:00:00Z", followersCount: 4100, followingCount: 290, postsCount: 280, color: "#E1306C" },
-    { id: "sa_5", platform: "threads", accountName: "@trustme_corp", displayName: "TrustMe Corp", profileUrl: "https://threads.net/@trustme_corp", isActive: true, connectedAt: "2025-09-01T10:00:00Z", lastSyncedAt: "2026-03-04T04:00:00Z", followersCount: 1800, followingCount: 120, postsCount: 95, color: "#ffffff" },
-  ],
+  sosa: [],
+  keylo: [],
+  redx: [],
+  trustme: [],
 };
 
 export function setActivePortal(id: string) {

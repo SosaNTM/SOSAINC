@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import {
-  TrendingUp, TrendingDown, Wallet, Target, Bitcoin, Gift, Zap,
+  TrendingUp, TrendingDown, Bitcoin, Gift, Zap,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NumberTicker } from "@/components/ui/number-ticker";
@@ -28,7 +28,6 @@ const fmtEurTooltip = (v: number) => `€${Number(v).toLocaleString("en-US")}`;
 interface KpiCardsProps {
   readonly nw: NetWorthBreakdown;
   readonly liveNetWorth: number;
-  readonly liveInvestments: number;
   readonly isBusinessPortal: boolean;
   readonly periodIncome: number;
   readonly periodExpenses: number;
@@ -42,7 +41,6 @@ interface KpiCardsProps {
 export function KpiCards({
   nw,
   liveNetWorth,
-  liveInvestments,
   isBusinessPortal,
   periodIncome,
   periodExpenses,
@@ -137,7 +135,6 @@ export function KpiCards({
           <div className="flex gap-0 mt-4" style={{ borderTop: "0.5px solid var(--glass-border)", paddingTop: 14 }}>
             {[
               ...(nw.cryptoValue > 0 ? [{ label: "Crypto", value: formatEUR(nw.cryptoValue), sub: nw.cryptoChange24h !== 0 ? `${nw.cryptoChange24hPercent >= 0 ? "+" : ""}${nw.cryptoChange24hPercent.toFixed(1)}%` : undefined, color: "#f7931a" }] : []),
-              ...(!isBusinessPortal && liveInvestments > 0 ? [{ label: "Portfolio", value: formatEUR(liveInvestments), color: "#2ECC71" }] : []),
               ...(nw.giftCardsValue > 0 ? [{ label: "Gift Cards", value: formatEUR(nw.giftCardsValue), sub: `${nw.giftCardsActiveCount} attive`, color: "#e8ff00" }] : []),
               ...(periodIncome > 0 ? [{ label: "Income", value: `€${periodIncome.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "#2ECC71" }] : []),
               ...(periodExpenses > 0 ? [{ label: "Expenses", value: `€${periodExpenses.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "#FF5A5A" }] : []),
@@ -156,7 +153,7 @@ export function KpiCards({
               </React.Fragment>
             ))}
             {/* Fallback when no stats at all */}
-            {nw.cryptoValue === 0 && liveInvestments === 0 && periodIncome === 0 && periodExpenses === 0 && (
+            {nw.cryptoValue === 0 && periodIncome === 0 && periodExpenses === 0 && (
               <div className="flex-1 text-center">
                 <p style={{ fontSize: 11, color: "var(--text-quaternary)" }}>Add transactions or crypto to see stats</p>
               </div>
@@ -168,7 +165,6 @@ export function KpiCards({
       {/* Assets / Liabilities sidebar cards */}
       <div className="flex flex-col gap-4">
         {[
-          ...(!isBusinessPortal ? [{ label: "Portfolio", value: formatEUR(liveInvestments), sub: "Investment portfolio", color: "#2ECC71", icon: <Wallet style={{ width: 16, height: 16 }} /> }] : []),
           { label: "Crypto", value: formatEUR(nw.cryptoValue), sub: nw.isCryptoStale ? "Crypto values may be outdated" : nw.cryptoChange24h !== 0 ? `${nw.cryptoChange24hPercent >= 0 ? "+" : ""}${nw.cryptoChange24hPercent.toFixed(1)}% (24h)` : "Crypto portfolio", color: nw.isCryptoStale ? "#e8ff00" : "#f7931a", icon: <Bitcoin style={{ width: 16, height: 16 }} />, link: "crypto" },
           { label: "Gift Cards", value: formatEUR(nw.giftCardsValue), sub: nw.giftCardsActiveCount > 0 ? `${nw.giftCardsActiveCount} attive` : "Nessuna card", color: "#e8ff00", icon: <Gift style={{ width: 16, height: 16 }} />, link: "gift-cards", badge: nw.giftCardsExpiringSoon },
           { label: "Subscriptions", value: formatEUR(nw.subscriptionsCost), sub: "Monthly active cost", color: "#8b5cf6", icon: <Zap style={{ width: 16, height: 16 }} /> },

@@ -85,7 +85,8 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
         .select("*")
         .eq("portal_id", toPortalUUID(portalId)) // portal-shared: all members see all data
         .order("date", { ascending: false })
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(2000);
 
       if (parsedFilters.type)               q = q.eq("type", parsedFilters.type);
       if (parsedFilters.category)           q = q.eq("category", parsedFilters.category);
@@ -101,7 +102,21 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
 
       const { data, error: err } = await q;
       if (!err && data) {
-        setAll(data.map(toPersonal));
+        // Merge Supabase data with localStorage data.
+        // Locally-created transactions (id starts with "local_") are kept so they
+        // remain visible even when Supabase has no matching records yet.
+        const remote = data.map(toPersonal);
+        const remoteIds = new Set(remote.map((t) => t.id));
+        const local = localGetAll(portalId);
+        const localOnly = applyFilters(
+          local.filter((t) => t.id.startsWith("local_") && !remoteIds.has(t.id)),
+          JSON.parse(filtersKey),
+        );
+        // Sort merged list by date desc
+        const merged = [...remote, ...localOnly].sort((a, b) =>
+          b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at),
+        );
+        setAll(merged);
         setIsLoading(false);
         return;
       }

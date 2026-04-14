@@ -34,8 +34,8 @@ export async function createFolder(
   folder: Omit<NewDbCloudFolder, "portal_id">,
   portalId: string,
 ): Promise<DbCloudFolder | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return null;
   try {
     const { data, error } = await supabase
       .from("cloud_folders")
@@ -106,8 +106,8 @@ export async function createFileRecord(
   file: Omit<NewDbCloudFile, "portal_id">,
   portalId: string,
 ): Promise<DbCloudFile | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return null;
   try {
     const { data, error } = await supabase
       .from("cloud_files")

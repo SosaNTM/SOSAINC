@@ -44,14 +44,15 @@ export async function createNoteFolder(
 export async function updateNoteFolder(
   id: string,
   updates: Partial<DbNoteFolder>,
+  portalId?: string,
 ): Promise<DbNoteFolder | null> {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from("note_folders")
       .update(updates)
-      .eq("id", id)
-      .select()
-      .single();
+      .eq("id", id);
+    if (portalId) query = query.eq("portal_id", toPortalUUID(portalId));
+    const { data, error } = await query.select().single();
     if (error) throw error;
     return data;
   } catch {
@@ -59,9 +60,11 @@ export async function updateNoteFolder(
   }
 }
 
-export async function deleteNoteFolder(id: string): Promise<boolean> {
+export async function deleteNoteFolder(id: string, portalId?: string): Promise<boolean> {
   try {
-    const { error } = await supabase.from("note_folders").delete().eq("id", id);
+    let query = supabase.from("note_folders").delete().eq("id", id);
+    if (portalId) query = query.eq("portal_id", toPortalUUID(portalId));
+    const { error } = await query;
     if (error) throw error;
     return true;
   } catch {
@@ -128,14 +131,15 @@ export async function createNote(
 export async function updateNote(
   id: string,
   updates: Partial<DbNote>,
+  portalId?: string,
 ): Promise<DbNote | null> {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from("notes")
       .update(updates)
-      .eq("id", id)
-      .select()
-      .single();
+      .eq("id", id);
+    if (portalId) query = query.eq("portal_id", toPortalUUID(portalId));
+    const { data, error } = await query.select().single();
     if (error) throw error;
     return data;
   } catch {
@@ -143,9 +147,11 @@ export async function updateNote(
   }
 }
 
-export async function deleteNote(id: string): Promise<boolean> {
+export async function deleteNote(id: string, portalId?: string): Promise<boolean> {
   try {
-    const { error } = await supabase.from("notes").delete().eq("id", id);
+    let query = supabase.from("notes").delete().eq("id", id);
+    if (portalId) query = query.eq("portal_id", toPortalUUID(portalId));
+    const { error } = await query;
     if (error) throw error;
     return true;
   } catch {

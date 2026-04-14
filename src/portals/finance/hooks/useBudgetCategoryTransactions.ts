@@ -12,6 +12,7 @@ import { subscribeToFinanceUpdates } from "@/lib/financeRealtime";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
 import { localGetAll } from "@/lib/personalTransactionStore";
+import { toPortalUUID } from "@/lib/portalUUID";
 import type { PersonalTransaction } from "@/types/finance";
 
 function isSupabaseConfigured(): boolean {
@@ -70,7 +71,7 @@ export function useBudgetCategoryTransactions(
       const { data: rawData, error } = await supabase
         .from("personal_transactions")
         .select("*")
-        .eq("portal_id", portalId) // portal-shared
+        .eq("portal_id", toPortalUUID(portalId)) // portal-shared
         .gte("date", fromDate)
         .lte("date", toDate)
         .order("date", { ascending: false });

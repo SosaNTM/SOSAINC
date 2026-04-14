@@ -1,11 +1,16 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "@/lib/authContext";
 import { addAuditEntry } from "@/lib/adminStore";
 import { usePermission } from "@/lib/permissions";
+import { usePortal } from "@/lib/portalContext";
 import { getVaultItems, LOCKED_FOLDER_PASSWORD, type VaultItem, type VaultItemType } from "@/lib/vaultStore";
+import { fetchVaultItems, createVaultItem } from "@/lib/services/vaultService";
+import { VaultFilesTab } from "@/components/vault/VaultFilesTab";
+import type { DbVaultItem } from "@/types/database";
 import { STORAGE_VAULT_ITEMS, SESSION_VAULT_UNLOCKED } from "@/constants/storageKeys";
 import { formatFileSize } from "@/lib/cloudStore";
-import { Lock, Unlock, Eye, EyeOff, Copy, Check, Search, Plus, MoreVertical, X, Key, Globe, FileText, StickyNote, Shield, Trash2, ExternalLink, Dice5, AlertTriangle, Link as LinkIcon, Download } from "lucide-react";
+import { Lock, Unlock, Eye, EyeOff, Copy, Check, Search, Plus, MoreVertical, X, Key, Globe, FileText, StickyNote, Shield, Trash2, ExternalLink, Dice5, AlertTriangle, Link as LinkIcon, Download, Loader2, FolderOpen } from "lucide-react";
 import { ActionMenu, type ActionMenuEntry } from "@/components/ActionMenu";
 import { formatDistanceToNow, differenceInDays, format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -13,13 +18,42 @@ import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 
-type Category = "all" | "credentials" | "api_keys" | "documents" | "locked";
+// ── Adapter: DbVaultItem → VaultItem (for display) ──────────────────────────
+function dbToVaultItem(db: DbVaultItem): VaultItem {
+  let parsed: Record<string, string> = {};
+  try { parsed = JSON.parse(db.encrypted_data); } catch { /* malformed — use empty */ }
+  return {
+    id: db.id,
+    type: db.type as VaultItemType,
+    name: db.name,
+    category: db.category ?? db.type,
+    isLocked: db.is_locked,
+    createdBy: db.created_by,
+    createdAt: new Date(db.created_at),
+    updatedAt: new Date(db.updated_at),
+    lastAccessedAt: db.last_accessed_at ? new Date(db.last_accessed_at) : null,
+    expiresAt: db.expires_at ? new Date(db.expires_at) : null,
+    ...(db.type === "credential" && {
+      credential: { username: parsed.username ?? "", password: parsed.password ?? "", url: parsed.url ?? "", notes: parsed.notes ?? "" },
+    }),
+    ...(db.type === "api_key" && {
+      apiKey: { key: parsed.key ?? "", service: parsed.service ?? "", environment: parsed.environment ?? "Production", notes: parsed.notes ?? "" },
+    }),
+    ...(db.type === "note" && { note: { content: parsed.content ?? "" } }),
+    ...(db.type === "document" && {
+      document: { filename: parsed.filename ?? "", size: Number(parsed.size ?? 0), mimeType: parsed.mimeType ?? "", data: parsed.data },
+    }),
+  };
+}
+
+type Category = "all" | "credentials" | "api_keys" | "documents" | "files" | "locked";
 
 const CATEGORY_TABS: { key: Category; label: string; icon?: React.ReactNode }[] = [
   { key: "all", label: "All" },
   { key: "credentials", label: "Credentials", icon: <Globe className="w-3.5 h-3.5" /> },
   { key: "api_keys", label: "API Keys", icon: <Key className="w-3.5 h-3.5" /> },
   { key: "documents", label: "Documents", icon: <FileText className="w-3.5 h-3.5" /> },
+  { key: "files", label: "Files", icon: <FolderOpen className="w-3.5 h-3.5" /> },
   { key: "locked", label: "🔐 Locked", icon: <Lock className="w-3.5 h-3.5" /> },
 ];
 
@@ -213,7 +247,21 @@ function VaultCard({ item, onDelete, canManage }: { item: VaultItem; onDelete: (
             <span style={{ fontSize: 13, color: "var(--text-secondary)", fontFamily: "monospace" }}>{item.document.filename}</span>
             <span style={{ fontSize: 11, color: "var(--text-quaternary)", marginLeft: 8 }}>{formatFileSize(item.document.size)}</span>
           </div>
-          <button type="button" style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "var(--glass-bg)", color: "var(--text-tertiary)", display: "flex", alignItems: "center", gap: 4 }}
+          <button
+            type="button"
+            onClick={() => {
+              const doc = item.document!;
+              if (!doc.data) { toast({ title: "No file data", description: "This item has no downloadable file.", variant: "destructive" }); return; }
+              const byteChars = atob(doc.data);
+              const bytes = new Uint8Array(byteChars.length);
+              for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
+              const blob = new Blob([bytes], { type: doc.mimeType || "application/octet-stream" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url; a.download = doc.filename; a.click();
+              URL.revokeObjectURL(url);
+            }}
+            style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "var(--glass-bg)", color: "var(--text-tertiary)", display: "flex", alignItems: "center", gap: 4 }}
             onMouseEnter={e => { e.currentTarget.style.color = "var(--text-primary)"; }}
             onMouseLeave={e => { e.currentTarget.style.color = "var(--text-tertiary)"; }}>
             <Download className="w-3 h-3" /> Download
@@ -270,32 +318,121 @@ function generatePassword(length = 16): string {
 }
 
 /* ── New Item Modal ── */
-function NewItemModal({ onClose, onAdd, userId }: { onClose: () => void; onAdd: (item: VaultItem) => void; userId: string }) {
+function NewItemModal({
+  onClose, onAdd, userId, portalId,
+}: {
+  onClose: () => void;
+  onAdd: (item: VaultItem) => void;
+  userId: string;
+  portalId: string;
+}) {
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [type, setType] = useState<VaultItemType>("credential");
   const [name, setName] = useState("");
+  const [nameError, setNameError] = useState("");
   const [isLocked, setIsLocked] = useState(false);
+  const [saving, setSaving] = useState(false);
+  // Credential
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [url, setUrl] = useState("");
   const [notes, setNotes] = useState("");
+  // API Key
   const [apiKeyVal, setApiKeyVal] = useState("");
   const [service, setService] = useState("");
   const [env, setEnv] = useState("Production");
   const [expiry, setExpiry] = useState("");
+  // Note
   const [noteContent, setNoteContent] = useState("");
+  // Document
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [docError, setDocError] = useState("");
+  const [dragOver, setDragOver] = useState(false);
 
-  const create = () => {
-    if (!name.trim()) return;
-    const item: VaultItem = {
-      id: `v_${Date.now()}`, type, name: name.trim(),
-      category: type === "credential" ? "Credentials" : type === "api_key" ? "API Keys" : type === "document" ? "Documents" : "Notes",
-      isLocked, createdBy: userId, createdAt: new Date(), updatedAt: new Date(), lastAccessedAt: null,
-      expiresAt: expiry ? new Date(expiry) : null,
-      ...(type === "credential" && { credential: { username, password, url, notes } }),
-      ...(type === "api_key" && { apiKey: { key: apiKeyVal, service, environment: env, notes } }),
-      ...(type === "note" && { note: { content: noteContent } }),
-    };
-    onAdd(item);
+  const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+  const handleFileSelect = (file: File) => {
+    if (file.size > MAX_FILE_BYTES) {
+      setDocError("File is too large (max 10 MB)");
+      return;
+    }
+    setDocError("");
+    setDocFile(file);
+    // Auto-fill name from filename if empty
+    if (!name.trim()) setName(file.name.replace(/\.[^.]+$/, ""));
+  };
+
+  const readFileAsBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string).split(",")[1] ?? "");
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const create = async () => {
+    if (!name.trim()) { setNameError("Name is required"); return; }
+    if (type === "document" && !docFile) { setDocError("Please select a file"); return; }
+    setNameError("");
+    setSaving(true);
+
+    // Serialize type-specific fields into encrypted_data (plaintext JSON for mock auth)
+    let payload: Record<string, string | number> = {};
+    if (type === "credential") {
+      payload = { username, password, url, notes };
+    } else if (type === "api_key") {
+      payload = { key: apiKeyVal, service, environment: env, notes };
+    } else if (type === "note") {
+      payload = { content: noteContent };
+    } else if (type === "document" && docFile) {
+      const base64 = await readFileAsBase64(docFile);
+      payload = { filename: docFile.name, size: docFile.size, mimeType: docFile.type, data: base64 };
+    }
+
+    const category = type === "credential" ? "Credentials"
+      : type === "api_key" ? "API Keys"
+      : type === "document" ? "Documents"
+      : "Notes";
+
+    const result = await createVaultItem(
+      {
+        type,
+        name: name.trim(),
+        category,
+        encrypted_data: JSON.stringify(payload),
+        is_locked: isLocked,
+        is_favorite: false,
+        tags: null,
+        user_id: userId,
+        created_by: userId,
+        expires_at: expiry || null,
+      },
+      portalId,
+    );
+
+    setSaving(false);
+
+    if (!result) {
+      // Fallback: add locally with a temp ID so the UI still responds
+      const fallback: VaultItem = {
+        id: `local_${Date.now()}`, type, name: name.trim(),
+        category,
+        isLocked, createdBy: userId, createdAt: new Date(), updatedAt: new Date(),
+        lastAccessedAt: null, expiresAt: expiry ? new Date(expiry) : null,
+        ...(type === "credential" && { credential: { username, password, url, notes } }),
+        ...(type === "api_key" && { apiKey: { key: apiKeyVal, service, environment: env, notes } }),
+        ...(type === "note" && { note: { content: noteContent } }),
+        ...(type === "document" && docFile && { document: { filename: docFile.name, size: docFile.size, mimeType: docFile.type } }),
+      };
+      onAdd(fallback);
+      toast({ title: "Saved locally", description: "Could not reach database — item saved offline." });
+      onClose();
+      return;
+    }
+
+    onAdd(dbToVaultItem(result));
+    toast({ title: "✓ Item added to Vault" });
     onClose();
   };
 
@@ -306,11 +443,11 @@ function NewItemModal({ onClose, onAdd, userId }: { onClose: () => void; onAdd: 
     { key: "note", label: "Note", icon: <StickyNote className="w-3.5 h-3.5" /> },
   ];
 
-  return (
+  return createPortal(
     <>
-      <div className="fixed inset-0 z-[80]" style={{ background: "rgba(0,0,0,0.4)" }} onClick={onClose} />
-      <div className="fixed z-[90] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-[480px] max-h-[85vh] overflow-y-auto"
-        style={{ background: "var(--glass-bg-opaque, var(--glass-bg))", backdropFilter: "blur(40px)", border: "0.5px solid var(--glass-border)", borderRadius: 16, padding: 24, boxShadow: "0 16px 48px rgba(0,0,0,0.3)" }}>
+      <div className="fixed inset-0 z-[9998]" style={{ background: "rgba(0,0,0,0.5)" }} onClick={onClose} />
+      <div className="fixed z-[9999] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-[480px] max-h-[85vh] overflow-y-auto"
+        style={{ background: "var(--modal-bg, #141414)", backdropFilter: "blur(40px)", border: "1px solid var(--glass-border)", borderRadius: 16, padding: 24, boxShadow: "0 24px 80px rgba(0,0,0,0.6)" }}>
         <div className="flex items-center justify-between mb-5">
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>+ New Vault Item</h2>
           <button type="button" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X className="w-5 h-5" /></button>
@@ -330,7 +467,10 @@ function NewItemModal({ onClose, onAdd, userId }: { onClose: () => void; onAdd: 
           {/* Name */}
           <div className="flex flex-col gap-1.5">
             <label style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)" }}>Name *</label>
-            <input className="glass-input w-full" value={name} onChange={(e) => setName(e.target.value)} placeholder="Item name" style={{ fontSize: 14, padding: "10px 14px" }} autoFocus />
+            <input className="glass-input w-full" value={name}
+              onChange={(e) => { setName(e.target.value); if (e.target.value.trim()) setNameError(""); }}
+              placeholder="Item name" style={{ fontSize: 14, padding: "10px 14px", border: nameError ? "1px solid #ef4444" : undefined }} autoFocus />
+            {nameError && <span style={{ fontSize: 11, color: "#ef4444" }}>{nameError}</span>}
           </div>
 
           {/* Dynamic fields */}
@@ -395,8 +535,46 @@ function NewItemModal({ onClose, onAdd, userId }: { onClose: () => void; onAdd: 
             </div>
           )}
           {type === "document" && (
-            <div className="flex items-center justify-center" style={{ border: "2px dashed var(--glass-border)", borderRadius: 12, padding: "32px 16px", background: "var(--glass-bg)" }}>
-              <span style={{ fontSize: 13, color: "var(--text-quaternary)" }}>File upload (mock — click to simulate)</span>
+            <div className="flex flex-col gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                style={{ display: "none" }}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }}
+              />
+              {!docFile ? (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault(); setDragOver(false);
+                    const f = e.dataTransfer.files?.[0];
+                    if (f) handleFileSelect(f);
+                  }}
+                  style={{
+                    border: `2px dashed ${dragOver ? "var(--accent-color)" : "var(--glass-border)"}`,
+                    borderRadius: 12, padding: "32px 16px", background: dragOver ? "var(--accent-color-dim, rgba(110,231,183,0.05))" : "var(--glass-bg)",
+                    cursor: "pointer", textAlign: "center", transition: "all 0.15s ease",
+                  }}>
+                  <FileText className="w-8 h-8 mx-auto mb-2" style={{ color: "var(--text-quaternary)" }} />
+                  <p style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 500 }}>Click to browse or drag & drop</p>
+                  <p style={{ fontSize: 11, color: "var(--text-quaternary)", marginTop: 4 }}>Any file type · Max 10 MB</p>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3" style={{ background: "var(--glass-bg)", border: "1px solid var(--glass-border)", borderRadius: 10, padding: "12px 14px" }}>
+                  <FileText className="w-8 h-8 flex-shrink-0" style={{ color: "#ef4444" }} />
+                  <div className="flex-1 min-w-0">
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{docFile.name}</p>
+                    <p style={{ fontSize: 11, color: "var(--text-quaternary)", marginTop: 2 }}>{formatFileSize(docFile.size)} · {docFile.type || "unknown type"}</p>
+                  </div>
+                  <button type="button" onClick={() => { setDocFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-quaternary)", flexShrink: 0 }}>
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+              {docError && <span style={{ fontSize: 11, color: "#ef4444" }}>{docError}</span>}
             </div>
           )}
 
@@ -408,43 +586,59 @@ function NewItemModal({ onClose, onAdd, userId }: { onClose: () => void; onAdd: 
 
           {/* Actions */}
           <div className="flex gap-2 justify-end pt-2">
-            <button type="button" onClick={onClose} className="glass-btn" style={{ fontSize: 13, padding: "8px 18px", borderRadius: 8 }}>Cancel</button>
-            <button type="button" onClick={create} disabled={!name.trim()} className="glass-btn-primary" style={{ fontSize: 13, padding: "8px 18px", borderRadius: 8, opacity: name.trim() ? 1 : 0.5 }}>Save to Vault</button>
+            <button type="button" onClick={onClose} disabled={saving} className="glass-btn" style={{ fontSize: 13, padding: "8px 18px", borderRadius: 8 }}>Cancel</button>
+            <button type="button" onClick={create} disabled={saving} className="glass-btn-primary flex items-center gap-2" style={{ fontSize: 13, padding: "8px 18px", borderRadius: 8, opacity: saving ? 0.7 : 1 }}>
+              {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {saving ? "Saving…" : "Save to Vault"}
+            </button>
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
 
 /* ── Main Page ── */
 const VaultPage = () => {
   const { user } = useAuth();
+  const { portal } = usePortal();
   const canView = usePermission("vault:view");
   const canManage = usePermission("vault:manage");
   const { toast } = useToast();
 
-  const [items, setItems] = useState<VaultItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_VAULT_ITEMS);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id) {
-          return parsed.map((v: any) => ({ ...v, createdAt: v.createdAt ? new Date(v.createdAt) : new Date(), expiresAt: v.expiresAt ? new Date(v.expiresAt) : null }));
-        }
-      }
-    } catch { localStorage.removeItem(STORAGE_VAULT_ITEMS); }
-    return getVaultItems();
-  });
+  const portalId = portal?.id ?? "sosa";
 
-  useEffect(() => { localStorage.setItem(STORAGE_VAULT_ITEMS, JSON.stringify(items)); }, [items]);
-
+  const [items, setItems] = useState<VaultItem[]>([]);
   const [category, setCategory] = useState<Category>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showNewModal, setShowNewModal] = useState(false);
-
   const [isLoading, setIsLoading] = useState(true);
-  useEffect(() => { setIsLoading(false); }, []);
+
+  // Load items from service (Supabase + localStorage fallback), keyed to active portal
+  useEffect(() => {
+    setIsLoading(true);
+    fetchVaultItems(portalId)
+      .then((dbItems) => {
+        if (dbItems.length > 0) {
+          setItems(dbItems.map(dbToVaultItem));
+        } else {
+          // Fall through to generic localStorage key for backward compatibility
+          try {
+            const saved = localStorage.getItem(STORAGE_VAULT_ITEMS);
+            if (saved) {
+              const parsed = JSON.parse(saved) as any[];
+              if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id) {
+                setItems(parsed.map((v) => ({ ...v, createdAt: v.createdAt ? new Date(v.createdAt) : new Date(), expiresAt: v.expiresAt ? new Date(v.expiresAt) : null })));
+                return;
+              }
+            }
+          } catch { /* ignore */ }
+          setItems([]);
+        }
+      })
+      .finally(() => setIsLoading(false));
+  }, [portalId]);
 
   // Locked folder state
   const [isUnlocked, setIsUnlocked] = useState(() => sessionStorage.getItem(SESSION_VAULT_UNLOCKED) === "true");
@@ -519,6 +713,12 @@ const VaultPage = () => {
   const deleteItem = (id: string) => setItems((prev) => prev.filter((i) => i.id !== id));
   const addItem = (item: VaultItem) => setItems((prev) => [item, ...prev]);
 
+  // Keep legacy localStorage in sync for offline-only items
+  useEffect(() => {
+    const localOnly = items.filter((i) => i.id.startsWith("local_"));
+    if (localOnly.length > 0) localStorage.setItem(STORAGE_VAULT_ITEMS, JSON.stringify(localOnly));
+  }, [items]);
+
   if (!canView) {
     return (
       <div className="flex flex-col items-center justify-center h-[70vh] gap-4">
@@ -548,22 +748,9 @@ const VaultPage = () => {
     );
   };
 
-  if (isLoading) return (
-    <div className="p-6 space-y-4">
-      <Skeleton className="h-8 w-48" />
-      <Skeleton className="h-10 w-full rounded-lg" />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-40 rounded-xl" />
-        ))}
-      </div>
-    </div>
-  );
-
   return (
-    <ModuleErrorBoundary moduleName="Vault">
     <div className="flex flex-col gap-4">
-      {/* Header */}
+      {/* Header — outside error boundary so it always renders */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="flex items-center gap-2" style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>
@@ -598,8 +785,22 @@ const VaultPage = () => {
         ))}
       </div>
 
-      {/* Content */}
+      <ModuleErrorBoundary moduleName="Vault">
+
+      {/* ── Files tab — rendered outside the items content panel ── */}
+      {category === "files" && (
+        <VaultFilesTab portalId={portalId} userId={user?.id ?? ""} />
+      )}
+
+      {/* Content (items — hidden when Files tab is active) */}
+      {category !== "files" && (
       <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 16, padding: "20px 24px", minHeight: 400 }}>
+        {isLoading && (
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
+          </div>
+        )}
+        {!isLoading && <>
         {category !== "locked" && (
           <>
             {category === "all" ? (
@@ -690,12 +891,13 @@ const VaultPage = () => {
             )}
           </>
         )}
+        </>}
       </div>
-
-      {showNewModal && <NewItemModal onClose={() => setShowNewModal(false)} onAdd={addItem} userId={user?.id || ""} />}
-    </div>
+      )} {/* end category !== "files" */}
     </ModuleErrorBoundary>
-  );
+    {showNewModal && <NewItemModal onClose={() => setShowNewModal(false)} onAdd={addItem} userId={user?.id || ""} portalId={portalId} />}
+  </div>
+);
 };
 
 /* ── Locked UI ── */

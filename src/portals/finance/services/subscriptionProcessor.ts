@@ -84,7 +84,8 @@ export async function processSubscription(
         userId,
         portalId,
       );
-    } catch {
+    } catch (e) {
+      console.warn("[subscriptionProcessor] Failed to record local transaction:", e);
       // local store failed — mark as failed but continue advancing date
       failed++;
       const nextDate = calculateNextBillingDate(
@@ -101,12 +102,13 @@ export async function processSubscription(
       await supabase.from("subscription_transactions").insert({
         subscription_id: current.id,
         user_id: userId,
+        portal_id: portalId,
         amount: current.amount,
         billing_date: billingDateStr,
         status: "completed",
       });
-    } catch {
-      // Graceful degradation — Supabase may not be configured yet
+    } catch (e) {
+      console.warn("[subscriptionProcessor] Failed to record subscription_transaction:", e);
     }
 
     totalAmount += current.amount;
@@ -135,8 +137,8 @@ export async function processSubscription(
           updated_at: current.updated_at,
         })
         .eq("id", current.id);
-    } catch {
-      // Graceful degradation
+    } catch (e) {
+      console.warn("[subscriptionProcessor] Failed to update subscription next_billing_date in Supabase:", e);
     }
   }
 

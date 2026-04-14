@@ -38,6 +38,7 @@ export default function SocialCompetitors() {
 
       {/* Comparison Table */}
       <div style={{ background: "var(--glass-bg)", border: "1px solid var(--glass-border)", borderRadius: 14, overflow: "hidden" }}>
+        <div className="overflow-x-auto">
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: "1px solid var(--divider)" }}>
@@ -85,6 +86,7 @@ export default function SocialCompetitors() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Notes */}

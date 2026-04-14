@@ -1,61 +1,115 @@
 import jsPDF from "jspdf";
 import type { Profile } from "./profileStore";
 
-export async function exportProfilePdf(profile: Profile) {
+const BLACK = "#0a0a0a";
+const YELLOW = "#e8ff00";
+const WHITE = "#ffffff";
+const GRAY = "#888888";
+const SURFACE = "#141414";
+const DIVIDER = "#2a2a2a";
+
+export async function exportProfilePdf(profile: Profile): Promise<void> {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const W = 210;
-  const margin = 20;
+  const H = 297;
+  const margin = 22;
   const contentW = W - margin * 2;
-  let y = 20;
+  let y = 0;
 
-  const brandHex = profile.brand_color || "#3b82f6";
+  // ── Full dark background ──
+  doc.setFillColor(BLACK);
+  doc.rect(0, 0, W, H, "F");
 
-  // ── Header bar ──
-  doc.setFillColor(brandHex);
-  doc.rect(0, 0, W, 38, "F");
+  // ── Top accent bar ──
+  doc.setFillColor(YELLOW);
+  doc.rect(0, 0, W, 2, "F");
 
-  doc.setTextColor("#ffffff");
-  doc.setFontSize(22);
+  // ── Left accent stripe ──
+  doc.setFillColor(YELLOW);
+  doc.rect(0, 0, 4, H, "F");
+
+  y = 18;
+
+  // ── Profile picture ──
+  const avatarSrc = profile.avatar_url;
+  if (avatarSrc && avatarSrc.startsWith("data:image")) {
+    try {
+      const fmt = avatarSrc.includes("image/png") ? "PNG" : "JPEG";
+      doc.addImage(avatarSrc, fmt, margin, y, 22, 22, undefined, "FAST");
+      doc.setDrawColor(YELLOW);
+      doc.setLineWidth(0.6);
+      doc.rect(margin, y, 22, 22);
+    } catch {
+      // skip if image fails
+    }
+  }
+
+  // ── Name block ──
+  const nameX = avatarSrc ? margin + 26 : margin;
+  const fullName =
+    profile.display_name ||
+    `${profile.first_name || ""} ${profile.last_name || ""}`.trim() ||
+    "Profile";
+
+  doc.setTextColor(WHITE);
+  doc.setFontSize(26);
   doc.setFont("helvetica", "bold");
-  const fullName = profile.display_name || `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Employee";
-  doc.text(fullName, margin, 18);
+  doc.text(fullName.toUpperCase(), nameX, y + 8);
 
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "normal");
-  const subtitle = [profile.job_title, profile.company_name].filter(Boolean).join(" @ ");
-  if (subtitle) doc.text(subtitle, margin, 26);
+  const subtitle = [profile.job_title, profile.company_name]
+    .filter(Boolean)
+    .join("  ·  ");
+  if (subtitle) {
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(YELLOW);
+    doc.text(subtitle, nameX, y + 15);
+  }
 
   const location = [profile.city, profile.country].filter(Boolean).join(", ");
-  if (location) doc.text(location, margin, 33);
+  if (location) {
+    doc.setFontSize(9);
+    doc.setTextColor(GRAY);
+    doc.text(location, nameX, y + 21);
+  }
 
-  y = 48;
+  y = 50;
 
-  // ── Helper functions ──
-  const sectionTitle = (title: string) => {
-    doc.setFontSize(13);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(brandHex);
-    doc.text(title, margin, y);
-    y += 2;
-    doc.setDrawColor(brandHex);
-    doc.setLineWidth(0.4);
+  // ── Section divider ──
+  const divider = () => {
+    doc.setDrawColor(DIVIDER);
+    doc.setLineWidth(0.3);
     doc.line(margin, y, margin + contentW, y);
-    y += 7;
+    y += 8;
+  };
+
+  const sectionTitle = (title: string) => {
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(YELLOW);
+    doc.text(title.toUpperCase(), margin, y);
+    y += 2;
+    doc.setDrawColor(YELLOW);
+    doc.setLineWidth(0.4);
+    doc.line(margin, y, margin + 30, y);
+    y += 6;
   };
 
   const row = (label: string, value: string | null | undefined) => {
     if (!value) return;
-    doc.setFontSize(9);
+    // Label in gray
+    doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor("#6b7280");
+    doc.setTextColor(GRAY);
     doc.text(label, margin, y);
+    // Value in white
     doc.setFont("helvetica", "normal");
-    doc.setTextColor("#1f2937");
-    doc.text(value, margin + 45, y);
+    doc.setTextColor(WHITE);
+    doc.text(value, margin + 42, y);
     y += 6;
   };
 
-  // ── Contact Information ──
+  // ── Contact ──
   sectionTitle("Contact Information");
   row("Email", profile.email);
   row("Phone", profile.phone);
@@ -63,24 +117,35 @@ export async function exportProfilePdf(profile: Profile) {
   row("City", [profile.city, profile.province, profile.postal_code].filter(Boolean).join(", ") || null);
   row("Country", profile.country);
   y += 4;
+  divider();
 
-  // ── Professional Details ──
+  // ── Professional ──
   sectionTitle("Professional Details");
   row("Job Title", profile.job_title);
   row("Department", profile.department);
   row("Company", profile.company_name);
   row("Business Type", profile.business_type);
   y += 4;
+  divider();
 
-  // ── Personal Details ──
+  // ── Banking (only if IBAN present) ──
+  if (profile.iban) {
+    sectionTitle("Banking Details");
+    row("IBAN", profile.iban);
+    y += 4;
+    divider();
+  }
+
+  // ── Personal ──
   sectionTitle("Personal Details");
   row("Date of Birth", profile.date_of_birth);
   row("Language", profile.language?.toUpperCase());
   row("Timezone", profile.timezone);
   row("Currency", profile.currency?.toUpperCase());
   y += 4;
+  divider();
 
-  // ── Social Links ──
+  // ── Social ──
   const socials = [
     { label: "Website", value: profile.website_url },
     { label: "LinkedIn", value: profile.linkedin_url },
@@ -95,14 +160,25 @@ export async function exportProfilePdf(profile: Profile) {
     y += 4;
   }
 
-  // ── Footer ──
-  const pageH = 297;
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "italic");
-  doc.setTextColor("#9ca3af");
-  doc.text(`Generated on ${new Date().toLocaleDateString()} · Member since ${profile.created_at ? new Date(profile.created_at).toLocaleDateString() : "N/A"}`, margin, pageH - 10);
+  // ── Bottom bar ──
+  doc.setFillColor(SURFACE);
+  doc.rect(0, H - 14, W, 14, "F");
 
-  // ── Save ──
-  const safeName = fullName.replace(/[^a-zA-Z0-9]/g, "_");
-  doc.save(`${safeName}_Profile.pdf`);
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(GRAY);
+  const footerText = `SOSA INC.  ·  Generated ${new Date().toLocaleDateString()}  ·  Member since ${profile.created_at ? new Date(profile.created_at).toLocaleDateString() : "N/A"}`;
+  doc.text(footerText, margin, H - 5);
+
+  // ── Yellow bottom accent ──
+  doc.setFillColor(YELLOW);
+  doc.rect(0, H - 2, W, 2, "F");
+
+  // ── Save with correct filename ──
+  const username =
+    (profile.display_name || profile.first_name || "profile")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "_");
+  const dateStr = new Date().toISOString().slice(0, 10);
+  doc.save(`profile_${username}_${dateStr}.pdf`);
 }

@@ -27,7 +27,6 @@ const Dashboard = React.lazy(() => import("./pages/dashboard/Dashboard"));
 const Budget = React.lazy(() => import("./pages/Budget"));
 const Transactions = React.lazy(() => import("./pages/Transactions"));
 const Goals = React.lazy(() => import("./pages/Goals"));
-const Investments = React.lazy(() => import("./pages/Investments"));
 const Invoices = React.lazy(() => import("./pages/Invoices"));
 const Subscriptions = React.lazy(() => import("./pages/Subscriptions"));
 const Analytics = React.lazy(() => import("./pages/Analytics"));
@@ -38,6 +37,7 @@ const VaultPage = React.lazy(() => import("./pages/VaultPage"));
 const CloudPage = React.lazy(() => import("./pages/CloudPage"));
 const TasksPage = React.lazy(() => import("./pages/TasksPage"));
 const NotesPage = React.lazy(() => import("./pages/NotesPage"));
+const InventoryPage = React.lazy(() => import("./pages/InventoryPage"));
 const AdministrationPage = React.lazy(() => import("./pages/AdministrationPage"));
 const ProfilePage = React.lazy(() => import("./pages/ProfilePage"));
 const ForgotPasswordPage = React.lazy(() => import("./pages/ForgotPasswordPage"));
@@ -49,7 +49,6 @@ const SocialContent = React.lazy(() => import("./pages/social/SocialContent"));
 const SocialAudience = React.lazy(() => import("./pages/social/SocialAudience"));
 const SocialCompetitors = React.lazy(() => import("./pages/social/SocialCompetitors"));
 const OAuthCallback = React.lazy(() => import("./pages/social/OAuthCallback"));
-const InventoryPage = React.lazy(() => import("./pages/InventoryPage"));
 
 // Settings routes — lazy-loaded internally via settingsRoutes.tsx
 import { SettingsRoutes } from "./pages/settings/settingsRoutes";
@@ -102,10 +101,8 @@ function PortalRoutes() {
       <Route path="transactions" element={<Lazy><Transactions /></Lazy>} />
       <Route path="channels" element={<Lazy><Subscriptions /></Lazy>} />
       <Route path="pl-rules" element={<Lazy><Goals /></Lazy>} />
-      <Route path="investments" element={<Lazy><Investments /></Lazy>} />
       <Route path="crypto" element={<Lazy><CryptoPage /></Lazy>} />
       <Route path="gift-cards" element={<Lazy><GiftCardsPage /></Lazy>} />
-      <Route path="inventory" element={<Lazy><InventoryPage /></Lazy>} />
       {/* Business finance sub-pages removed — classification handled via transactions + dashboard */}
       <Route path="analytics" element={<Lazy><Analytics /></Lazy>} />
       <Route path="invoices" element={<Lazy><Invoices /></Lazy>} />
@@ -113,6 +110,7 @@ function PortalRoutes() {
       <Route path="cloud" element={<Lazy><CloudPage /></Lazy>} />
       <Route path="tasks" element={<Lazy><TasksPage /></Lazy>} />
       <Route path="notes" element={<Lazy><NotesPage /></Lazy>} />
+      <Route path="inventory" element={<Lazy><InventoryPage /></Lazy>} />
       <Route path="admin" element={<AdminRoute />}>
         <Route index element={<Lazy><AdministrationPage /></Lazy>} />
       </Route>

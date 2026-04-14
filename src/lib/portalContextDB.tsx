@@ -26,10 +26,16 @@ export function PortalDBProvider({ children }: { children: ReactNode }) {
   const pendingSlugRef = useRef<string | null>(null);
 
   const fetchPortals = useCallback(async () => {
-    const { data: portalData } = await supabase
+    const { data: portalData, error: portalsError } = await supabase
       .from("portals")
       .select("*")
       .order("created_at");
+
+    if (portalsError) {
+      console.warn("[portalContextDB] Failed to load portals:", portalsError.message);
+      setLoading(false);
+      return;
+    }
 
     if (portalData?.length) {
       setPortals(portalData);

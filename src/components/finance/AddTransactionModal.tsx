@@ -7,7 +7,7 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Euro, Calendar, ChevronDown, Repeat, Check, Tag as TagIcon } from "lucide-react";
 import { PAYMENT_METHOD_LABELS } from "@/types/finance";
-import type { NewPersonalTransaction } from "@/types/finance";
+import type { NewPersonalTransaction, PersonalTransaction } from "@/types/finance";
 import { useCategories } from "@/hooks/useCategories";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -41,14 +41,16 @@ function FieldError({ msg }: { msg?: string }) {
 // ── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
-  open:     boolean;
-  onClose:  () => void;
-  onSave:   (data: NewPersonalTransaction) => Promise<boolean>;
+  open:         boolean;
+  onClose:      () => void;
+  onSave:       (data: NewPersonalTransaction) => Promise<boolean>;
+  initialData?: PersonalTransaction;
+  title?:       string;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export function AddTransactionModal({ open, onClose, onSave }: Props) {
+export function AddTransactionModal({ open, onClose, onSave, initialData, title }: Props) {
   const { activeExpenseCategories, activeIncomeCategories } = useCategories();
 
   const [type,        setType]        = useState<"income" | "expense" | "transfer">("expense");
@@ -68,15 +70,29 @@ export function AddTransactionModal({ open, onClose, onSave }: Props) {
 
   const catList = type === "income" ? activeIncomeCategories : activeExpenseCategories;
 
-  // Reset form on open
+  // Reset form on open — pre-fill when editing
   useEffect(() => {
     if (open) {
-      setType("expense"); setAmount(""); setCategory(""); setSubcategory("");
-      setDescription(""); setDate(today()); setPayMethod("card");
-      setIsRecurring(false); setRecurInterval("monthly");
-      setTagsInput(""); setTags([]); setErrors({});
+      if (initialData) {
+        setType(initialData.type);
+        setAmount(String(initialData.amount));
+        setCategory(initialData.category);
+        setSubcategory(initialData.subcategory ?? "");
+        setDescription(initialData.description ?? "");
+        setDate(initialData.date);
+        setPayMethod(initialData.payment_method ?? "card");
+        setIsRecurring(initialData.is_recurring ?? false);
+        setRecurInterval(initialData.recurring_interval ?? "monthly");
+        setTags(initialData.tags ?? []);
+      } else {
+        setType("expense"); setAmount(""); setCategory(""); setSubcategory("");
+        setDescription(""); setDate(today()); setPayMethod("card");
+        setIsRecurring(false); setRecurInterval("monthly");
+        setTags([]);
+      }
+      setTagsInput(""); setErrors({});
     }
-  }, [open]);
+  }, [open, initialData]);
 
   // Close on Escape
   useEffect(() => {
@@ -165,7 +181,7 @@ export function AddTransactionModal({ open, onClose, onSave }: Props) {
           >
             {/* Header */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", margin: 0 }}>Add Transaction</h2>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", margin: 0 }}>{title ?? "Add Transaction"}</h2>
               <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 9, background: "#f3f4f6", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#6b7280" }}>
                 <X style={{ width: 14, height: 14 }} />
               </button>

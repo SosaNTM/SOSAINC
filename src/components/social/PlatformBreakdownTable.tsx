@@ -124,6 +124,7 @@ export function PlatformBreakdownTable({ accounts, days, onRowClick }: Props) {
         </div>
       </div>
 
+      <div className="overflow-x-auto">
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
@@ -239,6 +240,7 @@ export function PlatformBreakdownTable({ accounts, days, onRowClick }: Props) {
           </tr>
         </tfoot>
       </table>
+      </div>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, ChevronLeft, ChevronRight, Plus,
-  ArrowUpRight, ArrowDownRight, ArrowLeftRight, ChevronUp, ChevronDown, Trash2,
+  ArrowUpRight, ArrowDownRight, ArrowLeftRight, ChevronUp, ChevronDown, Trash2, Pencil,
 } from "lucide-react";
 import { LiquidGlassCard, LiquidGlassFilter } from "@/components/ui/liquid-glass-card";
 import { AddTransactionModal } from "@/components/finance/AddTransactionModal";
@@ -34,9 +34,10 @@ function fmtEur(n: number): string {
 
 // ── Tx Row ────────────────────────────────────────────────────────────────────
 
-function TxRow({ tx, onRequestDelete, getCatColor, getCatIcon }: {
+function TxRow({ tx, onRequestDelete, onRequestEdit, getCatColor, getCatIcon }: {
   tx: PersonalTransaction;
   onRequestDelete: (id: string) => void;
+  onRequestEdit: (tx: PersonalTransaction) => void;
   getCatColor: (name: string) => string;
   getCatIcon: (name: string) => string;
 }) {
@@ -105,7 +106,7 @@ function TxRow({ tx, onRequestDelete, getCatColor, getCatIcon }: {
             {isIncome ? <ArrowUpRight style={{ width: 11, height: 11 }} /> : isTransfer ? <ArrowLeftRight style={{ width: 11, height: 11 }} /> : <ArrowDownRight style={{ width: 11, height: 11 }} />}
           </div>
           <p style={{ fontSize: 14, fontWeight: 700, color: amtColor, letterSpacing: "-0.3px" }}>
-            {isIncome ? "+" : "-"}${fmtEur(tx.amount)}
+            {isIncome ? "+" : "-"}€{fmtEur(tx.amount)}
           </p>
           {expanded
             ? <ChevronUp style={{ width: 14, height: 14, color: "var(--text-quaternary)" }} />
@@ -129,7 +130,7 @@ function TxRow({ tx, onRequestDelete, getCatColor, getCatIcon }: {
                 {[
                   ["Category",  tx.category],
                   ["Date",       new Date(tx.date + "T00:00:00").toLocaleDateString("en-US")],
-                  ["Amount",    `$${fmtEur(tx.amount)}`],
+                  ["Amount",    `€${fmtEur(tx.amount)}`],
                   tx.subcategory ? ["Subcategory", tx.subcategory] : null,
                   tx.payment_method ? ["Method", PAYMENT_METHOD_LABELS[tx.payment_method] ?? tx.payment_method] : null,
                   tx.is_recurring ? ["Recurring", tx.recurring_interval ?? "yes"] : null,
@@ -148,6 +149,11 @@ function TxRow({ tx, onRequestDelete, getCatColor, getCatIcon }: {
                 </div>
               )}
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onRequestEdit(tx); }}
+                  style={{ padding: "4px 10px", borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: "pointer", background: "rgba(232,255,0,0.08)", border: "1px solid rgba(232,255,0,0.18)", color: "#e8ff00", display: "flex", alignItems: "center", gap: 4 }}>
+                  <Pencil style={{ width: 11, height: 11 }} />Edit
+                </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onRequestDelete(tx.id); }}
                   style={{ padding: "4px 10px", borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: "pointer", background: "rgba(255,90,90,0.08)", border: "1px solid rgba(255,90,90,0.18)", color: "#FF5A5A", display: "flex", alignItems: "center", gap: 4 }}>
@@ -177,6 +183,7 @@ export default function Transactions() {
   const [catFilter,   setCatFilter]   = useState("");
   const [search,      setSearch]      = useState("");
   const [modalOpen,   setModalOpen]   = useState(false);
+  const [editingTx,  setEditingTx]   = useState<PersonalTransaction | null>(null);
   const [deleteId,    setDeleteId]    = useState<string | null>(null);
 
   const { portal } = usePortal();
@@ -198,7 +205,7 @@ export default function Transactions() {
     dateTo:   dateRange.to,
   }), [typeFilter, classFilter, catFilter, search, dateRange]);
 
-  const { transactions, isLoading, error, addTransaction, deleteTransaction } = useTransactions(filters);
+  const { transactions, isLoading, error, page, hasMore, setPage, addTransaction, updateTransaction, deleteTransaction } = useTransactions(filters);
   const { summary } = useFinanceSummary(dateRange);
 
   function prevMonth() {
@@ -222,9 +229,9 @@ export default function Transactions() {
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       >
         {[
-          { label: "Monthly income",     value: `+$${fmtEur(summary.totalIncome)}`,    color: "#4ade80" },
-          { label: "Monthly expenses",   value: `-$${fmtEur(summary.totalExpenses)}`,  color: "#FF5A5A" },
-          { label: "Net balance",        value: `${summary.netBalance >= 0 ? "+" : ""}$${fmtEur(summary.netBalance)}`, color: summary.netBalance >= 0 ? "#4ade80" : "#FF5A5A" },
+          { label: "Monthly income",     value: `+€${fmtEur(summary.totalIncome)}`,    color: "#4ade80" },
+          { label: "Monthly expenses",   value: `-€${fmtEur(summary.totalExpenses)}`,  color: "#FF5A5A" },
+          { label: "Net balance",        value: `${summary.netBalance >= 0 ? "+" : ""}€${fmtEur(summary.netBalance)}`, color: summary.netBalance >= 0 ? "#4ade80" : "#FF5A5A" },
           { label: "Total transactions", value: String(summary.transactionCount),      color: "var(--text-primary)" },
         ].map((s) => (
           <div key={s.label} style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 14, padding: "14px 18px" }}>
@@ -287,7 +294,7 @@ export default function Transactions() {
             {/* Classification filter (business portals) */}
             {isBusinessPortal && (
               <div className="glass-segment flex">
-                {([["all", "Tutti"], ["revenue", "Revenue"], ["cogs", "COGS"], ["opex", "OPEX"]] as const).map(([v, l]) => {
+                {([["all", "All"], ["revenue", "Revenue"], ["cogs", "COGS"], ["opex", "OPEX"]] as const).map(([v, l]) => {
                   const cfg = v !== "all" ? COST_CLASSIFICATION_CONFIG[v as CostClassification] : null;
                   return (
                     <button key={v} className="glass-segment-item" data-active={classFilter === v}
@@ -313,8 +320,8 @@ export default function Transactions() {
 
           {/* Result count */}
           <p style={{ fontSize: 11, color: "var(--text-quaternary)", marginBottom: 8 }}>
-            {transactions.length} transazion{transactions.length === 1 ? "e" : "i"}
-            {(classFilter !== "all" || catFilter) ? " (filtrate)" : ""}
+            {transactions.length} transaction{transactions.length === 1 ? "" : "s"}
+            {(classFilter !== "all" || catFilter) ? " (filtered)" : ""}
           </p>
 
           {/* Rows */}
@@ -341,20 +348,44 @@ export default function Transactions() {
                   <motion.div key={tx.id} layout
                     initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
                     transition={{ delay: 0.02 * i, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}>
-                    <TxRow tx={tx} onRequestDelete={setDeleteId} getCatColor={getCategoryColor} getCatIcon={getCategoryIcon} />
+                    <TxRow tx={tx} onRequestDelete={setDeleteId} onRequestEdit={(t) => { setEditingTx(t); setModalOpen(true); }} getCatColor={getCategoryColor} getCatIcon={getCategoryIcon} />
                   </motion.div>
                 ))}
               </AnimatePresence>
             )}
           </div>
+
+          {/* Pagination */}
+          {(page > 0 || hasMore) && (
+            <div className="flex items-center justify-between mt-4 pt-3" style={{ borderTop: "0.5px solid var(--glass-border)" }}>
+              <button
+                onClick={() => setPage(Math.max(0, page - 1))}
+                disabled={page === 0}
+                style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 8, border: "0.5px solid var(--glass-border)", background: "var(--glass-bg-subtle)", color: page === 0 ? "var(--text-quaternary)" : "var(--text-secondary)", fontSize: 12, fontWeight: 600, cursor: page === 0 ? "not-allowed" : "pointer", opacity: page === 0 ? 0.4 : 1 }}>
+                <ChevronLeft style={{ width: 13, height: 13 }} /> Prev
+              </button>
+              <span style={{ fontSize: 11, color: "var(--text-quaternary)" }}>Page {page + 1}</span>
+              <button
+                onClick={() => setPage(page + 1)}
+                disabled={!hasMore}
+                style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 8, border: "0.5px solid var(--glass-border)", background: "var(--glass-bg-subtle)", color: !hasMore ? "var(--text-quaternary)" : "var(--text-secondary)", fontSize: 12, fontWeight: 600, cursor: !hasMore ? "not-allowed" : "pointer", opacity: !hasMore ? 0.4 : 1 }}>
+                Next <ChevronRight style={{ width: 13, height: 13 }} />
+              </button>
+            </div>
+          )}
         </LiquidGlassCard>
       </motion.div>
 
-      {/* ── Add Transaction Modal ─────────────────────────────── */}
+      {/* ── Add / Edit Transaction Modal ────────────────────── */}
       <AddTransactionModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSave={addTransaction}
+        onClose={() => { setModalOpen(false); setEditingTx(null); }}
+        onSave={async (data) => {
+          if (editingTx) return updateTransaction(editingTx.id, data);
+          return addTransaction(data);
+        }}
+        initialData={editingTx ?? undefined}
+        title={editingTx ? "Edit Transaction" : "Add Transaction"}
       />
 
       {/* ── Delete Confirmation Dialog ────────────────────────── */}

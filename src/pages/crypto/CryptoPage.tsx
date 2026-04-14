@@ -449,7 +449,7 @@ export default function CryptoPage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <button type="button" title="Modifica" onClick={() => openEditHolding(h)}
+                    <button type="button" title="Modifica" onClick={(e) => { e.stopPropagation(); openEditHolding(h); }}
                       style={{ width: 26, height: 26, borderRadius: 6, border: "none", background: "rgba(255,255,255,0.05)", color: "var(--text-quaternary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <Pencil style={{ width: 11, height: 11 }} />
                     </button>

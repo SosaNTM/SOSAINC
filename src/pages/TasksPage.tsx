@@ -19,7 +19,7 @@ import { IssueDetailPanel } from "@/components/linear/IssueDetailPanel";
 import { NewIssueModal } from "@/components/linear/NewIssueModal";
 import { NewProjectModal } from "@/components/linear/NewProjectModal";
 import { StatusIcon } from "@/components/linear/StatusIcon";
-import { Plus, LayoutGrid, List, Filter, ChevronDown, ChevronRight, SlidersHorizontal, Search } from "lucide-react";
+import { Plus, LayoutGrid, List, Filter, ChevronDown, ChevronRight, SlidersHorizontal, Search, CheckSquare } from "lucide-react";
 
 const TasksPage = () => {
   const { user } = useAuth();
@@ -49,8 +49,11 @@ const TasksPage = () => {
   });
   const [syncReady, setSyncReady] = useState(false);
 
-  // Persist tasks & projects to localStorage on change
-  useEffect(() => { localStorage.setItem(STORAGE_TASKS, JSON.stringify(issues)); }, [issues]);
+  // Persist tasks & projects to localStorage on change; broadcast so ProfileTasksCard updates live
+  useEffect(() => {
+    localStorage.setItem(STORAGE_TASKS, JSON.stringify(issues));
+    window.dispatchEvent(new CustomEvent("iconoff:tasks-changed"));
+  }, [issues]);
   useEffect(() => { localStorage.setItem(STORAGE_PROJECTS, JSON.stringify(projects)); }, [projects]);
 
   // Load live data from Supabase on mount — replaces static seed
@@ -109,7 +112,7 @@ const TasksPage = () => {
       const original = prev.find(i => i.id === id);
       const next = prev.map(i => i.id === id ? { ...i, ...updates, updatedAt: new Date() } : i);
       const updated = next.find(i => i.id === id);
-      if (updated && syncReady) upsertTask(updated, user?.id ?? "");
+      if (updated && syncReady) upsertTask(updated, user?.id ?? "", portalId);
 
       // Audit meaningful field changes
       if (original && updated) {
@@ -168,7 +171,7 @@ const TasksPage = () => {
       }
       return updated;
     });
-    if (syncReady) upsertTask(newIssue, user?.id ?? "");
+    if (syncReady) upsertTask(newIssue, user?.id ?? "", portalId);
     const projectName = data.projectId ? projects.find(p => p.id === data.projectId)?.name : null;
     addAuditEntry({ userId: user?.id ?? "unknown", action: `Created issue "${data.title}"`, category: "tasks", details: `${id}${projectName ? ` in ${projectName}` : ""}${data.parentId ? " (sub-issue)" : ""}`, icon: "✅" });
   }, [projects, syncReady, user]);
@@ -188,7 +191,7 @@ const TasksPage = () => {
     const id = `prj_${Date.now().toString(36)}`;
     const newProject: Project = { ...data, id, milestones: [] };
     setProjects(prev => [...prev, newProject]);
-    if (syncReady) upsertProject(newProject, user?.id ?? "");
+    if (syncReady) upsertProject(newProject, user?.id ?? "", portalId);
     addAuditEntry({ userId: user?.id ?? "unknown", action: `Created project "${data.name}"`, category: "tasks", details: `Project ${id}`, icon: "📋" });
   }, [syncReady, user]);
 
@@ -393,6 +396,13 @@ const TasksPage = () => {
 
         {/* Content area */}
         <div className="flex-1 overflow-auto p-3">
+          {issues.length === 0 && !syncReady && (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 24px", color: "var(--text-quaternary)" }}>
+              <CheckSquare style={{ width: 48, height: 48, opacity: 0.2, marginBottom: 16 }} />
+              <p style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>No tasks yet</p>
+              <p style={{ fontSize: 13, marginTop: 6 }}>Press <kbd>C</kbd> to create your first task</p>
+            </div>
+          )}
           {viewMode === "board" ? (
             <BoardView
               issues={filtered}

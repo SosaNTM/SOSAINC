@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { toast } from "sonner";
 import type {
   GiftCard, GiftCardBrand, EnrichedGiftCard, GiftCardFilter, GiftCardSort,
 } from "../types/giftCards";
@@ -31,9 +32,9 @@ export function useGiftCards() {
       setCards(cardsData);
       setBrands(brandsData);
     } catch (err) {
-      // TODO: Replace with structured error logging (Sentry, etc.)
       console.error("Failed to load gift cards:", err);
       setError(err instanceof Error ? err.message : "Failed to load gift cards");
+      toast.warning("Using cached data — unable to reach server", { id: "gift-cards-offline" });
     } finally {
       setIsLoading(false);
     }

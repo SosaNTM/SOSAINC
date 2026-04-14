@@ -68,7 +68,7 @@ export function taskRowToIssue(row: TaskRow, allRows: TaskRow[]): Issue {
   };
 }
 
-function issueToTaskRow(issue: Issue, userId: string) {
+function issueToTaskRow(issue: Issue, userId: string, portalId?: string) {
   return {
     id: issue.id,
     title: issue.title,
@@ -83,6 +83,7 @@ function issueToTaskRow(issue: Issue, userId: string) {
     estimate: issue.estimate,
     parent_id: issue.parentId,
     updated_at: new Date().toISOString(),
+    ...(portalId ? { portal_id: toPortalUUID(portalId) } : {}),
   };
 }
 
@@ -100,7 +101,7 @@ function projectRowToProject(row: ProjectRow): Project {
   };
 }
 
-function projectToRow(project: Project, userId: string) {
+function projectToRow(project: Project, userId: string, portalId?: string) {
   return {
     id: project.id,
     name: project.name,
@@ -109,6 +110,7 @@ function projectToRow(project: Project, userId: string) {
     user_id: project.leadId || userId,
     color: project.color,
     updated_at: new Date().toISOString(),
+    ...(portalId ? { portal_id: toPortalUUID(portalId) } : {}),
   };
 }
 
@@ -143,9 +145,9 @@ export async function loadProjectsFromSupabase(portalId?: string): Promise<Proje
 
 // ── Write (with graceful fallback if Supabase table doesn't exist) ────────────
 
-export async function upsertTask(issue: Issue, userId: string): Promise<void> {
+export async function upsertTask(issue: Issue, userId: string, portalId?: string): Promise<void> {
   try {
-    const { error } = await supabase.from("tasks").upsert(issueToTaskRow(issue, userId), { onConflict: "id" });
+    const { error } = await supabase.from("tasks").upsert(issueToTaskRow(issue, userId, portalId), { onConflict: "id" });
     // TODO: Replace with structured error logging (Sentry, etc.)
     if (error) console.warn("Failed to sync task to Supabase:", error.message);
   } catch {
@@ -163,9 +165,9 @@ export async function deleteTask(id: string): Promise<void> {
   }
 }
 
-export async function upsertProject(project: Project, userId: string): Promise<void> {
+export async function upsertProject(project: Project, userId: string, portalId?: string): Promise<void> {
   try {
-    const { error } = await supabase.from("projects").upsert(projectToRow(project, userId), { onConflict: "id" });
+    const { error } = await supabase.from("projects").upsert(projectToRow(project, userId, portalId), { onConflict: "id" });
     // TODO: Replace with structured error logging (Sentry, etc.)
     if (error) console.warn("Failed to sync project to Supabase:", error.message);
   } catch {

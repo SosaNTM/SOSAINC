@@ -13,7 +13,7 @@ export interface VaultItem {
   expiresAt: Date | null;
   credential?: { username: string; password: string; url: string; notes: string };
   apiKey?: { key: string; service: string; environment: string; notes: string };
-  document?: { filename: string; size: number; mimeType: string };
+  document?: { filename: string; size: number; mimeType: string; data?: string };
   note?: { content: string };
 }
 

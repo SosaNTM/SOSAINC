@@ -84,8 +84,8 @@ export function GiftCardModal({ brands, editingCard, onSave, onClose }: GiftCard
   async function handleSubmit() {
     const numValue = parseFloat(value);
     const numRemaining = remaining ? parseFloat(remaining) : numValue;
-    if (!numValue || numValue <= 0) { setError("Il valore deve essere maggiore di 0"); return; }
-    if (numRemaining < 0 || numRemaining > numValue) { setError("Il saldo deve essere tra 0 e il valore iniziale"); return; }
+    if (!numValue || numValue <= 0) { setError("Value must be greater than 0"); return; }
+    if (numRemaining < 0 || numRemaining > numValue) { setError("Balance must be between 0 and the initial value"); return; }
 
     const brand = selectedBrand;
     if (!brand) return;
@@ -106,7 +106,7 @@ export function GiftCardModal({ brands, editingCard, onSave, onClose }: GiftCard
         notes: notes || undefined,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore nel salvataggio");
+      setError(err instanceof Error ? err.message : "Error saving gift card");
     } finally {
       setSaving(false);
     }
@@ -131,12 +131,12 @@ export function GiftCardModal({ brands, editingCard, onSave, onClose }: GiftCard
           {step === 1 ? (
             <motion.div key="step1" initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} transition={{ duration: 0.2 }}
               style={{ padding: 24 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: "#111", marginBottom: 16 }}>Seleziona Brand</h3>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: "#111", marginBottom: 16 }}>Select Brand</h3>
 
               {/* Search */}
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: "#f5f5f5", border: "1px solid #e5e5e5", marginBottom: 20 }}>
                 <Search style={{ width: 14, height: 14, color: "#999" }} />
-                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cerca brand..."
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search brand..."
                   style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 13, color: "#111" }} />
               </div>
 
@@ -144,10 +144,10 @@ export function GiftCardModal({ brands, editingCard, onSave, onClose }: GiftCard
                 <div>
                   {filteredBrands.length === 0 ? (
                     <div style={{ textAlign: "center", padding: "24px 0" }}>
-                      <p style={{ fontSize: 13, color: "#999", marginBottom: 12 }}>Nessun brand trovato</p>
+                      <p style={{ fontSize: 13, color: "#999", marginBottom: 12 }}>No brand found</p>
                       <button type="button" onClick={() => { setCustomMode(true); setCustomName(search); }}
                         style={{ fontSize: 12, fontWeight: 600, padding: "8px 16px", borderRadius: 8, border: "1px solid #e8ff00", background: "transparent", color: "#e8ff00", cursor: "pointer" }}>
-                        + Aggiungi "{search}" come brand custom
+                        + Add "{search}" as custom brand
                       </button>
                     </div>
                   ) : (
@@ -158,12 +158,12 @@ export function GiftCardModal({ brands, editingCard, onSave, onClose }: GiftCard
                 <>
                   {/* Popular */}
                   <div style={{ marginBottom: 20 }}>
-                    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "#999", textTransform: "uppercase", marginBottom: 10 }}>Popolari</p>
+                    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "#999", textTransform: "uppercase", marginBottom: 10 }}>Popular</p>
                     <BrandGrid brands={popularBrands} onSelect={selectBrand} />
                   </div>
 
                   {/* By Category */}
-                  <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "#999", textTransform: "uppercase", marginBottom: 8 }}>Per Categoria</p>
+                  <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "#999", textTransform: "uppercase", marginBottom: 8 }}>By Category</p>
                   {CATEGORIES.map((cat) => {
                     const catBrands = brandsByCategory[cat] ?? [];
                     if (catBrands.length === 0) return null;
@@ -196,10 +196,10 @@ export function GiftCardModal({ brands, editingCard, onSave, onClose }: GiftCard
                   <div style={{ borderTop: "1px solid #eee", marginTop: 16, paddingTop: 16 }}>
                     {customMode ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                        <input value={customName} onChange={(e) => setCustomName(e.target.value)} placeholder="Nome brand *"
+                        <input value={customName} onChange={(e) => setCustomName(e.target.value)} placeholder="Brand name *"
                           style={{ padding: "10px 12px", borderRadius: 8, background: "#f5f5f5", border: "1px solid #e5e5e5", color: "#111", fontSize: 13, outline: "none" }} />
                         <div className="flex items-center gap-3">
-                          <label style={{ fontSize: 12, color: "#666" }}>Colore:</label>
+                          <label style={{ fontSize: 12, color: "#666" }}>Color:</label>
                           <input type="color" value={customColor} onChange={(e) => setCustomColor(e.target.value)}
                             style={{ width: 32, height: 32, borderRadius: 6, border: "1px solid #e5e5e5", cursor: "pointer" }} />
                           <select value={customCategory} onChange={(e) => setCustomCategory(e.target.value as GiftCardCategory)}
@@ -210,18 +210,18 @@ export function GiftCardModal({ brands, editingCard, onSave, onClose }: GiftCard
                         <div className="flex gap-2">
                           <button type="button" onClick={() => setCustomMode(false)}
                             style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "1px solid #e5e5e5", background: "transparent", color: "#666", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                            Annulla
+                            Cancel
                           </button>
                           <button type="button" onClick={confirmCustomBrand}
                             style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", background: "#111", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                            Conferma
+                            Confirm
                           </button>
                         </div>
                       </div>
                     ) : (
                       <button type="button" onClick={() => setCustomMode(true)}
                         style={{ width: "100%", padding: "10px 0", borderRadius: 8, border: "1px solid #ddd", background: "transparent", color: "#666", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                        + Aggiungi Brand Custom
+                        + Add Custom Brand
                       </button>
                     )}
                   </div>
@@ -235,7 +235,7 @@ export function GiftCardModal({ brands, editingCard, onSave, onClose }: GiftCard
               {!isEdit && (
                 <button type="button" onClick={() => setStep(1)}
                   style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: "#999", cursor: "pointer", fontSize: 12, fontWeight: 500, marginBottom: 12 }}>
-                  <ChevronLeft style={{ width: 14, height: 14 }} /> Indietro
+                  <ChevronLeft style={{ width: 14, height: 14 }} /> Back
                 </button>
               )}
 
@@ -256,7 +256,7 @@ export function GiftCardModal({ brands, editingCard, onSave, onClose }: GiftCard
               )}
 
               {/* Value + Currency */}
-              <label style={{ fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 6, display: "block" }}>Quanto hai sulla card? *</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 6, display: "block" }}>Card value *</label>
               <div className="flex gap-2 mb-6">
                 <input type="number" value={value} onChange={(e) => { setValue(e.target.value); setRemaining(e.target.value); }} placeholder="0.00" min="0" step="0.01"
                   style={{ flex: 1, padding: "10px 12px", borderRadius: 10, background: "#f5f5f5", border: "1px solid #e5e5e5", color: "#111", fontSize: 14, fontWeight: 600, outline: "none", fontVariantNumeric: "tabular-nums" }}
@@ -276,11 +276,11 @@ export function GiftCardModal({ brands, editingCard, onSave, onClose }: GiftCard
               <div className="flex gap-3">
                 <button type="button" onClick={onClose}
                   style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "1px solid #e5e5e5", background: "transparent", color: "#666", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                  Annulla
+                  Cancel
                 </button>
                 <button type="button" onClick={handleSubmit} disabled={saving}
                   style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "none", background: "#111", color: "#fff", fontSize: 13, fontWeight: 700, cursor: saving ? "wait" : "pointer", opacity: saving ? 0.7 : 1 }}>
-                  {saving ? "Salvataggio..." : isEdit ? "Salva Modifiche" : "Aggiungi Gift Card"}
+                  {saving ? "Saving..." : isEdit ? "Save Changes" : "Add Gift Card"}
                 </button>
               </div>
             </motion.div>

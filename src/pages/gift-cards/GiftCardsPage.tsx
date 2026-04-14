@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Gift, Plus, X, SlidersHorizontal } from "lucide-react";
+import { Gift, Plus, X, SlidersHorizontal, MoreHorizontal } from "lucide-react";
 import { LiquidGlassCard, LiquidGlassFilter } from "@/components/ui/liquid-glass-card";
 import { useGiftCards } from "@/portals/finance/hooks/useGiftCards";
 import { useGiftCardsSummary } from "@/portals/finance/hooks/useGiftCardsSummary";
@@ -17,19 +17,19 @@ import { usePortal } from "@/lib/portalContext";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 const FILTER_LABELS: { value: GiftCardFilter; label: string }[] = [
-  { value: "all", label: "Tutte" },
-  { value: "active", label: "Attive" },
-  { value: "partially_used", label: "Parz. usate" },
-  { value: "fully_used", label: "Esaurite" },
-  { value: "expired", label: "Scadute" },
-  { value: "archived", label: "Archiviate" },
+  { value: "all", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "partially_used", label: "Partly used" },
+  { value: "fully_used", label: "Used up" },
+  { value: "expired", label: "Expired" },
+  { value: "archived", label: "Archived" },
 ];
 
 const SORT_OPTIONS: { value: GiftCardSort; label: string }[] = [
-  { value: "remaining_desc", label: "Saldo ↓" },
-  { value: "remaining_asc", label: "Saldo ↑" },
-  { value: "expiry_asc", label: "Scadenza ↑" },
-  { value: "recent", label: "Più recenti" },
+  { value: "remaining_desc", label: "Balance ↓" },
+  { value: "remaining_asc", label: "Balance ↑" },
+  { value: "expiry_asc", label: "Expiry ↑" },
+  { value: "recent", label: "Most recent" },
   { value: "brand", label: "Brand A→Z" },
 ];
 
@@ -60,6 +60,13 @@ export default function GiftCardsPage() {
   const [expiryBannerDismissed, setExpiryBannerDismissed] = useState(false);
 
   const { transactions, addTransaction, deleteTransaction, refetch: refetchTx } = useGiftCardDetail(detailCard?.id ?? null);
+
+  // ISSUE-29: sync detailCard with fresh card data after any cards reload (e.g. after favorite toggle)
+  useEffect(() => {
+    if (!detailCard) return;
+    const fresh = cards.find((c) => c.id === detailCard.id);
+    if (fresh) setDetailCard(fresh);
+  }, [cards]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const expiringSoonCards = cards.filter((c) => c.isExpiringSoon);
 
@@ -93,11 +100,19 @@ export default function GiftCardsPage() {
 
   async function handleUseBalance(amount: number, description?: string, date?: string) {
     if (!detailCard) return;
+    // ISSUE-28: compute new balance/status client-side so it works even without DB triggers
+    const newRemaining = Math.max(0, detailCard.remaining_value - amount);
+    const newStatus = (
+      newRemaining <= 0 ? "fully_used" :
+      newRemaining < detailCard.initial_value ? "partially_used" : "active"
+    ) as EnrichedGiftCard["status"];
     await addTransaction(amount, description, date);
+    // Explicitly update card balance + status (mirrors DB trigger for Supabase mode)
+    await updateCard(detailCard.id, { remaining_value: newRemaining, status: newStatus });
     await refetch();
     if (user) addAuditEntry({ userId: user.id, action: `Used €${amount.toFixed(2)} from ${detailCard.brand} gift card`, category: "finance", details: description || "", icon: "💳", portalId });
-    const refreshed = cards.find((c) => c.id === detailCard.id);
-    if (refreshed) setDetailCard(refreshed);
+    // Optimistic update — cards[] may not have reloaded yet
+    setDetailCard({ ...detailCard, remaining_value: newRemaining, status: newStatus });
   }
 
   return (
@@ -115,7 +130,7 @@ export default function GiftCardsPage() {
           <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>Gift Cards</h2>
         </div>
         <button type="button" onClick={openAdd} className="glass-btn-primary flex items-center gap-1.5" style={{ fontSize: 12, padding: "8px 16px", borderRadius: 8 }}>
-          <Plus className="w-3.5 h-3.5" /> Aggiungi
+          <Plus className="w-3.5 h-3.5" /> Add
         </button>
       </motion.div>
 
@@ -123,10 +138,10 @@ export default function GiftCardsPage() {
       <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.06 } } }}
         className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "SALDO TOTALE", value: formatEUR(summary.totalRemainingEur), sub: `su ${summary.activeCount + summary.partiallyUsedCount} card`, color: "#e8ff00" },
-          { label: "CARD ATTIVE", value: String(summary.activeCount + summary.partiallyUsedCount), sub: "", color: "#4ade80" },
-          { label: "USATO", value: formatEUR(summary.totalUsedEur), sub: summary.totalInitialEur > 0 ? `${((summary.totalUsedEur / summary.totalInitialEur) * 100).toFixed(1)}%` : "0%", color: "var(--text-primary)" },
-          { label: "IN SCADENZA", value: String(summary.expiringSoonCount), sub: "entro 30gg", color: summary.expiringSoonCount > 0 ? "#ef4444" : "var(--text-quaternary)" },
+          { label: "TOTAL BALANCE", value: formatEUR(summary.totalRemainingEur), sub: `across ${summary.activeCount + summary.partiallyUsedCount} cards`, color: "#e8ff00" },
+          { label: "ACTIVE CARDS", value: String(summary.activeCount + summary.partiallyUsedCount), sub: "", color: "#4ade80" },
+          { label: "USED", value: formatEUR(summary.totalUsedEur), sub: summary.totalInitialEur > 0 ? `${((summary.totalUsedEur / summary.totalInitialEur) * 100).toFixed(1)}%` : "0%", color: "var(--text-primary)" },
+          { label: "EXPIRING SOON", value: String(summary.expiringSoonCount), sub: "within 30 days", color: summary.expiringSoonCount > 0 ? "#ef4444" : "var(--text-quaternary)" },
         ].map((stat, i) => (
           <motion.div key={stat.label} variants={fadeUp} custom={i * 0.05}>
             <LiquidGlassCard hover={false} accentColor={stat.color}>
@@ -144,10 +159,10 @@ export default function GiftCardsPage() {
           style={{ padding: "12px 16px", borderRadius: 12, background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.2)", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
           <div>
             <p style={{ fontSize: 13, fontWeight: 600, color: "#ef4444" }}>
-              ⚠️ {expiringSoonCards.length} gift card scad{expiringSoonCards.length === 1 ? "e" : "ono"} entro 30 giorni:
+              ⚠️ {expiringSoonCards.length} gift card{expiringSoonCards.length === 1 ? "" : "s"} expiring within 30 days:
             </p>
             <p style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 4 }}>
-              {expiringSoonCards.map((c) => `${c.brand} (${formatEUR(c.remainingValueEur)} — ${c.daysUntilExpiry}gg)`).join(" · ")}
+              {expiringSoonCards.map((c) => `${c.brand} (${formatEUR(c.remainingValueEur)} — ${c.daysUntilExpiry}d)`).join(" · ")}
             </p>
           </div>
           <button type="button" onClick={() => setExpiryBannerDismissed(true)} style={{ background: "none", border: "none", color: "var(--text-quaternary)", cursor: "pointer", flexShrink: 0 }}>
@@ -305,8 +320,8 @@ function GiftCardItem({
         <div style={{ position: "relative" }}>
           <button type="button"
             onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
-            style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "var(--text-quaternary)", padding: "2px 6px", letterSpacing: 1 }}>
-            ···
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-quaternary)", padding: "2px 4px", display: "flex", alignItems: "center" }}>
+            <MoreHorizontal style={{ width: 16, height: 16 }} />
           </button>
           {menuOpen && (
             <div
@@ -314,12 +329,12 @@ function GiftCardItem({
               onMouseLeave={() => setMenuOpen(false)}
               style={{ position: "absolute", right: 0, top: 24, background: "var(--glass-bg-elevated, #1e1e1e)", backdropFilter: "blur(20px)", border: "1px solid var(--glass-border, rgba(255,255,255,0.1))", borderRadius: 10, padding: 4, minWidth: 170, zIndex: 50, boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}>
               {!isInactive && (
-                <MenuBtn label="💳 Usa saldo" onClick={() => { setMenuOpen(false); onUseBalance(card); }} />
+                <MenuBtn label="💳 Use balance" onClick={() => { setMenuOpen(false); onUseBalance(card); }} />
               )}
-              <MenuBtn label="✏️ Modifica" onClick={() => { setMenuOpen(false); onEdit(card); }} />
-              {card.card_code && <MenuBtn label="🔑 Mostra codice" onClick={() => { setMenuOpen(false); onShowCode(card); }} />}
-              <MenuBtn label="📦 Archivia" onClick={() => { setMenuOpen(false); onArchive(card.id); }} />
-              <MenuBtn label="🗑 Elimina" onClick={() => { setMenuOpen(false); onDelete(card.id); }} danger />
+              <MenuBtn label="✏️ Edit" onClick={() => { setMenuOpen(false); onEdit(card); }} />
+              {card.card_code && <MenuBtn label="🔑 Show code" onClick={() => { setMenuOpen(false); onShowCode(card); }} />}
+              <MenuBtn label="📦 Archive" onClick={() => { setMenuOpen(false); onArchive(card.id); }} />
+              <MenuBtn label="🗑 Delete" onClick={() => { setMenuOpen(false); onDelete(card.id); }} danger />
             </div>
           )}
         </div>
@@ -343,7 +358,7 @@ function GiftCardItem({
       {/* Balance */}
       <div className="mb-3">
         <p style={{ fontSize: 13, color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>
-          Saldo: <span style={{ fontWeight: 700 }}>{card.currency === "EUR" ? "€" : card.currency === "USD" ? "$" : "£"}{card.remaining_value.toFixed(2)}</span>
+          Balance: <span style={{ fontWeight: 700 }}>{card.currency === "EUR" ? "€" : card.currency === "USD" ? "$" : "£"}{card.remaining_value.toFixed(2)}</span>
           <span style={{ color: "var(--text-quaternary)" }}> / {card.currency === "EUR" ? "€" : card.currency === "USD" ? "$" : "£"}{card.initial_value.toFixed(2)}</span>
         </p>
       </div>
@@ -371,12 +386,12 @@ function GiftCardItem({
         </div>
         <span style={{ fontSize: 11, color: card.isExpiringSoon ? "#ef4444" : card.isExpired ? "#ef4444" : "var(--text-quaternary)" }}>
           {card.isExpired
-            ? `❌ Scaduta`
+            ? `❌ Expired`
             : card.isExpiringSoon
-              ? `⚠️ Scade tra ${card.daysUntilExpiry}gg`
+              ? `⚠️ Expires in ${card.daysUntilExpiry}d`
               : card.expiry_date
-                ? `Scade: ${new Date(card.expiry_date).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" })}`
-                : "Scade: —"
+                ? `Expires: ${new Date(card.expiry_date).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}`
+                : "Expires: —"
           }
         </span>
       </div>

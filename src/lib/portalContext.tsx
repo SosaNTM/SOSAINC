@@ -19,7 +19,7 @@ export const PORTALS: PortalConfig[] = [
     accent: "#4A9EFF",
     icon: "Building2",
     routePrefix: "/sosa",
-    disabledFeatures: ["cloud", "social"],
+    disabledFeatures: ["social"],
   },
   {
     id: "keylo",

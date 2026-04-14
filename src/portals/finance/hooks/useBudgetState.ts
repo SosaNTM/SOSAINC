@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 
-const TODAY = new Date();
-
 export interface BudgetStateResult {
   selectedCategory: string | null;
   isPanelOpen: boolean;
@@ -22,8 +20,8 @@ export interface BudgetStateResult {
 export function useBudgetState(): BudgetStateResult {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
-  const [month, setMonth] = useState(TODAY.getMonth());
-  const [year, setYear]   = useState(TODAY.getFullYear());
+  const [month, setMonth] = useState(() => new Date().getMonth());
+  const [year, setYear]   = useState(() => new Date().getFullYear());
 
   const openCategory = useCallback((catId: string) => {
     setSelectedCategory(catId);

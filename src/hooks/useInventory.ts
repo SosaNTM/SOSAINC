@@ -37,6 +37,10 @@ export interface InventoryItem {
   sale_date?: string;
   notes?: string;
   image_url?: string;
+  // Digital Stock Manager fields (added in 20260408000002_inventory_attachments.sql)
+  description?: string;
+  amount: number;
+  item_value: number;
   created_at: string;
   updated_at: string;
 }
@@ -84,6 +88,9 @@ function toInventoryItem(row: Record<string, unknown>): InventoryItem {
     sale_date:            (row.sale_date as string | undefined) ?? undefined,
     notes:                (row.notes as string | undefined) ?? undefined,
     image_url:            (row.image_url as string | undefined) ?? undefined,
+    description:          (row.description as string | undefined) ?? undefined,
+    amount:               Number(row.amount ?? 1),
+    item_value:           Number(row.item_value ?? 0),
     created_at:           (row.created_at as string) ?? new Date().toISOString(),
     updated_at:           (row.updated_at as string) ?? new Date().toISOString(),
   };
@@ -112,6 +119,8 @@ function localAdd(data: NewInventoryItem, portalId: string): InventoryItem {
   const items = localGetAll(portalId);
   const now = new Date().toISOString();
   const newItem: InventoryItem = {
+    amount: 1,
+    item_value: 0,
     ...data,
     id: crypto.randomUUID(),
     portal_id: portalId,
@@ -178,7 +187,7 @@ export function useInventory(): UseInventoryResult {
   // Derived stats
   const totalItems = all.length;
   const totalValue = useMemo(
-    () => all.reduce((sum, item) => sum + (item.listing_price ?? item.purchase_price ?? 0), 0),
+    () => all.reduce((sum, item) => sum + item.item_value, 0),
     [all]
   );
   const totalProfit = useMemo(

@@ -38,6 +38,7 @@ export interface Profile {
   created_at: string;
   updated_at: string;
   onboarding_completed: boolean;
+  iban: string | null;
   // Telegram bot integration
   telegram_chat_id: string | null;
   telegram_notifications_enabled: boolean;
@@ -101,6 +102,7 @@ function createDefaultProfile(userId: string, email: string, displayName: string
     discord_tag: null,
     slack_tag: null,
     extra_socials: [],
+    iban: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     onboarding_completed: false,

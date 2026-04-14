@@ -1,769 +1,611 @@
-import { useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Search, Plus, Package, Pencil, Trash2, ExternalLink } from "lucide-react";
-import { LiquidGlassCard, LiquidGlassFilter } from "@/components/ui/liquid-glass-card";
-import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { Skeleton } from "@/components/ui/skeleton";
+/**
+ * InventoryPage — Digital Stock Manager
+ *
+ * Fields per item: Name · Description · Amount · Value (€)
+ * Files: multi-file attachments with preview/download via Supabase Storage
+ * Portfolio total: sum of (amount × item_value) for all items
+ */
+
+import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
-  useInventory,
-  type InventoryItem,
-  type NewInventoryItem,
-  type InventoryCondition,
-  type InventoryStatus,
-  type InventoryPlatform,
-} from "@/hooks/useInventory";
+  Plus, Pencil, Trash2, Paperclip, Eye, Download,
+  Loader2, AlertTriangle, X, Package, Search, ChevronDown, ChevronUp,
+} from "lucide-react";
+import { useAuth } from "@/lib/authContext";
+import { usePortal } from "@/lib/portalContext";
+import { useInventory, type InventoryItem, type NewInventoryItem } from "@/hooks/useInventory";
+import {
+  uploadInventoryAttachment, fetchItemAttachments, deleteInventoryAttachment,
+  getAttachmentUrl, getPreviewKind, formatBytes,
+  type InventoryAttachment,
+} from "@/lib/services/vaultFileService";
+import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { formatDistanceToNow } from "date-fns";
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// ── helpers ───────────────────────────────────────────────────────────────────
 
-const CONDITIONS: { value: InventoryCondition; label: string }[] = [
-  { value: "new",       label: "New" },
-  { value: "excellent", label: "Excellent" },
-  { value: "good",      label: "Good" },
-  { value: "fair",      label: "Fair" },
-  { value: "poor",      label: "Poor" },
-];
-
-const PLATFORMS: { value: InventoryPlatform; label: string }[] = [
-  { value: "vestiaire", label: "Vestiaire" },
-  { value: "depop",     label: "Depop" },
-  { value: "vinted",    label: "Vinted" },
-  { value: "wallapop",  label: "Wallapop" },
-  { value: "ebay",      label: "eBay" },
-  { value: "shopify",   label: "Shopify" },
-  { value: "other",     label: "Other" },
-];
-
-const STATUS_CONFIG: Record<InventoryStatus, { label: string; bg: string; color: string }> = {
-  in_stock: { label: "In Stock",  bg: "rgba(34,197,94,0.2)",   color: "#22c55e" },
-  listed:   { label: "Listed",    bg: "rgba(232,255,0,0.2)",   color: "#e8ff00" },
-  sold:     { label: "Sold",      bg: "rgba(99,102,241,0.2)",  color: "#818cf8" },
-  shipped:  { label: "Shipped",   bg: "rgba(59,130,246,0.2)",  color: "#60a5fa" },
-  returned: { label: "Returned",  bg: "rgba(239,68,68,0.2)",   color: "#f87171" },
-};
-
-const CONDITION_CONFIG: Record<InventoryCondition, { label: string; color: string }> = {
-  new:       { label: "New",       color: "#22c55e" },
-  excellent: { label: "Excellent", color: "#4ade80" },
-  good:      { label: "Good",      color: "#e8ff00" },
-  fair:      { label: "Fair",      color: "#fb923c" },
-  poor:      { label: "Poor",      color: "#f87171" },
-};
-
-const ALL_STATUSES: InventoryStatus[] = ["in_stock", "listed", "sold", "shipped", "returned"];
-
-type StatusFilter = "all" | InventoryStatus;
-type PlatformFilter = "all" | InventoryPlatform;
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function fmtEur(n: number): string {
+function fmtEur(n: number) {
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// ── Blank form ─────────────────────────────────────────────────────────────────
-
-function blankForm(): NewInventoryItem {
+function blank(): Omit<NewInventoryItem, "condition" | "purchase_price" | "status"> & {
+  condition: NewInventoryItem["condition"];
+  purchase_price: number;
+  status: NewInventoryItem["status"];
+} {
   return {
     name: "",
-    brand: "",
-    category: "",
-    size: "",
+    description: "",
+    amount: 1,
+    item_value: 0,
+    // keep required fields with sensible defaults
     condition: "good",
     purchase_price: 0,
-    listing_price: undefined,
-    sale_price: undefined,
-    sku: "",
     status: "in_stock",
-    platform: undefined,
-    platform_url: "",
-    platform_listing_id: "",
-    purchase_date: "",
-    sale_date: "",
-    notes: "",
-    image_url: "",
   };
 }
 
-// ── Status Badge ──────────────────────────────────────────────────────────────
+// ── Preview modal (reused from VaultFilesTab) ─────────────────────────────────
 
-function StatusBadge({ status }: { status: InventoryStatus }) {
-  const cfg = STATUS_CONFIG[status];
-  return (
-    <span style={{
-      fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99,
-      background: cfg.bg, color: cfg.color, letterSpacing: "0.04em", textTransform: "uppercase",
-      fontFamily: "'Space Mono', monospace",
-    }}>
-      {cfg.label}
-    </span>
+function AttachmentPreview({ att, onClose }: { att: InventoryAttachment; onClose: () => void }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [text, setText] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const kind = getPreviewKind(att.file_type, att.file_name);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAttachmentUrl(att).then(async (u) => {
+      if (cancelled || !u) { setLoading(false); return; }
+      setUrl(u);
+      if (kind === "text") {
+        try { setText((await (await fetch(u)).text()).slice(0, 50_000)); } catch { /* ignore */ }
+      }
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [att, kind]);
+
+  const download = () => { if (url) { const a = document.createElement("a"); a.href = url; a.download = att.file_name; a.click(); } };
+
+  return createPortal(
+    <>
+      <div className="fixed inset-0 z-[9998]" style={{ background: "rgba(0,0,0,0.7)" }} onClick={onClose} />
+      <div className="fixed z-[9999] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+        style={{ width: "min(90vw,780px)", maxHeight: "88vh", display: "flex", flexDirection: "column", background: "var(--modal-bg,#141414)", border: "1px solid var(--glass-border)", borderRadius: 16, overflow: "hidden", boxShadow: "0 32px 100px rgba(0,0,0,0.7)" }}>
+        <div className="flex items-center justify-between px-5 py-3 flex-shrink-0" style={{ borderBottom: "0.5px solid var(--glass-border)" }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{att.file_name}</span>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={download} style={{ fontSize: 12, padding: "4px 12px", borderRadius: 7, border: "0.5px solid var(--glass-border)", background: "var(--glass-bg)", color: "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              <Download className="w-3.5 h-3.5" /> Download
+            </button>
+            <button type="button" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X className="w-5 h-5" /></button>
+          </div>
+        </div>
+        <div className="flex-1 overflow-auto">
+          {loading && <div className="flex items-center justify-center h-48"><Loader2 className="w-8 h-8 animate-spin" style={{ color: "var(--text-quaternary)" }} /></div>}
+          {!loading && url && kind === "image" && <div className="flex justify-center p-4" style={{ background: "rgba(0,0,0,0.3)" }}><img src={url} alt={att.file_name} style={{ maxWidth: "100%", maxHeight: "74vh", objectFit: "contain", borderRadius: 8 }} /></div>}
+          {!loading && url && kind === "pdf" && <iframe src={url} title={att.file_name} style={{ width: "100%", height: "74vh", border: "none" }} />}
+          {!loading && url && kind === "video" && <div className="flex justify-center p-4 bg-black"><video controls src={url} style={{ maxWidth: "100%", maxHeight: "70vh" }} /></div>}
+          {!loading && url && kind === "audio" && <div className="flex justify-center p-8"><audio controls src={url} style={{ width: "100%", maxWidth: 480 }} /></div>}
+          {!loading && url && kind === "text" && <pre style={{ margin: 0, padding: "20px 24px", fontSize: 12, lineHeight: 1.6, color: "var(--text-secondary)", fontFamily: "monospace", overflowX: "auto", whiteSpace: "pre-wrap", background: "rgba(0,0,0,0.2)" }}>{text ?? "Loading…"}</pre>}
+          {!loading && kind === "none" && <div className="flex flex-col items-center justify-center h-48 gap-3"><Package className="w-12 h-12" style={{ color: "var(--text-quaternary)" }} /><button type="button" onClick={download} style={{ fontSize: 13, padding: "6px 18px", borderRadius: 8, border: "0.5px solid var(--glass-border)", background: "var(--glass-bg)", color: "var(--text-secondary)", cursor: "pointer" }}>Download to view</button></div>}
+        </div>
+      </div>
+    </>,
+    document.body,
   );
 }
 
-// ── Condition Badge ───────────────────────────────────────────────────────────
+// ── Attachments panel ─────────────────────────────────────────────────────────
 
-function ConditionBadge({ condition }: { condition: InventoryCondition }) {
-  const cfg = CONDITION_CONFIG[condition];
+function AttachmentsPanel({ item, portalId, userId }: { item: InventoryItem; portalId: string; userId: string }) {
+  const { toast } = useToast();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [atts, setAtts] = useState<InventoryAttachment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState<InventoryAttachment | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchItemAttachments(item.id, portalId).then((data) => { setAtts(data); setLoading(false); });
+  }, [item.id, portalId]);
+
+  const upload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    const added: InventoryAttachment[] = [];
+    for (const f of Array.from(files)) {
+      try { added.push(await uploadInventoryAttachment(f, item.id, portalId, userId)); }
+      catch (e) { toast({ title: `Failed: ${f.name}`, description: e instanceof Error ? e.message : "error", variant: "destructive" }); }
+    }
+    setAtts((prev) => [...added, ...prev]);
+    setUploading(false);
+    if (added.length) toast({ title: `${added.length} file(s) attached` });
+  };
+
+  const remove = async (att: InventoryAttachment) => {
+    await deleteInventoryAttachment(att);
+    setAtts((prev) => prev.filter((a) => a.id !== att.id));
+    toast({ title: "Attachment removed" });
+  };
+
   return (
-    <span style={{
-      fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 99,
-      background: `${cfg.color}18`, color: cfg.color, letterSpacing: "0.03em",
-      textTransform: "capitalize",
-    }}>
-      {cfg.label}
-    </span>
+    <div>
+      <input ref={fileRef} type="file" multiple style={{ display: "none" }} onChange={(e) => upload(e.target.files)} />
+      <div className="flex items-center justify-between mb-2">
+        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Attachments ({atts.length})</span>
+        <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+          className="flex items-center gap-1.5"
+          style={{ fontSize: 11, padding: "4px 10px", borderRadius: 7, border: "0.5px solid var(--glass-border)", background: "var(--glass-bg)", color: "var(--text-secondary)", cursor: "pointer" }}>
+          {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+          Add files
+        </button>
+      </div>
+      {loading && <Skeleton className="h-10 rounded-lg" />}
+      {!loading && atts.length === 0 && (
+        <p style={{ fontSize: 12, color: "var(--text-quaternary)", padding: "8px 0" }}>No files attached.</p>
+      )}
+      {!loading && atts.map((att) => (
+        <div key={att.id} className="flex items-center gap-2 py-1.5">
+          <Paperclip className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--text-quaternary)" }} />
+          <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{att.file_name}</span>
+          <span style={{ fontSize: 11, color: "var(--text-quaternary)", flexShrink: 0 }}>{formatBytes(att.file_size)}</span>
+          {getPreviewKind(att.file_type, att.file_name) !== "none" && (
+            <button type="button" title="Preview" onClick={() => setPreview(att)}
+              style={{ width: 24, height: 24, borderRadius: 5, border: "none", background: "transparent", color: "var(--text-quaternary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+              onMouseEnter={e => { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.background = "var(--surface-hover,rgba(255,255,255,0.06))"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = "var(--text-quaternary)"; e.currentTarget.style.background = "transparent"; }}>
+              <Eye className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <button type="button" title="Delete" onClick={() => remove(att)}
+            style={{ width: 24, height: 24, borderRadius: 5, border: "none", background: "transparent", color: "var(--text-quaternary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+            onMouseEnter={e => { e.currentTarget.style.color = "#ef4444"; e.currentTarget.style.background = "rgba(239,68,68,0.1)"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "var(--text-quaternary)"; e.currentTarget.style.background = "transparent"; }}>
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ))}
+      {preview && <AttachmentPreview att={preview} onClose={() => setPreview(null)} />}
+    </div>
   );
 }
 
-// ── Item Card ─────────────────────────────────────────────────────────────────
+// ── Item Form Modal ────────────────────────────────────────────────────────────
 
-function ItemCard({
-  item,
-  onEdit,
-  onDelete,
+function ItemFormModal({
+  initial,
+  onSave,
+  onClose,
+  portalId,
+  userId,
+}: {
+  initial?: InventoryItem;
+  onSave: (data: Partial<NewInventoryItem>, files: File[]) => Promise<void>;
+  onClose: () => void;
+  portalId: string;
+  userId: string;
+}) {
+  const [form, setForm] = useState({
+    name: initial?.name ?? "",
+    description: initial?.description ?? "",
+    amount: initial?.amount ?? 1,
+    item_value: initial?.item_value ?? 0,
+  });
+  const [errors, setErrors] = useState<Partial<typeof form & { name: string }>>({});
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [saving, setSaving] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [dragOver, setDragOver] = useState(false);
+
+  const set = <K extends keyof typeof form>(k: K, v: typeof form[K]) =>
+    setForm((p) => ({ ...p, [k]: v }));
+
+  const addFiles = (list: FileList | null) => {
+    if (!list) return;
+    setPendingFiles((prev) => [...prev, ...Array.from(list)]);
+  };
+
+  const validate = () => {
+    const e: Partial<typeof form & { name: string }> = {};
+    if (!form.name.trim()) e.name = "Name is required";
+    if (form.amount < 1 || !Number.isInteger(form.amount)) e.amount = 1; // coerce
+    return e;
+  };
+
+  const submit = async () => {
+    const e = validate();
+    if (Object.keys(e).length) { setErrors(e); return; }
+    setSaving(true);
+    await onSave({ ...form, amount: Math.max(1, Math.round(form.amount)), item_value: Math.max(0, form.item_value) }, pendingFiles);
+    setSaving(false);
+    onClose();
+  };
+
+  return createPortal(
+    <>
+      <div className="fixed inset-0 z-[9998]" style={{ background: "rgba(0,0,0,0.5)" }} onClick={onClose} />
+      <div className="fixed z-[9999] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-[500px] max-h-[90vh] overflow-y-auto"
+        style={{ background: "var(--modal-bg,#141414)", border: "1px solid var(--glass-border)", borderRadius: 16, padding: 24, boxShadow: "0 24px 80px rgba(0,0,0,0.6)" }}>
+
+        <div className="flex items-center justify-between mb-5">
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>
+            {initial ? "Edit Item" : "+ New Item"}
+          </h2>
+          <button type="button" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X className="w-5 h-5" /></button>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          {/* Name */}
+          <div className="flex flex-col gap-1.5">
+            <label style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)" }}>Item Name *</label>
+            <input className="glass-input w-full" value={form.name}
+              onChange={(e) => { set("name", e.target.value); setErrors((p) => ({ ...p, name: undefined })); }}
+              placeholder="e.g. Adobe Photoshop License"
+              style={{ fontSize: 14, padding: "10px 14px", border: errors.name ? "1px solid #ef4444" : undefined }}
+              autoFocus />
+            {errors.name && <span style={{ fontSize: 11, color: "#ef4444" }}>{errors.name}</span>}
+          </div>
+
+          {/* Description */}
+          <div className="flex flex-col gap-1.5">
+            <label style={{ fontSize: 13, color: "var(--text-secondary)" }}>Description</label>
+            <input className="glass-input w-full" value={form.description}
+              onChange={(e) => set("description", e.target.value)}
+              placeholder="Optional notes or description"
+              style={{ fontSize: 13, padding: "9px 14px" }} />
+          </div>
+
+          {/* Amount + Value */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label style={{ fontSize: 13, color: "var(--text-secondary)" }}>Amount *</label>
+              <input className="glass-input w-full" type="number" min={1} step={1}
+                value={form.amount}
+                onChange={(e) => set("amount", Math.max(1, Math.round(Number(e.target.value) || 1)))}
+                style={{ fontSize: 14, padding: "9px 14px" }} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label style={{ fontSize: 13, color: "var(--text-secondary)" }}>Total Stock Value (€) *</label>
+              <input className="glass-input w-full" type="number" min={0} step={0.01}
+                value={form.item_value}
+                onChange={(e) => set("item_value", Math.max(0, Number(e.target.value) || 0))}
+                style={{ fontSize: 14, padding: "9px 14px" }} />
+            </div>
+          </div>
+
+          {/* Files (only for new items — existing items have their own AttachmentsPanel) */}
+          {!initial && (
+            <div className="flex flex-col gap-2">
+              <label style={{ fontSize: 13, color: "var(--text-secondary)" }}>Files <span style={{ color: "var(--text-quaternary)" }}>(optional)</span></label>
+              <input ref={fileRef} type="file" multiple style={{ display: "none" }} onChange={(e) => addFiles(e.target.files)} />
+              <div
+                onClick={() => fileRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
+                style={{ border: `2px dashed ${dragOver ? "var(--accent-color)" : "var(--glass-border)"}`, borderRadius: 10, padding: "18px", textAlign: "center", cursor: "pointer", background: dragOver ? "var(--accent-color-dim,rgba(110,231,183,0.05))" : "var(--glass-bg)", fontSize: 12, color: "var(--text-quaternary)", transition: "all 0.15s" }}>
+                Click or drag files here to attach
+              </div>
+              {pendingFiles.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  {pendingFiles.map((f, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <Paperclip className="w-3 h-3 flex-shrink-0" style={{ color: "var(--text-quaternary)" }} />
+                      <span style={{ flex: 1, fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span>
+                      <span style={{ fontSize: 11, color: "var(--text-quaternary)" }}>{formatBytes(f.size)}</span>
+                      <button type="button" onClick={() => setPendingFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-quaternary)" }}>
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Total preview */}
+          <div className="flex justify-between items-center py-2 px-3 rounded-lg" style={{ background: "rgba(0,0,0,0.15)", border: "0.5px solid var(--glass-border)" }}>
+            <span style={{ fontSize: 12, color: "var(--text-quaternary)" }}>
+              €{fmtEur(form.amount > 0 ? form.item_value / form.amount : 0)} × {form.amount}
+            </span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--accent-color)" }}>
+              €{fmtEur(form.item_value)}
+            </span>
+          </div>
+
+          <div className="flex gap-2 justify-end pt-1">
+            <button type="button" onClick={onClose} disabled={saving} style={{ fontSize: 13, padding: "8px 18px", borderRadius: 8, border: "0.5px solid var(--glass-border)", background: "var(--glass-bg)", color: "var(--text-secondary)", cursor: "pointer" }}>Cancel</button>
+            <button type="button" onClick={submit} disabled={saving}
+              className="glass-btn-primary flex items-center gap-2"
+              style={{ fontSize: 13, padding: "8px 18px", borderRadius: 8, opacity: saving ? 0.7 : 1 }}>
+              {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {saving ? "Saving…" : initial ? "Save Changes" : "Add Item"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>,
+    document.body,
+  );
+}
+
+// ── Row ───────────────────────────────────────────────────────────────────────
+
+function ItemRow({
+  item, portalId, userId,
+  onEdit, onDelete,
 }: {
   item: InventoryItem;
+  portalId: string;
+  userId: string;
   onEdit: (item: InventoryItem) => void;
-  onDelete: (id: string) => void;
+  onDelete: (item: InventoryItem) => void;
 }) {
-  const profit = item.status === "sold" && item.sale_price != null
-    ? item.sale_price - item.purchase_price
-    : null;
+  const [expanded, setExpanded] = useState(false);
+  const unitPrice = item.amount > 0 ? item.item_value / item.amount : 0;
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.97 }}
-      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-      style={{
-        background: "var(--glass-bg)",
-        border: "0.5px solid var(--glass-border)",
-        borderRadius: 14,
-        padding: "14px 16px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        position: "relative",
-        transition: "border-color 0.15s",
-      }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(232,255,0,0.25)"; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "var(--glass-border)"; }}
-    >
-      {/* Image placeholder */}
-      <div style={{
-        width: "100%", aspectRatio: "4/3", borderRadius: 10,
-        background: "rgba(255,255,255,0.04)",
-        border: "1px dashed rgba(255,255,255,0.08)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        overflow: "hidden",
-      }}>
-        {item.image_url ? (
-          <img src={item.image_url} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        ) : (
-          <Package style={{ width: 32, height: 32, color: "rgba(255,255,255,0.12)" }} />
-        )}
-      </div>
-
-      {/* Name + brand */}
-      <div>
-        <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.3 }}>
-          {item.name}
-        </p>
-        {item.brand && (
-          <p style={{ fontSize: 11, color: "var(--text-quaternary)", margin: "2px 0 0", letterSpacing: "0.03em" }}>
-            {item.brand}
-            {item.size ? ` · ${item.size}` : ""}
-          </p>
-        )}
-      </div>
-
-      {/* Badges row */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-        <StatusBadge status={item.status} />
-        <ConditionBadge condition={item.condition} />
-        {item.sku && (
-          <span style={{ fontSize: 9, color: "var(--text-quaternary)", padding: "2px 6px", borderRadius: 99, background: "rgba(255,255,255,0.05)", fontFamily: "'Space Mono', monospace" }}>
-            {item.sku}
-          </span>
-        )}
-      </div>
-
-      {/* Prices */}
-      <div style={{ display: "flex", gap: 12 }}>
-        <div>
-          <p style={{ fontSize: 9, color: "var(--text-quaternary)", margin: 0, textTransform: "uppercase", letterSpacing: "0.06em" }}>Cost</p>
-          <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", margin: "1px 0 0" }}>
-            €{fmtEur(item.purchase_price)}
-          </p>
-        </div>
-        {item.listing_price != null && (
-          <div>
-            <p style={{ fontSize: 9, color: "var(--text-quaternary)", margin: 0, textTransform: "uppercase", letterSpacing: "0.06em" }}>Listed</p>
-            <p style={{ fontSize: 13, fontWeight: 700, color: "#e8ff00", margin: "1px 0 0" }}>
-              €{fmtEur(item.listing_price)}
-            </p>
+    <>
+      <tr
+        style={{ borderBottom: "0.5px solid var(--glass-border)", cursor: "pointer" }}
+        onClick={() => setExpanded((p) => !p)}>
+        <td style={{ padding: "12px 14px" }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{item.name}</div>
+          {item.description && <div style={{ fontSize: 11, color: "var(--text-quaternary)", marginTop: 2 }}>{item.description}</div>}
+          <div style={{ fontSize: 11, color: "var(--text-quaternary)", marginTop: 3 }}>
+            €{fmtEur(unitPrice)} × {item.amount}
           </div>
-        )}
-        {profit !== null && (
-          <div>
-            <p style={{ fontSize: 9, color: "var(--text-quaternary)", margin: 0, textTransform: "uppercase", letterSpacing: "0.06em" }}>Profit</p>
-            <p style={{ fontSize: 13, fontWeight: 700, color: profit >= 0 ? "#4ade80" : "#f87171", margin: "1px 0 0" }}>
-              {profit >= 0 ? "+" : ""}€{fmtEur(profit)}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Platform + actions */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 2 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {item.platform && (
-            <span style={{ fontSize: 10, color: "var(--text-quaternary)", textTransform: "capitalize" }}>
-              {item.platform}
-            </span>
-          )}
-          {item.platform_url && (
-            <a href={item.platform_url} target="_blank" rel="noopener noreferrer"
-              style={{ color: "var(--text-quaternary)", display: "flex" }}
-              onClick={(e) => e.stopPropagation()}>
-              <ExternalLink style={{ width: 11, height: 11 }} />
-            </a>
-          )}
-        </div>
-        <div style={{ display: "flex", gap: 4 }}>
-          <button
-            onClick={() => onEdit(item)}
-            title="Edit"
-            style={{
-              width: 28, height: 28, borderRadius: 8, border: "0.5px solid var(--glass-border)",
-              background: "var(--glass-bg-subtle)", cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "var(--text-quaternary)",
-            }}
-          >
-            <Pencil style={{ width: 12, height: 12 }} />
-          </button>
-          <button
-            onClick={() => onDelete(item.id)}
-            title="Delete"
-            style={{
-              width: 28, height: 28, borderRadius: 8, border: "0.5px solid rgba(255,90,90,0.2)",
-              background: "rgba(255,90,90,0.06)", cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#FF5A5A",
-            }}
-          >
-            <Trash2 style={{ width: 12, height: 12 }} />
-          </button>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-// ── Add / Edit Modal ──────────────────────────────────────────────────────────
-
-interface ItemModalProps {
-  open: boolean;
-  editItem: InventoryItem | null;
-  onClose: () => void;
-  onSave: (data: NewInventoryItem) => Promise<boolean>;
-  onUpdate: (id: string, changes: Partial<NewInventoryItem>) => Promise<boolean>;
-}
-
-function ItemModal({ open, editItem, onClose, onSave, onUpdate }: ItemModalProps) {
-  const [form, setForm] = useState<NewInventoryItem>(blankForm());
-
-  // Populate form when editing
-  useMemo(() => {
-    if (editItem) {
-      setForm({
-        name: editItem.name,
-        brand: editItem.brand ?? "",
-        category: editItem.category ?? "",
-        size: editItem.size ?? "",
-        condition: editItem.condition,
-        purchase_price: editItem.purchase_price,
-        listing_price: editItem.listing_price,
-        sale_price: editItem.sale_price,
-        sku: editItem.sku ?? "",
-        status: editItem.status,
-        platform: editItem.platform,
-        platform_url: editItem.platform_url ?? "",
-        platform_listing_id: editItem.platform_listing_id ?? "",
-        purchase_date: editItem.purchase_date ?? "",
-        sale_date: editItem.sale_date ?? "",
-        notes: editItem.notes ?? "",
-        image_url: editItem.image_url ?? "",
-      });
-    } else {
-      setForm(blankForm());
-    }
-  }, [editItem, open]);
-
-  if (!open) return null;
-
-  function set<K extends keyof NewInventoryItem>(key: K, value: NewInventoryItem[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const clean: NewInventoryItem = {
-      ...form,
-      purchase_price: Number(form.purchase_price) || 0,
-      listing_price: form.listing_price != null && form.listing_price !== ("" as unknown) ? Number(form.listing_price) : undefined,
-      sale_price: form.sale_price != null && form.sale_price !== ("" as unknown) ? Number(form.sale_price) : undefined,
-      brand: form.brand || undefined,
-      category: form.category || undefined,
-      size: form.size || undefined,
-      sku: form.sku || undefined,
-      platform_url: form.platform_url || undefined,
-      platform_listing_id: form.platform_listing_id || undefined,
-      purchase_date: form.purchase_date || undefined,
-      sale_date: form.sale_date || undefined,
-      notes: form.notes || undefined,
-      image_url: form.image_url || undefined,
-    };
-
-    let ok = false;
-    if (editItem) {
-      ok = await onUpdate(editItem.id, clean);
-    } else {
-      ok = await onSave(clean);
-    }
-    if (ok) onClose();
-  }
-
-  const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "8px 12px", borderRadius: 8, fontSize: 12,
-    background: "rgba(255,255,255,0.04)", border: "0.5px solid rgba(255,255,255,0.12)",
-    color: "var(--text-primary)", outline: "none", fontFamily: "'Space Mono', monospace",
-    boxSizing: "border-box",
-  };
-  const labelStyle: React.CSSProperties = {
-    fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em",
-    color: "var(--text-quaternary)", marginBottom: 4, display: "block",
-  };
-  const rowStyle: React.CSSProperties = {
-    display: "grid", gap: 12,
-  };
-
-  return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 60,
-      background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      padding: "16px",
-    }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 16 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 16 }}
-        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-        style={{
-          background: "#0d0d0d", border: "0.5px solid rgba(232,255,0,0.2)",
-          borderRadius: 16, padding: "24px", width: "100%", maxWidth: 520,
-          maxHeight: "90vh", overflowY: "auto",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <h2 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, color: "#e8ff00", margin: 0, letterSpacing: 1 }}>
-            {editItem ? "EDIT ITEM" : "ADD ITEM"}
-          </h2>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-quaternary)", fontSize: 20 }}>
-            ×
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {/* Name */}
-          <div>
-            <label style={labelStyle}>Name *</label>
-            <input
-              style={inputStyle} required value={form.name}
-              onChange={(e) => set("name", e.target.value)}
-              placeholder="Item name"
-            />
-          </div>
-
-          {/* Brand + Category */}
-          <div style={{ ...rowStyle, gridTemplateColumns: "1fr 1fr" }}>
-            <div>
-              <label style={labelStyle}>Brand</label>
-              <input style={inputStyle} value={form.brand ?? ""} onChange={(e) => set("brand", e.target.value)} placeholder="e.g. Nike" />
-            </div>
-            <div>
-              <label style={labelStyle}>Category</label>
-              <input style={inputStyle} value={form.category ?? ""} onChange={(e) => set("category", e.target.value)} placeholder="e.g. Sneakers" />
-            </div>
-          </div>
-
-          {/* Size + Condition */}
-          <div style={{ ...rowStyle, gridTemplateColumns: "1fr 1fr" }}>
-            <div>
-              <label style={labelStyle}>Size</label>
-              <input style={inputStyle} value={form.size ?? ""} onChange={(e) => set("size", e.target.value)} placeholder="e.g. 42" />
-            </div>
-            <div>
-              <label style={labelStyle}>Condition</label>
-              <select style={inputStyle} value={form.condition} onChange={(e) => set("condition", e.target.value as InventoryCondition)}>
-                {CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {/* SKU */}
-          <div>
-            <label style={labelStyle}>SKU</label>
-            <input style={inputStyle} value={form.sku ?? ""} onChange={(e) => set("sku", e.target.value)} placeholder="Stock keeping unit" />
-          </div>
-
-          {/* Prices */}
-          <div style={{ ...rowStyle, gridTemplateColumns: "1fr 1fr 1fr" }}>
-            <div>
-              <label style={labelStyle}>Purchase Price (€)</label>
-              <input
-                type="number" min="0" step="0.01" style={inputStyle}
-                value={form.purchase_price ?? ""}
-                onChange={(e) => set("purchase_price", parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>Listing Price (€)</label>
-              <input
-                type="number" min="0" step="0.01" style={inputStyle}
-                value={form.listing_price ?? ""}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  set("listing_price", v === "" ? undefined : parseFloat(v));
-                }}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>Sale Price (€)</label>
-              <input
-                type="number" min="0" step="0.01" style={inputStyle}
-                value={form.sale_price ?? ""}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  set("sale_price", v === "" ? undefined : parseFloat(v));
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Status + Platform */}
-          <div style={{ ...rowStyle, gridTemplateColumns: "1fr 1fr" }}>
-            <div>
-              <label style={labelStyle}>Status</label>
-              <select style={inputStyle} value={form.status} onChange={(e) => set("status", e.target.value as InventoryStatus)}>
-                {ALL_STATUSES.map((s) => <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={labelStyle}>Platform</label>
-              <select style={inputStyle} value={form.platform ?? ""} onChange={(e) => set("platform", (e.target.value || undefined) as InventoryPlatform | undefined)}>
-                <option value="">None</option>
-                {PLATFORMS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {/* Platform URL */}
-          <div>
-            <label style={labelStyle}>Platform URL</label>
-            <input style={inputStyle} value={form.platform_url ?? ""} onChange={(e) => set("platform_url", e.target.value)} placeholder="https://..." />
-          </div>
-
-          {/* Purchase date + Sale date */}
-          <div style={{ ...rowStyle, gridTemplateColumns: "1fr 1fr" }}>
-            <div>
-              <label style={labelStyle}>Purchase Date</label>
-              <input type="date" style={inputStyle} value={form.purchase_date ?? ""} onChange={(e) => set("purchase_date", e.target.value || undefined)} />
-            </div>
-            <div>
-              <label style={labelStyle}>Sale Date</label>
-              <input type="date" style={inputStyle} value={form.sale_date ?? ""} onChange={(e) => set("sale_date", e.target.value || undefined)} />
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label style={labelStyle}>Notes</label>
-            <textarea
-              style={{ ...inputStyle, resize: "vertical", minHeight: 72 }}
-              value={form.notes ?? ""}
-              onChange={(e) => set("notes", e.target.value)}
-              placeholder="Additional notes..."
-            />
-          </div>
-
-          {/* Actions */}
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
-            <button
-              type="button" onClick={onClose}
-              style={{
-                padding: "8px 20px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                background: "transparent", border: "0.5px solid rgba(255,255,255,0.15)", color: "var(--text-secondary)",
-                fontFamily: "'Space Mono', monospace",
-              }}
-            >
-              Cancel
+        </td>
+        <td style={{ padding: "12px 10px", textAlign: "right", fontSize: 13, color: "var(--text-secondary)", fontWeight: 600, whiteSpace: "nowrap" }}>
+          {item.amount}
+        </td>
+        <td style={{ padding: "12px 10px", textAlign: "right", fontSize: 13, fontWeight: 700, color: "var(--accent-color)", whiteSpace: "nowrap" }}>
+          €{fmtEur(item.item_value)}
+        </td>
+        <td style={{ padding: "12px 10px", textAlign: "center" }}>
+          {expanded
+            ? <ChevronUp className="w-3.5 h-3.5 mx-auto" style={{ color: "var(--text-quaternary)" }} />
+            : <ChevronDown className="w-3.5 h-3.5 mx-auto" style={{ color: "var(--text-quaternary)" }} />}
+        </td>
+        <td style={{ padding: "12px 10px", textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1 justify-end">
+            <button type="button" title="Edit" onClick={() => onEdit(item)}
+              style={{ width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent", color: "var(--text-quaternary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+              onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-hover,rgba(255,255,255,0.07))"; e.currentTarget.style.color = "var(--text-primary)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-quaternary)"; }}>
+              <Pencil className="w-3.5 h-3.5" />
             </button>
-            <button
-              type="submit"
-              style={{
-                padding: "8px 24px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer",
-                background: "#e8ff00", border: "none", color: "#000",
-                fontFamily: "'Space Mono', monospace",
-              }}
-            >
-              {editItem ? "SAVE CHANGES" : "ADD ITEM"}
+            <button type="button" title="Delete" onClick={() => onDelete(item)}
+              style={{ width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent", color: "var(--text-quaternary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.1)"; e.currentTarget.style.color = "#ef4444"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-quaternary)"; }}>
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
-        </form>
-      </motion.div>
-    </div>
+        </td>
+      </tr>
+      {expanded && (
+        <tr style={{ background: "rgba(0,0,0,0.1)" }}>
+          <td colSpan={6} style={{ padding: "12px 20px 16px" }}>
+            <AttachmentsPanel item={item} portalId={portalId} userId={userId} />
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 
-// ── Stat Card ─────────────────────────────────────────────────────────────────
-
-function StatCard({ label, value, color }: { label: string; value: string; color?: string }) {
-  return (
-    <div style={{
-      background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)",
-      borderRadius: 14, padding: "14px 18px",
-    }}>
-      <p style={{ fontSize: 11, color: "var(--text-quaternary)", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", margin: 0 }}>
-        {label}
-      </p>
-      <p style={{ fontSize: 20, fontWeight: 700, color: color ?? "var(--text-primary)", letterSpacing: "-0.5px", marginTop: 4 }}>
-        {value}
-      </p>
-    </div>
-  );
-}
-
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function InventoryPage() {
-  const { items, isLoading, totalItems, totalValue, totalProfit, addItem, updateItem, deleteItem } = useInventory();
+  const { user } = useAuth();
+  const { portal } = usePortal();
+  const { toast } = useToast();
+  const portalId = portal?.id ?? "sosa";
+  const userId = user?.id ?? "";
 
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [platformFilter, setPlatformFilter] = useState<PlatformFilter>("all");
+  const { items, isLoading, addItem, updateItem, deleteItem } = useInventory();
+
   const [search, setSearch] = useState("");
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editItem, setEditItem] = useState<InventoryItem | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [editTarget, setEditTarget] = useState<InventoryItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<InventoryItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  // Counts per status
-  const statusCounts = useMemo(() => {
-    const counts: Record<InventoryStatus, number> = { in_stock: 0, listed: 0, sold: 0, shipped: 0, returned: 0 };
-    items.forEach((item) => { counts[item.status] = (counts[item.status] ?? 0) + 1; });
-    return counts;
-  }, [items]);
-
-  // Filtered items
-  const filtered = useMemo(() => {
-    return items.filter((item) => {
-      if (statusFilter !== "all" && item.status !== statusFilter) return false;
-      if (platformFilter !== "all" && item.platform !== platformFilter) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        const haystack = `${item.name} ${item.brand ?? ""} ${item.sku ?? ""} ${item.category ?? ""}`.toLowerCase();
-        if (!haystack.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [items, statusFilter, platformFilter, search]);
-
-  function openAdd() {
-    setEditItem(null);
-    setModalOpen(true);
-  }
-
-  function openEdit(item: InventoryItem) {
-    setEditItem(item);
-    setModalOpen(true);
-  }
-
-  function handleCloseModal() {
-    setModalOpen(false);
-    setEditItem(null);
-  }
-
-  const filterBtnStyle = (active: boolean, color?: string): React.CSSProperties => ({
-    padding: "5px 12px", borderRadius: 8, fontSize: 11, fontWeight: active ? 700 : 500,
-    cursor: "pointer", whiteSpace: "nowrap" as const,
-    background: active ? (color ?? "#e8ff00") : "var(--glass-bg)",
-    border: `0.5px solid ${active ? (color ?? "#e8ff00") : "var(--glass-border)"}`,
-    color: active ? (color ? "#fff" : "#000") : "var(--text-secondary)",
-    transition: "all 0.15s",
-    fontFamily: "'Space Mono', monospace",
+  const filtered = items.filter((item) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return item.name.toLowerCase().includes(q) || (item.description ?? "").toLowerCase().includes(q);
   });
+
+  const portfolioTotal = items.reduce((s, i) => s + i.item_value, 0);
+
+  const handleSave = useCallback(async (data: Partial<NewInventoryItem>, files: File[]) => {
+    const fullData: NewInventoryItem = {
+      name: data.name ?? "",
+      description: data.description ?? "",
+      amount: data.amount ?? 1,
+      item_value: data.item_value ?? 0,
+      condition: "good",
+      purchase_price: 0,
+      status: "in_stock",
+    };
+
+    if (editTarget) {
+      await updateItem(editTarget.id, data);
+    } else {
+      const ok = await addItem(fullData);
+      // upload files after item is created — we need the item id from the refreshed list
+      // For now, files are uploaded after the list refreshes via the AttachmentsPanel in the row
+      // If ok = true the item is in the list; files attached via expanded row
+      if (!ok) return;
+      // If files were provided at creation time, we need the new item id
+      // The item is added via the hook which triggers a reload; we can't get the id here directly.
+      // Files added at creation time are surfaced as "pending" to the user via the row's AttachmentsPanel.
+      // This is a known limitation — advise user to expand the row to attach files after creation.
+      if (files.length > 0) {
+        toast({ title: "Item added", description: "Expand the row to attach files." });
+      }
+    }
+  }, [editTarget, addItem, updateItem, toast]);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    await deleteItem(deleteTarget.id);
+    setDeleting(false);
+    setDeleteTarget(null);
+  };
 
   return (
     <ModuleErrorBoundary moduleName="Inventory">
-      <div className="space-y-5">
-        <LiquidGlassFilter />
+      <div className="flex flex-col gap-4">
 
-        {/* ── Header ──────────────────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}
-        >
+        {/* Header */}
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 48, color: "#e8ff00", margin: 0, letterSpacing: 2, lineHeight: 1 }}>
-              INVENTORY
+            <h1 className="flex items-center gap-2" style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>
+              <Package className="w-5 h-5" /> Inventory
             </h1>
-            <p style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: "var(--text-quaternary)", margin: "4px 0 0" }}>
-              Track your products, listings and sales
+            <p style={{ fontSize: 12, color: "var(--text-quaternary)", marginTop: 2 }}>
+              Digital stock manager · {items.length} item{items.length !== 1 ? "s" : ""}
             </p>
           </div>
-          <button
-            onClick={openAdd}
-            style={{
-              height: 38, padding: "0 20px", borderRadius: 10,
-              background: "#e8ff00", border: "none", color: "#000",
-              fontSize: 13, fontWeight: 700, cursor: "pointer",
-              display: "flex", alignItems: "center", gap: 6,
-              fontFamily: "'Space Mono', monospace",
-            }}
-          >
-            <Plus style={{ width: 15, height: 15 }} />
-            ADD ITEM
-          </button>
-        </motion.div>
+          <div className="flex items-center gap-2">
+            {/* Portfolio total */}
+            <div className="hidden sm:flex flex-col items-end">
+              <span style={{ fontSize: 10, color: "var(--text-quaternary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Stock Value</span>
+              <span style={{ fontSize: 18, fontWeight: 700, color: "var(--accent-color)" }}>€{fmtEur(portfolioTotal)}</span>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: "var(--text-quaternary)" }} />
+              <input className="glass-input" value={search} onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search items…"
+                style={{ fontSize: 12, padding: "6px 10px 6px 28px", borderRadius: 8, width: 180 }} />
+            </div>
+            <button type="button" onClick={() => { setEditTarget(null); setShowForm(true); }}
+              className="glass-btn-primary flex items-center gap-1.5"
+              style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8 }}>
+              <Plus className="w-4 h-4" /> New Item
+            </button>
+          </div>
+        </div>
 
-        {/* ── Stats ───────────────────────────────────────────────── */}
-        <motion.div
-          className="grid grid-cols-2 lg:grid-cols-6 gap-3"
-          initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <StatCard label="Total Items" value={String(totalItems)} />
-          <StatCard label="In Stock"    value={String(statusCounts.in_stock)} color="#22c55e" />
-          <StatCard label="Listed"      value={String(statusCounts.listed)}   color="#e8ff00" />
-          <StatCard label="Sold"        value={String(statusCounts.sold)}     color="#818cf8" />
-          <StatCard label="Value (€)"   value={`€${fmtEur(totalValue)}`}      color="var(--text-primary)" />
-          <StatCard label="Profit (€)"  value={`${totalProfit >= 0 ? "+" : ""}€${fmtEur(totalProfit)}`} color={totalProfit >= 0 ? "#4ade80" : "#f87171"} />
-        </motion.div>
+        {/* Portfolio total — mobile */}
+        <div className="flex sm:hidden justify-between items-center px-4 py-3 rounded-xl"
+          style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)" }}>
+          <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Stock Value</span>
+          <span style={{ fontSize: 20, fontWeight: 700, color: "var(--accent-color)" }}>€{fmtEur(portfolioTotal)}</span>
+        </div>
 
-        {/* ── Filters + Grid ──────────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <LiquidGlassCard accentColor="#e8ff00" hover={false}>
-            {/* Filters bar */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16, alignItems: "center" }}>
-              {/* Status filter */}
-              <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                <button style={filterBtnStyle(statusFilter === "all")} onClick={() => setStatusFilter("all")}>All</button>
-                {ALL_STATUSES.map((s) => (
-                  <button key={s} style={filterBtnStyle(statusFilter === s, STATUS_CONFIG[s].color)} onClick={() => setStatusFilter(s)}>
-                    {STATUS_CONFIG[s].label}
-                  </button>
+        {/* Table */}
+        <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 16, overflow: "hidden" }}>
+          {isLoading && (
+            <div className="p-5 space-y-3">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-14 rounded-xl" />)}
+            </div>
+          )}
+
+          {!isLoading && items.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <Package className="w-14 h-14" style={{ color: "var(--text-quaternary)" }} />
+              <p style={{ fontSize: 16, fontWeight: 700, color: "var(--text-secondary)" }}>No items yet</p>
+              <p style={{ fontSize: 13, color: "var(--text-quaternary)" }}>Add digital items to track your stock and value.</p>
+              <button type="button" onClick={() => setShowForm(true)}
+                className="glass-btn-primary flex items-center gap-2"
+                style={{ fontSize: 13, padding: "8px 20px", borderRadius: 9 }}>
+                <Plus className="w-4 h-4" /> Add First Item
+              </button>
+            </div>
+          )}
+
+          {!isLoading && items.length > 0 && (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "rgba(0,0,0,0.1)", borderBottom: "0.5px solid var(--glass-border)" }}>
+                  <th style={{ padding: "10px 14px", textAlign: "left", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-quaternary)" }}>Item</th>
+                  <th style={{ padding: "10px 10px", textAlign: "right", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-quaternary)", whiteSpace: "nowrap" }}>Qty</th>
+                  <th style={{ padding: "10px 10px", textAlign: "right", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-quaternary)", whiteSpace: "nowrap" }}>Total Value</th>
+                  <th style={{ padding: "10px 10px", textAlign: "center", width: 24 }} />
+                  <th style={{ padding: "10px 10px", textAlign: "right", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-quaternary)" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((item) => (
+                  <ItemRow
+                    key={item.id}
+                    item={item}
+                    portalId={portalId}
+                    userId={userId}
+                    onEdit={(i) => { setEditTarget(i); setShowForm(true); }}
+                    onDelete={setDeleteTarget}
+                  />
                 ))}
-              </div>
+              </tbody>
+              <tfoot>
+                <tr style={{ background: "rgba(0,0,0,0.12)", borderTop: "0.5px solid var(--glass-border)" }}>
+                  <td colSpan={2} style={{ padding: "12px 14px", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>
+                    Stock Value ({items.length} item{items.length !== 1 ? "s" : ""})
+                  </td>
+                  <td style={{ padding: "12px 10px", textAlign: "right", fontSize: 16, fontWeight: 800, color: "var(--accent-color)" }}>
+                    €{fmtEur(portfolioTotal)}
+                  </td>
+                  <td colSpan={2} />
+                </tr>
+              </tfoot>
+            </table>
+          )}
+        </div>
+      </div>
 
-              {/* Platform filter */}
-              <select
-                value={platformFilter}
-                onChange={(e) => setPlatformFilter(e.target.value as PlatformFilter)}
-                className="glass-input"
-                style={{ fontSize: 11, padding: "5px 10px", borderRadius: 8, minWidth: 110, fontFamily: "'Space Mono', monospace" }}
-              >
-                <option value="all">All Platforms</option>
-                {PLATFORMS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-              </select>
+      {/* Add / Edit form modal */}
+      {showForm && (
+        <ItemFormModal
+          initial={editTarget ?? undefined}
+          onSave={handleSave}
+          onClose={() => { setShowForm(false); setEditTarget(null); }}
+          portalId={portalId}
+          userId={userId}
+        />
+      )}
 
-              {/* Search */}
-              <div className="relative" style={{ marginLeft: "auto" }}>
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: "var(--text-quaternary)" }} />
-                <input
-                  className="glass-input"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search name, brand, SKU..."
-                  style={{ fontSize: 12, padding: "6px 10px 6px 28px", borderRadius: 8, width: 200 }}
-                />
+      {/* Delete confirmation */}
+      {deleteTarget && createPortal(
+        <>
+          <div className="fixed inset-0 z-[9998]" style={{ background: "rgba(0,0,0,0.6)" }} onClick={() => setDeleteTarget(null)} />
+          <div className="fixed z-[9999] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+            style={{ width: "min(90vw,380px)", background: "var(--modal-bg,#141414)", border: "1px solid var(--glass-border)", borderRadius: 14, padding: 24 }}>
+            <div className="flex items-start gap-3 mb-4">
+              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "#f59e0b" }} />
+              <div>
+                <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Delete item?</p>
+                <p style={{ fontSize: 13, color: "var(--text-tertiary)", marginTop: 4 }}>
+                  <strong style={{ color: "var(--text-secondary)" }}>{deleteTarget.name}</strong> and all its attachments will be permanently deleted.
+                </p>
               </div>
             </div>
-
-            {/* Result count */}
-            <p style={{ fontSize: 11, color: "var(--text-quaternary)", marginBottom: 16 }}>
-              {filtered.length} item{filtered.length !== 1 ? "s" : ""}
-              {(statusFilter !== "all" || platformFilter !== "all" || search) ? " (filtered)" : ""}
-            </p>
-
-            {/* Grid */}
-            {isLoading ? (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 }}>
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <Skeleton key={i} className="rounded-xl" style={{ height: 280 }} />
-                ))}
-              </div>
-            ) : filtered.length === 0 ? (
-              <EmptyState
-                icon={<Package style={{ width: 48, height: 48 }} />}
-                title={items.length === 0 ? "NO INVENTORY" : "NO RESULTS"}
-                description={
-                  items.length === 0
-                    ? "Start tracking your products and listings."
-                    : "No items match your current filters."
-                }
-                actionLabel={items.length === 0 ? "ADD FIRST ITEM" : undefined}
-                onAction={items.length === 0 ? openAdd : undefined}
-              />
-            ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 }}>
-                <AnimatePresence mode="popLayout">
-                  {filtered.map((item) => (
-                    <ItemCard key={item.id} item={item} onEdit={openEdit} onDelete={setDeleteId} />
-                  ))}
-                </AnimatePresence>
-              </div>
-            )}
-          </LiquidGlassCard>
-        </motion.div>
-
-        {/* ── Add / Edit Modal ─────────────────────────────────────── */}
-        <AnimatePresence>
-          {modalOpen && (
-            <ItemModal
-              open={modalOpen}
-              editItem={editItem}
-              onClose={handleCloseModal}
-              onSave={addItem}
-              onUpdate={updateItem}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* ── Delete Confirmation ──────────────────────────────────── */}
-        <ConfirmDialog
-          open={!!deleteId}
-          onOpenChange={(o) => { if (!o) setDeleteId(null); }}
-          title="DELETE ITEM"
-          description="This action cannot be undone. The item will be permanently removed from your inventory."
-          confirmLabel="Delete"
-          destructive
-          onConfirm={() => {
-            if (deleteId) deleteItem(deleteId);
-            setDeleteId(null);
-          }}
-        />
-      </div>
+            <div className="flex gap-2 justify-end">
+              <button type="button" onClick={() => setDeleteTarget(null)} disabled={deleting}
+                style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8, border: "0.5px solid var(--glass-border)", background: "var(--glass-bg)", color: "var(--text-secondary)", cursor: "pointer" }}>
+                Cancel
+              </button>
+              <button type="button" onClick={handleDelete} disabled={deleting}
+                style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", cursor: deleting ? "wait" : "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                {deleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                Delete
+              </button>
+            </div>
+          </div>
+        </>,
+        document.body,
+      )}
     </ModuleErrorBoundary>
   );
 }

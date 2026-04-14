@@ -37,6 +37,12 @@ export function EditProfileModal({ profile, open, onClose, onSaved }: Props) {
     if (form.website_url && !/^https?:\/\/.+/.test(form.website_url)) errs.website_url = "Must start with http(s)://";
     if (form.linkedin_url && !/^https?:\/\/.+/.test(form.linkedin_url)) errs.linkedin_url = "Must start with http(s)://";
     if (form.instagram_url && !/^https?:\/\/.+/.test(form.instagram_url)) errs.instagram_url = "Must start with http(s)://";
+    if (form.iban) {
+      const raw = form.iban.replace(/\s/g, "").toUpperCase();
+      if (!/^[A-Z]{2}\d{2}[A-Z0-9]{4,30}$/.test(raw)) {
+        errs.iban = "Invalid IBAN (e.g. IT60 X054 2811 1010 0000 0123 456)";
+      }
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -209,6 +215,26 @@ export function EditProfileModal({ profile, open, onClose, onSaved }: Props) {
                   <input className="glass-input w-full" value={form.postal_code || ""} onChange={(e) => set("postal_code", e.target.value)} style={fieldStyle("postal_code")} maxLength={10} />
                 </Field>
               </div>
+            </Section>
+
+            {/* Banking Details */}
+            <Section title="Banking Details">
+              <Field label="IBAN" error={errors.iban}>
+                <input
+                  className="glass-input w-full"
+                  value={form.iban || ""}
+                  onChange={(e) => {
+                    // Auto-format with spaces every 4 chars
+                    const raw = e.target.value.replace(/\s/g, "").toUpperCase().slice(0, 34);
+                    const formatted = raw.match(/.{1,4}/g)?.join(" ") ?? raw;
+                    set("iban", formatted || null);
+                  }}
+                  style={fieldStyle("iban")}
+                  placeholder="IT60 X054 2811 1010 0000 0123 456"
+                  maxLength={42}
+                  spellCheck={false}
+                />
+              </Field>
             </Section>
 
             {/* Brand Color */}

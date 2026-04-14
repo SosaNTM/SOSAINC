@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Navigate, Link, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/authContext";
-import { toast } from "sonner";
 import s from "./LoginPage.module.css";
 
 /* ── Data ─────────────────────────────────────────────────── */
@@ -121,11 +120,6 @@ const LoginPage = () => {
     })();
   }, [email, password, login]);
 
-  /* ── Social stubs ───────────────────────────────────────── */
-  const handleSocial = (provider: string): void => {
-    toast.info(`${provider} login not configured yet`);
-  };
-
   /* ── Auth redirect (AFTER all hooks) ────────────────────── */
   if (isAuthenticated && !success) return <Navigate to="/hub" replace />;
 
@@ -202,11 +196,6 @@ const LoginPage = () => {
             transform: loaded ? "translateY(0)" : "translateY(30px)",
           }}
         >
-          {/* Logo */}
-          <div className={s.logoMark}>
-            <LogoMark />
-          </div>
-
           <h1 className={s.loginTitle}>SIGN IN</h1>
           <p className={s.loginSubtitle}>ENTER THE GRIND</p>
 
@@ -287,11 +276,6 @@ const LoginPage = () => {
               )}
             </div>
 
-            {/* Forgot */}
-            <div className={s.forgotRow} style={{ marginTop: 12 }}>
-              <Link to="/forgot-password" className={s.forgotLink}>FORGOT PASSWORD?</Link>
-            </div>
-
             {/* Submit */}
             <button type="submit" disabled={loading} className={s.submitBtn}>
               {loading ? (
@@ -305,31 +289,6 @@ const LoginPage = () => {
             </button>
           </form>
 
-          {/* Divider */}
-          <div className={s.dividerRow}>
-            <div className={s.dividerLine} />
-            <span className={s.dividerText}>OR</span>
-            <div className={s.dividerLine} />
-          </div>
-
-          {/* Social logins */}
-          <div className={s.socialRow}>
-            <button type="button" className={s.socialBtn} onClick={() => handleSocial("Google")} aria-label="Sign in with Google">
-              <span>G</span>
-            </button>
-            <button type="button" className={s.socialBtn} onClick={() => handleSocial("X")} aria-label="Sign in with X">
-              <span>𝕏</span>
-            </button>
-            <button type="button" className={s.socialBtn} onClick={() => handleSocial("LinkedIn")} aria-label="Sign in with LinkedIn">
-              <span>in</span>
-            </button>
-          </div>
-
-          {/* No public signup — admin-only access */}
-          <p className={s.signupText}>
-            NEW TO THE GAME?{" "}
-            <span className={s.signupLink} style={{ cursor: "default", opacity: 0.6 }}>CONTACT YOUR ADMIN FOR ACCESS</span>
-          </p>
         </div>
 
         {/* Status bar */}

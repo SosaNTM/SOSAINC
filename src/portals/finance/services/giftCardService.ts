@@ -1,6 +1,7 @@
 // ── Gift Card Service — Supabase CRUD with localStorage fallback ─────────────
 
 import { supabase } from "@/lib/supabase";
+import { toPortalUUID } from "@/lib/portalUUID";
 import { STORAGE_GIFT_CARDS_PREFIX, STORAGE_GIFT_CARD_TX_PREFIX, STORAGE_GIFT_CARDS_LEGACY, STORAGE_GIFT_CARD_TX_LEGACY } from "@/constants/storageKeys";
 import type {
   GiftCard, GiftCardBrand, GiftCardTransaction, GiftCardCurrency,
@@ -11,10 +12,12 @@ import type {
 // Portal-scoped localStorage keys
 let CK = `${STORAGE_GIFT_CARDS_PREFIX}_sosa`;
 let TK = `${STORAGE_GIFT_CARD_TX_PREFIX}_sosa`;
+let currentPortalId = "sosa";
 
 export function setGiftCardPortal(portalId: string): void {
   CK = `${STORAGE_GIFT_CARDS_PREFIX}_${portalId}`;
   TK = `${STORAGE_GIFT_CARD_TX_PREFIX}_${portalId}`;
+  currentPortalId = portalId;
   // Migrate from old global keys on first access per portal
   if (!localStorage.getItem(CK)) {
     const legacy = localStorage.getItem(STORAGE_GIFT_CARDS_LEGACY);
@@ -115,6 +118,7 @@ export async function fetchGiftCards(): Promise<GiftCard[]> {
     const { data, error } = await supabase
       .from("gift_cards")
       .select("*")
+      .eq("portal_id", toPortalUUID(currentPortalId))
       .order("is_favorite", { ascending: false })
       .order("created_at", { ascending: false });
     if (error) throw error;
@@ -166,7 +170,7 @@ export async function createGiftCard(card: {
   try {
     const { data, error } = await supabase
       .from("gift_cards")
-      .insert(card)
+      .insert({ ...card, portal_id: toPortalUUID(currentPortalId) })
       .select()
       .single();
     if (error) throw error;
@@ -219,6 +223,7 @@ export async function updateGiftCard(
       .from("gift_cards")
       .update(updates)
       .eq("id", id)
+      .eq("portal_id", toPortalUUID(currentPortalId))
       .select()
       .single();
     if (error) throw error;
@@ -248,7 +253,7 @@ export async function deleteGiftCard(id: string): Promise<void> {
   }
 
   try {
-    const { error } = await supabase.from("gift_cards").delete().eq("id", id);
+    const { error } = await supabase.from("gift_cards").delete().eq("id", id).eq("portal_id", toPortalUUID(currentPortalId));
     if (error) throw error;
   } catch {
     writeLocal(CK, readLocal<GiftCard>(CK).filter((c) => c.id !== id));
@@ -271,7 +276,8 @@ export async function toggleFavorite(id: string, isFavorite: boolean): Promise<v
     const { error } = await supabase
       .from("gift_cards")
       .update({ is_favorite: isFavorite })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("portal_id", toPortalUUID(currentPortalId));
     if (error) throw error;
   } catch {
     const all = readLocal<GiftCard>(CK);
@@ -297,6 +303,7 @@ export async function fetchCardTransactions(giftCardId: string): Promise<GiftCar
       .from("gift_card_transactions")
       .select("*")
       .eq("gift_card_id", giftCardId)
+      .eq("portal_id", toPortalUUID(currentPortalId))
       .order("transaction_date", { ascending: false });
     if (error) throw error;
     return data || [];
@@ -348,7 +355,7 @@ export async function addCardTransaction(transaction: {
   try {
     const { data, error } = await supabase
       .from("gift_card_transactions")
-      .insert(transaction)
+      .insert({ ...transaction, portal_id: toPortalUUID(currentPortalId) })
       .select()
       .single();
     if (error) throw error;
@@ -402,7 +409,7 @@ export async function deleteCardTransaction(id: string): Promise<void> {
   }
 
   try {
-    const { error } = await supabase.from("gift_card_transactions").delete().eq("id", id);
+    const { error } = await supabase.from("gift_card_transactions").delete().eq("id", id).eq("portal_id", toPortalUUID(currentPortalId));
     if (error) throw error;
   } catch {
     const allTx = readLocal<GiftCardTransaction>(TK);

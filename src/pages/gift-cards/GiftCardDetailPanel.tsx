@@ -106,7 +106,7 @@ export function GiftCardDetailPanel({
             <div className="flex items-center justify-center gap-4 mt-3">
               <button type="button" onClick={() => onToggleFavorite(!card.is_favorite)}
                 style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: card.is_favorite ? "#e8ff00" : "rgba(255,255,255,0.15)", fontWeight: 600 }}>
-                ★ {card.is_favorite ? "Preferita" : "Preferita"}
+                ★ {card.is_favorite ? "Favorited" : "Favorite"}
               </button>
               <div className="flex items-center gap-1.5">
                 <div style={{ width: 6, height: 6, borderRadius: 3, background: getStatusColor(card.status) }} />
@@ -117,7 +117,7 @@ export function GiftCardDetailPanel({
 
           {/* Balance Section */}
           <div style={{ padding: "16px", borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.06)", marginBottom: 16 }}>
-            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "var(--text-quaternary)", textTransform: "uppercase", marginBottom: 8 }}>SALDO</p>
+            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "var(--text-quaternary)", textTransform: "uppercase", marginBottom: 8 }}>BALANCE</p>
             <p style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)", textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
               €{card.remaining_value.toFixed(2)} <span style={{ fontSize: 14, color: "var(--text-quaternary)", fontWeight: 500 }}>/ €{card.initial_value.toFixed(2)}</span>
             </p>
@@ -129,14 +129,14 @@ export function GiftCardDetailPanel({
                 {remainPercent.toFixed(1)}%
               </span>
             </div>
-            <p style={{ fontSize: 12, color: "var(--text-quaternary)", textAlign: "center" }}>Usato: €{card.usedValue.toFixed(2)}</p>
+            <p style={{ fontSize: 12, color: "var(--text-quaternary)", textAlign: "center" }}>Used: €{card.usedValue.toFixed(2)}</p>
           </div>
 
           {/* Use Balance Button */}
           {!isInactive && (
             <button type="button" onClick={() => setUseBalanceOpen(!useBalanceOpen)}
               style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: "none", background: "#e8ff00", color: "#000", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 16 }}>
-              <CreditCard style={{ width: 16, height: 16 }} /> Usa Saldo
+              <CreditCard style={{ width: 16, height: 16 }} /> Use Balance
             </button>
           )}
 
@@ -150,37 +150,37 @@ export function GiftCardDetailPanel({
                 transition={{ duration: 0.2 }}
                 style={{ overflow: "hidden", marginBottom: 16 }}>
                 <div style={{ padding: "16px", borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "0.5px solid rgba(255,255,255,0.06)" }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4 }}>Usa Saldo — {card.brand}</p>
-                  <p style={{ fontSize: 11, color: "var(--text-quaternary)", marginBottom: 12 }}>Saldo disponibile: €{card.remaining_value.toFixed(2)}</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4 }}>Use Balance — {card.brand}</p>
+                  <p style={{ fontSize: 11, color: "var(--text-quaternary)", marginBottom: 12 }}>Available: €{card.remaining_value.toFixed(2)}</p>
 
-                  <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-tertiary)", marginBottom: 4, display: "block" }}>Importo speso *</label>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-tertiary)", marginBottom: 4, display: "block" }}>Amount spent *</label>
                   <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" min="0" max={card.remaining_value} step="0.01"
                     style={{ width: "100%", padding: "10px 12px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "var(--text-primary)", fontSize: 14, fontWeight: 600, outline: "none", fontVariantNumeric: "tabular-nums", marginBottom: 4 }} />
                   {numAmount > 0 && (
                     <p style={{ fontSize: 11, fontWeight: 600, color: getProgressColor(balanceAfterPercent), marginBottom: 8, fontVariantNumeric: "tabular-nums", transition: "color 0.2s" }}>
-                      Saldo dopo: €{balanceAfter.toFixed(2)}
+                      Balance after: €{balanceAfter.toFixed(2)}
                     </p>
                   )}
                   {numAmount > card.remaining_value && (
-                    <p style={{ fontSize: 11, color: "#ef4444", marginBottom: 8 }}>Importo superiore al saldo disponibile (€{card.remaining_value.toFixed(2)})</p>
+                    <p style={{ fontSize: 11, color: "#ef4444", marginBottom: 8 }}>Amount exceeds available balance (€{card.remaining_value.toFixed(2)})</p>
                   )}
 
-                  <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-tertiary)", marginBottom: 4, display: "block" }}>Descrizione (opzionale)</label>
-                  <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Es. Ordine Amazon #123"
+                  <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-tertiary)", marginBottom: 4, display: "block" }}>Description (optional)</label>
+                  <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Amazon Order #123"
                     style={{ width: "100%", padding: "8px 12px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "var(--text-primary)", fontSize: 12, outline: "none", marginBottom: 12 }} />
 
-                  <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-tertiary)", marginBottom: 4, display: "block" }}>Data</label>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: "var(--text-tertiary)", marginBottom: 4, display: "block" }}>Date</label>
                   <input type="date" value={txDate} onChange={(e) => setTxDate(e.target.value)}
                     style={{ width: "100%", padding: "8px 12px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "var(--text-primary)", fontSize: 12, outline: "none", marginBottom: 12 }} />
 
                   <div className="flex gap-2">
                     <button type="button" onClick={useAll}
                       style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "1px solid rgba(232,255,0,0.3)", background: "transparent", color: "#e8ff00", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                      Usa Tutto (€{card.remaining_value.toFixed(2)})
+                      Use All (€{card.remaining_value.toFixed(2)})
                     </button>
                     <button type="button" onClick={handleUseBalance} disabled={saving || numAmount <= 0 || numAmount > card.remaining_value}
                       style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: "none", background: "#e8ff00", color: "#000", fontSize: 12, fontWeight: 700, cursor: saving ? "wait" : "pointer", opacity: (saving || numAmount <= 0 || numAmount > card.remaining_value) ? 0.5 : 1 }}>
-                      {saving ? "..." : "Conferma Spesa"}
+                      {saving ? "..." : "Confirm"}
                     </button>
                   </div>
                 </div>
@@ -190,18 +190,18 @@ export function GiftCardDetailPanel({
 
           {/* Details */}
           <div style={{ borderTop: "0.5px solid rgba(255,255,255,0.06)", paddingTop: 16, marginBottom: 16 }}>
-            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "var(--text-quaternary)", textTransform: "uppercase", marginBottom: 10 }}>DETTAGLI</p>
-            <DetailRow label="Valuta" value={card.currency} />
-            <DetailRow label="Acquisto" value={card.purchase_date ? new Date(card.purchase_date).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" }) : "—"} />
-            <DetailRow label="Scadenza" value={
-              card.isExpired ? `Scaduta` :
-              card.isExpiringSoon ? `⚠️ Tra ${card.daysUntilExpiry}gg` :
-              card.expiry_date ? new Date(card.expiry_date).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" }) : "—"
+            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "var(--text-quaternary)", textTransform: "uppercase", marginBottom: 10 }}>DETAILS</p>
+            <DetailRow label="Currency" value={card.currency} />
+            <DetailRow label="Purchase" value={card.purchase_date ? new Date(card.purchase_date).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : "—"} />
+            <DetailRow label="Expiry" value={
+              card.isExpired ? `Expired` :
+              card.isExpiringSoon ? `⚠️ In ${card.daysUntilExpiry}d` :
+              card.expiry_date ? new Date(card.expiry_date).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : "—"
             } color={card.isExpired || card.isExpiringSoon ? "#ef4444" : undefined} />
 
             {card.card_code && (
               <div className="flex items-center justify-between py-2">
-                <span style={{ fontSize: 12, color: "var(--text-quaternary)" }}>Codice</span>
+                <span style={{ fontSize: 12, color: "var(--text-quaternary)" }}>Code</span>
                 <div className="flex items-center gap-2">
                   <span style={{ fontSize: 12, color: "var(--text-secondary)", fontFamily: "DM Mono, monospace" }}>
                     {showCodeField ? card.card_code : "•••• •••• ••••"}
@@ -233,14 +233,14 @@ export function GiftCardDetailPanel({
               </div>
             )}
 
-            {card.notes && <DetailRow label="Note" value={card.notes} />}
+            {card.notes && <DetailRow label="Notes" value={card.notes} />}
           </div>
 
           {/* Transaction History */}
           <div style={{ borderTop: "0.5px solid rgba(255,255,255,0.06)", paddingTop: 16, marginBottom: 16 }}>
-            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "var(--text-quaternary)", textTransform: "uppercase", marginBottom: 10 }}>STORICO UTILIZZI</p>
+            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "var(--text-quaternary)", textTransform: "uppercase", marginBottom: 10 }}>USAGE HISTORY</p>
             {transactions.length === 0 ? (
-              <p style={{ fontSize: 12, color: "var(--text-quaternary)", fontStyle: "italic" }}>Nessun utilizzo registrato</p>
+              <p style={{ fontSize: 12, color: "var(--text-quaternary)", fontStyle: "italic" }}>No usage recorded</p>
             ) : (
               <div className="flex flex-col gap-1">
                 {transactions.map((tx) => (
@@ -250,10 +250,10 @@ export function GiftCardDetailPanel({
                     onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
                     <div className="flex items-center gap-3 min-w-0">
                       <span style={{ fontSize: 11, color: "var(--text-quaternary)", flexShrink: 0 }}>
-                        {new Date(tx.transaction_date).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" })}
+                        {new Date(tx.transaction_date).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}
                       </span>
                       <span style={{ fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {tx.description || "Utilizzo"}
+                        {tx.description || "Usage"}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
@@ -287,39 +287,39 @@ export function GiftCardDetailPanel({
           <div style={{ borderTop: "0.5px solid rgba(255,255,255,0.06)", paddingTop: 16 }}>
             {deleteConfirmCard ? (
               <div style={{ padding: "16px", borderRadius: 12, background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.15)", marginBottom: 8 }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: "#ef4444", marginBottom: 4 }}>⚠️ Eliminare la Gift Card {card.brand}?</p>
-                <p style={{ fontSize: 11, color: "var(--text-quaternary)", marginBottom: 8 }}>Saldo residuo: €{card.remaining_value.toFixed(2)}. Verranno eliminate anche tutte le transazioni associate.</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "#ef4444", marginBottom: 4 }}>⚠️ Delete {card.brand} Gift Card?</p>
+                <p style={{ fontSize: 11, color: "var(--text-quaternary)", marginBottom: 8 }}>Remaining balance: €{card.remaining_value.toFixed(2)}. All associated transactions will also be deleted.</p>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setDeleteConfirmCard(false)}
-                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "transparent", color: "var(--text-tertiary)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Annulla</button>
+                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "transparent", color: "var(--text-tertiary)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
                   <button type="button" onClick={onDelete}
-                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Elimina</button>
+                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Delete</button>
                 </div>
               </div>
             ) : archiveConfirm ? (
               <div style={{ padding: "16px", borderRadius: 12, background: "rgba(232,255,0,0.05)", border: "1px solid rgba(232,255,0,0.15)", marginBottom: 8 }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: "#e8ff00", marginBottom: 4 }}>📦 Archiviare la Gift Card {card.brand}?</p>
-                <p style={{ fontSize: 11, color: "var(--text-quaternary)", marginBottom: 8 }}>La card verrà spostata nell'archivio. Puoi ripristinarla in qualsiasi momento.</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "#e8ff00", marginBottom: 4 }}>📦 Archive {card.brand} Gift Card?</p>
+                <p style={{ fontSize: 11, color: "var(--text-quaternary)", marginBottom: 8 }}>The card will be moved to the archive. You can restore it at any time.</p>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setArchiveConfirm(false)}
-                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "transparent", color: "var(--text-tertiary)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Annulla</button>
+                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "transparent", color: "var(--text-tertiary)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
                   <button type="button" onClick={onArchive}
-                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", background: "#e8ff00", color: "#000", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Archivia</button>
+                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", background: "#e8ff00", color: "#000", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Archive</button>
                 </div>
               </div>
             ) : (
               <div className="flex gap-2">
                 <button type="button" onClick={onEdit}
                   style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "transparent", color: "var(--text-secondary)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                  ✏️ Modifica
+                  ✏️ Edit
                 </button>
                 <button type="button" onClick={() => setArchiveConfirm(true)}
                   style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "transparent", color: "var(--text-secondary)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                  📦 Archivia
+                  📦 Archive
                 </button>
                 <button type="button" onClick={() => setDeleteConfirmCard(true)}
                   style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: "1px solid rgba(239,68,68,0.15)", background: "transparent", color: "#ef4444", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                  🗑 Elimina
+                  🗑 Delete
                 </button>
               </div>
             )}
