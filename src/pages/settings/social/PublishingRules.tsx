@@ -220,6 +220,8 @@ export default function PublishingRulesPage() {
           onDelete={(item) => setHDeleteTarget(item)}
           emptyMessage="Nessun set di hashtag."
           emptyIcon={CalendarClock}
+          loading={hLoading}
+          onAdd={openCreateH}
         />
       </SettingsCard>
 
@@ -238,6 +240,8 @@ export default function PublishingRulesPage() {
           onDelete={(item) => setCDeleteTarget(item)}
           emptyMessage="Nessun template di didascalia."
           emptyIcon={CalendarClock}
+          loading={cLoading}
+          onAdd={openCreateC}
         />
       </SettingsCard>
 

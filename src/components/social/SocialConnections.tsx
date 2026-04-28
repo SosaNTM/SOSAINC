@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { CheckCircle2, Plus, Trash2, RefreshCw, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/hooks/use-toast";
-import type { SocialConnection, SocialPlatformDB } from "@/lib/supabase.types";
+import type { SocialConnection, SocialPlatformDB } from "@/types/database";
 import { ConnectAccountModal } from "./ConnectAccountModal";
 
 // ── Platform config ──────────────────────────────────────────────────────────

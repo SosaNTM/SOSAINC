@@ -40,11 +40,13 @@ export default function PaymentMethodsPage() {
   const [form, setForm] = useState<FormState>(emptyForm());
   const [deleteTarget, setDeleteTarget] = useState<PaymentMethod | null>(null);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [deleting, setDeleting] = useState(false);
 
   function openCreate() {
     setEditingId(null);
     setForm(emptyForm());
+    setErrors({});
     setModalOpen(true);
   }
 
@@ -55,11 +57,14 @@ export default function PaymentMethodsPage() {
       type: m.type as PaymentType,
       isDefault: m.is_default,
     });
+    setErrors({});
     setModalOpen(true);
   }
 
   async function handleSubmit() {
-    if (!form.name.trim()) return;
+    const errs: Record<string, string> = {};
+    if (!form.name.trim()) errs.name = "Campo obbligatorio";
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setSaving(true);
 
     // Clear default on all others if setting this as default
@@ -184,6 +189,8 @@ export default function PaymentMethodsPage() {
           onDelete={(item) => setDeleteTarget(item)}
           emptyMessage="Nessun metodo di pagamento. Aggiungine uno."
           emptyIcon={CreditCard}
+          loading={loading}
+          onAdd={openCreate}
         />
       </SettingsCard>
 
@@ -194,11 +201,11 @@ export default function PaymentMethodsPage() {
         onSubmit={handleSubmit}
         isLoading={saving}
       >
-        <SettingsFormField label="Nome" required>
+        <SettingsFormField label="Nome" required error={errors.name}>
           <input
             className="glass-input"
             value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            onChange={(e) => { setForm((f) => ({ ...f, name: e.target.value })); setErrors((e2) => ({ ...e2, name: "" })); }}
             placeholder="Es. Visa Business"
           />
         </SettingsFormField>

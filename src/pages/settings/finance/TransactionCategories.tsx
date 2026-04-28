@@ -77,6 +77,7 @@ export default function TransactionCategories() {
   const [form, setForm]                    = useState<FormState>(emptyForm());
   const [deleteTarget, setDeleteTarget]    = useState<FinanceCategory | null>(null);
   const [saving, setSaving]                = useState(false);
+  const [errors, setErrors]                = useState<Record<string, string>>({});
   const [deleting, setDeleting]            = useState(false);
 
   /* ── Handlers ────────────────────────────────────────────────── */
@@ -84,6 +85,7 @@ export default function TransactionCategories() {
   function openCreate() {
     setEditingId(null);
     setForm(emptyForm());
+    setErrors({});
     setModalOpen(true);
   }
 
@@ -95,11 +97,14 @@ export default function TransactionCategories() {
       color: cat.color,
       icon: cat.icon,
     });
+    setErrors({});
     setModalOpen(true);
   }
 
   async function handleSubmit() {
-    if (!form.name.trim()) return;
+    const errs: Record<string, string> = {};
+    if (!form.name.trim()) errs.name = "Campo obbligatorio";
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setSaving(true);
     if (editingId) {
       const { error } = (await updateCategory(editingId, {
@@ -289,11 +294,11 @@ export default function TransactionCategories() {
         onSubmit={handleSubmit}
         isLoading={saving}
       >
-        <SettingsFormField label="Nome" required>
+        <SettingsFormField label="Nome" required error={errors.name}>
           <input
             className="glass-input"
             value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            onChange={(e) => { setForm((f) => ({ ...f, name: e.target.value })); setErrors((e2) => ({ ...e2, name: "" })); }}
             placeholder="Nome categoria"
             style={{ width: "100%", padding: "8px 12px", fontSize: 13 }}
           />

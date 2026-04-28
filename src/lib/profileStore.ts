@@ -39,6 +39,10 @@ export interface Profile {
   updated_at: string;
   onboarding_completed: boolean;
   iban: string | null;
+  vat_number: string | null;
+  bank_name: string | null;
+  swift_bic: string | null;
+  account_holder_name: string | null;
   // Telegram bot integration
   telegram_chat_id: string | null;
   telegram_notifications_enabled: boolean;
@@ -103,6 +107,10 @@ function createDefaultProfile(userId: string, email: string, displayName: string
     slack_tag: null,
     extra_socials: [],
     iban: null,
+    vat_number: null,
+    bank_name: null,
+    swift_bic: null,
+    account_holder_name: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     onboarding_completed: false,

@@ -43,6 +43,12 @@ export function EditProfileModal({ profile, open, onClose, onSaved }: Props) {
         errs.iban = "Invalid IBAN (e.g. IT60 X054 2811 1010 0000 0123 456)";
       }
     }
+    if (form.vat_number && !/^[A-Z]{2}[A-Z0-9]{2,13}$/i.test(form.vat_number.replace(/\s/g, ""))) {
+      errs.vat_number = "Invalid VAT (e.g. IT12345678901)";
+    }
+    if (form.swift_bic && !/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/i.test(form.swift_bic.replace(/\s/g, ""))) {
+      errs.swift_bic = "Invalid SWIFT/BIC (8 or 11 chars)";
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -218,13 +224,23 @@ export function EditProfileModal({ profile, open, onClose, onSaved }: Props) {
             </Section>
 
             {/* Banking Details */}
-            <Section title="Banking Details">
+            <Section title="Banking & VAT Details">
+              <Field label="Account Holder Name">
+                <input className="glass-input w-full" value={form.account_holder_name || ""} onChange={(e) => set("account_holder_name", e.target.value)} style={fieldStyle("account_holder_name")} placeholder="Full legal name" maxLength={100} />
+              </Field>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Field label="Bank Name">
+                  <input className="glass-input w-full" value={form.bank_name || ""} onChange={(e) => set("bank_name", e.target.value)} style={fieldStyle("bank_name")} placeholder="e.g. Intesa Sanpaolo" maxLength={80} />
+                </Field>
+                <Field label="SWIFT / BIC" error={errors.swift_bic}>
+                  <input className="glass-input w-full" value={form.swift_bic || ""} onChange={(e) => set("swift_bic", e.target.value.toUpperCase())} style={fieldStyle("swift_bic")} placeholder="e.g. BCITITMM" maxLength={11} spellCheck={false} />
+                </Field>
+              </div>
               <Field label="IBAN" error={errors.iban}>
                 <input
                   className="glass-input w-full"
                   value={form.iban || ""}
                   onChange={(e) => {
-                    // Auto-format with spaces every 4 chars
                     const raw = e.target.value.replace(/\s/g, "").toUpperCase().slice(0, 34);
                     const formatted = raw.match(/.{1,4}/g)?.join(" ") ?? raw;
                     set("iban", formatted || null);
@@ -234,6 +250,9 @@ export function EditProfileModal({ profile, open, onClose, onSaved }: Props) {
                   maxLength={42}
                   spellCheck={false}
                 />
+              </Field>
+              <Field label="VAT Number" error={errors.vat_number}>
+                <input className="glass-input w-full" value={form.vat_number || ""} onChange={(e) => set("vat_number", e.target.value.toUpperCase())} style={fieldStyle("vat_number")} placeholder="e.g. IT12345678901" maxLength={15} spellCheck={false} />
               </Field>
             </Section>
 

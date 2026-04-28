@@ -164,6 +164,22 @@ export interface TaskTemplate {
 }
 
 // ── Social ─────────────────────────────────────────────────────────────
+export interface SocialConnection {
+  id: string;
+  portal_id: string;
+  user_id: string;
+  platform: string;
+  account_handle: string | null;
+  account_name: string | null;
+  access_token: string | null;
+  refresh_token: string | null;
+  token_expires_at: string | null;
+  is_active: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+  connected_at: string | null;
+}
+
 export interface SocialPublishingRules {
   id: string;
   portal_id: string;

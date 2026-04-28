@@ -223,6 +223,8 @@ export default function CurrencyTaxPage() {
           onDelete={(item) => setDeleteTarget(item)}
           emptyMessage="Nessuna aliquota. Aggiungine una."
           emptyIcon={Coins}
+          loading={ratesLoading}
+          onAdd={openCreateTax}
         />
       </SettingsCard>
 

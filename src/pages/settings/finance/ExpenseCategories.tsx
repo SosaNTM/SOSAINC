@@ -50,6 +50,7 @@ export default function ExpenseCategoriesPage() {
   const [form, setForm] = useState<FormState>(emptyForm());
   const [deleteTarget, setDeleteTarget] = useState<ExpenseCategory | null>(null);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [deleting, setDeleting] = useState(false);
 
   const sorted = [...categories].sort((a, b) => a.sort_order - b.sort_order);
@@ -57,6 +58,7 @@ export default function ExpenseCategoriesPage() {
   function openCreate() {
     setEditingId(null);
     setForm(emptyForm());
+    setErrors({});
     setModalOpen(true);
   }
 
@@ -70,11 +72,14 @@ export default function ExpenseCategoriesPage() {
       monthlyBudget: cat.monthly_budget ?? 0,
       alertThreshold: cat.alert_threshold ?? 80,
     });
+    setErrors({});
     setModalOpen(true);
   }
 
   async function handleSubmit() {
-    if (!form.name.trim()) return;
+    const errs: Record<string, string> = {};
+    if (!form.name.trim()) errs.name = "Campo obbligatorio";
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setSaving(true);
     const payload = {
       name: form.name,
@@ -178,6 +183,8 @@ export default function ExpenseCategoriesPage() {
           onDelete={(item) => setDeleteTarget(item)}
           emptyMessage="Nessuna categoria. Creane una nuova."
           emptyIcon={TrendingDown}
+          loading={loading}
+          onAdd={openCreate}
         />
       </SettingsCard>
 
@@ -188,11 +195,11 @@ export default function ExpenseCategoriesPage() {
         onSubmit={handleSubmit}
         isLoading={saving}
       >
-        <SettingsFormField label="Nome" required>
+        <SettingsFormField label="Nome" required error={errors.name}>
           <input
             className="glass-input"
             value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            onChange={(e) => { setForm((f) => ({ ...f, name: e.target.value })); setErrors((e2) => ({ ...e2, name: "" })); }}
             placeholder="Nome categoria"
           />
         </SettingsFormField>

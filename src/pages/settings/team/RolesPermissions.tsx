@@ -44,23 +44,28 @@ export default function RolesPermissionsPage() {
   const [form, setForm] = useState<RoleForm>(emptyForm());
   const [deleteTarget, setDeleteTarget] = useState<Role | null>(null);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [deleting, setDeleting] = useState(false);
 
   /* ── Role CRUD ───────────────────────────────────────────────────── */
   function openCreate() {
     setEditingId(null);
     setForm(emptyForm());
+    setErrors({});
     setModalOpen(true);
   }
 
   function openEdit(role: Role) {
     setEditingId(role.id);
     setForm({ name: role.name, description: role.description ?? "", color: role.color });
+    setErrors({});
     setModalOpen(true);
   }
 
   async function handleSubmit() {
-    if (!form.name.trim()) return;
+    const errs: Record<string, string> = {};
+    if (!form.name.trim()) errs.name = "Campo obbligatorio";
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setSaving(true);
     if (editingId) {
       const { error } = await updateRole(editingId, {
@@ -282,9 +287,9 @@ export default function RolesPermissionsPage() {
         onSubmit={handleSubmit}
         isLoading={saving}
       >
-        <SettingsFormField label="Nome" required>
+        <SettingsFormField label="Nome" required error={errors.name}>
           <input className="glass-input" value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            onChange={(e) => { setForm((f) => ({ ...f, name: e.target.value })); setErrors((e2) => ({ ...e2, name: "" })); }}
             placeholder="Nome ruolo" />
         </SettingsFormField>
 

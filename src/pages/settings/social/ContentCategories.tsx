@@ -27,6 +27,7 @@ export default function ContentCategoriesPage() {
   const [form, setForm] = useState<FormState>(emptyForm());
   const [deleteTarget, setDeleteTarget] = useState<ContentCategory | null>(null);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [deleting, setDeleting] = useState(false);
 
   const sorted = [...categories].sort((a, b) => a.sort_order - b.sort_order);
@@ -34,6 +35,7 @@ export default function ContentCategoriesPage() {
   function openCreate() {
     setEditingId(null);
     setForm(emptyForm());
+    setErrors({});
     setModalOpen(true);
   }
 
@@ -44,11 +46,14 @@ export default function ContentCategoriesPage() {
       color: cat.color,
       defaultHashtags: cat.description ?? "",
     });
+    setErrors({});
     setModalOpen(true);
   }
 
   async function handleSubmit() {
-    if (!form.name.trim()) return;
+    const errs: Record<string, string> = {};
+    if (!form.name.trim()) errs.name = "Campo obbligatorio";
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setSaving(true);
     if (editingId) {
       const { error } = await update(editingId, {
@@ -136,6 +141,8 @@ export default function ContentCategoriesPage() {
           onDelete={(item) => setDeleteTarget(item)}
           emptyMessage="Nessuna categoria. Creane una nuova."
           emptyIcon={Layers}
+          loading={loading}
+          onAdd={openCreate}
         />
       </SettingsCard>
 
@@ -146,9 +153,9 @@ export default function ContentCategoriesPage() {
         onSubmit={handleSubmit}
         isLoading={saving}
       >
-        <SettingsFormField label="Nome" required>
+        <SettingsFormField label="Nome" required error={errors.name}>
           <input className="glass-input" value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            onChange={(e) => { setForm((f) => ({ ...f, name: e.target.value })); setErrors((e2) => ({ ...e2, name: "" })); }}
             placeholder="Nome categoria" />
         </SettingsFormField>
 

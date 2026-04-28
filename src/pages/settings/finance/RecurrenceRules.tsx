@@ -52,6 +52,7 @@ export default function RecurrenceRulesPage() {
   const [form, setForm] = useState<FormState>(emptyForm());
   const [deleteTarget, setDeleteTarget] = useState<RecurrenceRule | null>(null);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [deleting, setDeleting] = useState(false);
 
   const allCategories = form.type === "entrata" ? incomeCategories : expenseCategories;
@@ -59,6 +60,7 @@ export default function RecurrenceRulesPage() {
   function openCreate() {
     setEditingId(null);
     setForm(emptyForm());
+    setErrors({});
     setModalOpen(true);
   }
 
@@ -74,11 +76,14 @@ export default function RecurrenceRulesPage() {
       endDate: "",
       isActive: r.is_active,
     });
+    setErrors({});
     setModalOpen(true);
   }
 
   async function handleSubmit() {
-    if (!form.name.trim()) return;
+    const errs: Record<string, string> = {};
+    if (!form.name.trim()) errs.name = "Campo obbligatorio";
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setSaving(true);
     const payload = {
       name: form.name,
@@ -198,6 +203,8 @@ export default function RecurrenceRulesPage() {
           onDelete={(item) => setDeleteTarget(item)}
           emptyMessage="Nessuna regola. Creane una nuova."
           emptyIcon={Repeat}
+          loading={loading}
+          onAdd={openCreate}
         />
       </SettingsCard>
 
@@ -208,11 +215,11 @@ export default function RecurrenceRulesPage() {
         onSubmit={handleSubmit}
         isLoading={saving}
       >
-        <SettingsFormField label="Nome" required>
+        <SettingsFormField label="Nome" required error={errors.name}>
           <input
             className="glass-input"
             value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            onChange={(e) => { setForm((f) => ({ ...f, name: e.target.value })); setErrors((e2) => ({ ...e2, name: "" })); }}
             placeholder="Es. Affitto Ufficio"
           />
         </SettingsFormField>

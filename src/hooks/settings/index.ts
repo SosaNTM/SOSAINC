@@ -6,7 +6,7 @@ import type {
   IncomeCategory, ExpenseCategory, SubscriptionCategory,
   PaymentMethod, RecurrenceRule, CurrencySettings, TaxRate,
   ProjectStatus, TaskPriority, TaskLabel, TaskTemplate,
-  SocialPublishingRules, HashtagSet, ContentCategory, CaptionTemplate,
+  SocialPublishingRules, HashtagSet, ContentCategory, CaptionTemplate, SocialConnection,
   Role, RolePermission, Department, NotificationChannel, AlertRule,
   PortalProfile, AppearanceSettings,
 } from "../../types/settings";
@@ -26,9 +26,10 @@ export const useTaskLabels       = () => usePortalData<TaskLabel>("task_labels",
 export const useTaskTemplates    = () => usePortalData<TaskTemplate>("task_templates",     { orderBy: "name" });
 
 // Social
-export const useHashtagSets       = () => usePortalData<HashtagSet>("hashtag_sets",           { orderBy: "name" });
-export const useContentCategories = () => usePortalData<ContentCategory>("content_categories", { orderBy: "sort_order" });
-export const useCaptionTemplates  = () => usePortalData<CaptionTemplate>("caption_templates",  { orderBy: "name" });
+export const useSocialConnections = () => usePortalData<SocialConnection>("social_connections", { orderBy: "created_at" });
+export const useHashtagSets       = () => usePortalData<HashtagSet>("hashtag_sets",            { orderBy: "name" });
+export const useContentCategories = () => usePortalData<ContentCategory>("content_categories",  { orderBy: "sort_order" });
+export const useCaptionTemplates  = () => usePortalData<CaptionTemplate>("caption_templates",   { orderBy: "name" });
 
 // Team
 export const useRoles       = () => usePortalData<Role>("roles",             { orderBy: "sort_order" });

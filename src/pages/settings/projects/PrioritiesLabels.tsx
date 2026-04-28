@@ -25,6 +25,7 @@ export default function PrioritiesLabels() {
   const [pModalOpen, setPModalOpen] = useState(false);
   const [pEditingId, setPEditingId] = useState<string | null>(null);
   const [pForm, setPForm] = useState<PriorityForm>(emptyPriorityForm());
+  const [pErrors, setPErrors] = useState<Record<string, string>>({});
   const [pDeleteTarget, setPDeleteTarget] = useState<TaskPriority | null>(null);
   const [pSaving, setPSaving] = useState(false);
   const [pDeleting, setPDeleting] = useState(false);
@@ -33,6 +34,7 @@ export default function PrioritiesLabels() {
   const [lModalOpen, setLModalOpen] = useState(false);
   const [lEditingId, setLEditingId] = useState<string | null>(null);
   const [lForm, setLForm] = useState<LabelForm>(emptyLabelForm());
+  const [lErrors, setLErrors] = useState<Record<string, string>>({});
   const [lDeleteTarget, setLDeleteTarget] = useState<TaskLabel | null>(null);
   const [lSaving, setLSaving] = useState(false);
   const [lDeleting, setLDeleting] = useState(false);
@@ -40,14 +42,15 @@ export default function PrioritiesLabels() {
   const sortedP = [...priorities].sort((a, b) => a.sort_order - b.sort_order);
 
   /* ── Priority handlers ──────────────────────────────────────────── */
-  function openCreateP() { setPEditingId(null); setPForm(emptyPriorityForm()); setPModalOpen(true); }
+  function openCreateP() { setPEditingId(null); setPForm(emptyPriorityForm()); setPErrors({}); setPModalOpen(true); }
   function openEditP(item: TaskPriority) {
     setPEditingId(item.id);
     setPForm({ name: item.name, color: item.color, order: item.level });
+    setPErrors({});
     setPModalOpen(true);
   }
   async function handleSubmitP() {
-    if (!pForm.name.trim()) return;
+    if (!pForm.name.trim()) { setPErrors({ name: "Campo obbligatorio" }); return; }
     setPSaving(true);
     if (pEditingId) {
       const { error } = await updateP(pEditingId, { name: pForm.name, color: pForm.color, level: pForm.order });
@@ -72,14 +75,15 @@ export default function PrioritiesLabels() {
   }
 
   /* ── Label handlers ─────────────────────────────────────────────── */
-  function openCreateL() { setLEditingId(null); setLForm(emptyLabelForm()); setLModalOpen(true); }
+  function openCreateL() { setLEditingId(null); setLForm(emptyLabelForm()); setLErrors({}); setLModalOpen(true); }
   function openEditL(item: TaskLabel) {
     setLEditingId(item.id);
     setLForm({ name: item.name, color: item.color });
+    setLErrors({});
     setLModalOpen(true);
   }
   async function handleSubmitL() {
-    if (!lForm.name.trim()) return;
+    if (!lForm.name.trim()) { setLErrors({ name: "Campo obbligatorio" }); return; }
     setLSaving(true);
     if (lEditingId) {
       const { error } = await updateL(lEditingId, { name: lForm.name, color: lForm.color });
@@ -155,6 +159,8 @@ export default function PrioritiesLabels() {
             onDelete={(item) => setPDeleteTarget(item)}
             emptyMessage="Nessuna priorita."
             emptyIcon={Tags}
+            loading={pLoading}
+            onAdd={openCreateP}
           />
         </SettingsCard>
 
@@ -216,10 +222,10 @@ export default function PrioritiesLabels() {
         onSubmit={handleSubmitP}
         isLoading={pSaving}
       >
-        <SettingsFormField label="Nome" required>
+        <SettingsFormField label="Nome" required error={pErrors.name}>
           <input className="glass-input" value={pForm.name}
-            onChange={(e) => setPForm((f) => ({ ...f, name: e.target.value }))}
-            placeholder="Nome priorita" />
+            onChange={(e) => { setPForm((f) => ({ ...f, name: e.target.value })); setPErrors((e2) => ({ ...e2, name: "" })); }}
+            placeholder="Nome priorità" />
         </SettingsFormField>
         <SettingsFormField label="Colore">
           <SettingsColorPicker value={pForm.color} onChange={(color) => setPForm((f) => ({ ...f, color }))} />
@@ -239,9 +245,9 @@ export default function PrioritiesLabels() {
         onSubmit={handleSubmitL}
         isLoading={lSaving}
       >
-        <SettingsFormField label="Nome" required>
+        <SettingsFormField label="Nome" required error={lErrors.name}>
           <input className="glass-input" value={lForm.name}
-            onChange={(e) => setLForm((f) => ({ ...f, name: e.target.value }))}
+            onChange={(e) => { setLForm((f) => ({ ...f, name: e.target.value })); setLErrors((e2) => ({ ...e2, name: "" })); }}
             placeholder="Nome label" />
         </SettingsFormField>
         <SettingsFormField label="Colore">

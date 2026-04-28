@@ -37,7 +37,9 @@ interface FormState {
   legal_name: string;
   vat_number: string;
   address_line1: string;
+  address_line2: string;
   city: string;
+  state: string;
   zip: string;
   country: string;
   phone: string;
@@ -51,7 +53,9 @@ const defaultForm: FormState = {
   legal_name: "",
   vat_number: "",
   address_line1: "",
+  address_line2: "",
   city: "",
+  state: "",
   zip: "",
   country: "IT",
   phone: "",
@@ -72,7 +76,9 @@ export default function PortalProfile() {
         legal_name: data.legal_name ?? "",
         vat_number: data.vat_number ?? "",
         address_line1: data.address_line1 ?? "",
+        address_line2: data.address_line2 ?? "",
         city: data.city ?? "",
+        state: data.state ?? "",
         zip: data.zip ?? "",
         country: data.country ?? "IT",
         phone: data.phone ?? "",
@@ -94,7 +100,9 @@ export default function PortalProfile() {
       legal_name: form.legal_name || null,
       vat_number: form.vat_number || null,
       address_line1: form.address_line1 || null,
+      address_line2: form.address_line2 || null,
       city: form.city || null,
+      state: form.state || null,
       zip: form.zip || null,
       country: form.country,
       phone: form.phone || null,
@@ -184,12 +192,32 @@ export default function PortalProfile() {
             </SettingsFormField>
           </div>
 
-          <SettingsFormField label="Citta">
+          <div style={{ gridColumn: "1 / -1" }}>
+            <SettingsFormField label="Indirizzo 2" description="Interno, piano, scala (opzionale)">
+              <input
+                className="glass-input"
+                value={form.address_line2}
+                onChange={(e) => set("address_line2", e.target.value)}
+                placeholder="Es. Interno 3, Piano 2"
+              />
+            </SettingsFormField>
+          </div>
+
+          <SettingsFormField label="Città">
             <input
               className="glass-input"
               value={form.city}
               onChange={(e) => set("city", e.target.value)}
               placeholder="Milano"
+            />
+          </SettingsFormField>
+
+          <SettingsFormField label="Provincia / Stato">
+            <input
+              className="glass-input"
+              value={form.state}
+              onChange={(e) => set("state", e.target.value)}
+              placeholder="MI"
             />
           </SettingsFormField>
 
@@ -295,8 +323,37 @@ export default function PortalProfile() {
         </div>
       </SettingsCard>
 
-      {/* ── Save Button ── */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
+      {/* ── Save / Cancel Buttons ── */}
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
+        <button
+          type="button"
+          className="btn-glass-ds"
+          onClick={() => {
+            if (data) {
+              setForm({
+                legal_name: data.legal_name ?? "",
+                vat_number: data.vat_number ?? "",
+                address_line1: data.address_line1 ?? "",
+                address_line2: data.address_line2 ?? "",
+                city: data.city ?? "",
+                state: data.state ?? "",
+                zip: data.zip ?? "",
+                country: data.country ?? "IT",
+                phone: data.phone ?? "",
+                website: data.website ?? "",
+                language: data.language ?? "Italiano",
+                timezone: data.timezone ?? "Europe/Rome",
+                date_format: data.date_format ?? "DD/MM/YYYY",
+              });
+            } else {
+              setForm(defaultForm);
+            }
+          }}
+          disabled={saving}
+          style={{ cursor: saving ? "not-allowed" : "pointer" }}
+        >
+          Annulla
+        </button>
         <button
           type="button"
           className="btn-primary"

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { X, Info } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/hooks/use-toast";
-import type { SocialPlatformDB, SocialConnection } from "@/lib/supabase.types";
+import type { SocialPlatformDB, SocialConnection } from "@/types/database";
 
 // Platform brand colors for glows
 const PLATFORM_STYLE: Record<SocialPlatformDB, { label: string; icon: string; color: string; gradient: string }> = {

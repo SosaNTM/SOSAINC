@@ -135,28 +135,32 @@ export type NewDbCryptoTransaction = Omit<DbCryptoTransaction, "id" | "created_a
 // ─── GIFT CARDS ───────────────────────────────────────────────────────────────
 
 export interface DbGiftCardBrand {
-  id: string;
+  brand_key: string;
   name: string;
   logo_url: string | null;
   color: string | null;
-  website: string | null;
-  created_at: string;
+  category: string | null;
+  default_currency: string | null;
+  has_expiry: boolean | null;
+  is_popular: boolean | null;
 }
 
 export interface DbGiftCard {
   id: string;
   portal_id: string;
   user_id: string;
-  brand_id: string | null;
-  brand_name: string | null;
-  balance: number;
-  initial_balance: number;
+  brand: string;
+  brand_key: string;
+  card_code: string | null;
+  pin: string | null;
+  initial_value: number;
+  remaining_value: number;
   currency: string;
-  card_number: string | null;
+  purchase_date: string | null;
   expiry_date: string | null;
+  status: string;
   notes: string | null;
-  color: string | null;
-  is_active: boolean;
+  is_favorite: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -169,9 +173,8 @@ export interface DbGiftCardTransaction {
   portal_id: string;
   user_id: string;
   amount: number;
-  type: "credit" | "debit" | "refund" | "expiry";
   description: string | null;
-  date: string;
+  transaction_date: string;
   created_at: string;
 }
 
@@ -211,6 +214,8 @@ export interface DbSubscriptionTransaction {
 
 // ─── SOCIAL ───────────────────────────────────────────────────────────────────
 
+export type SocialPlatformDB = "instagram" | "linkedin" | "twitter" | "facebook" | "tiktok" | "youtube";
+
 export interface DbSocialConnection {
   id: string;
   portal_id: string;
@@ -224,6 +229,28 @@ export interface DbSocialConnection {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export type SocialConnection = DbSocialConnection;
+
+export interface SocialAnalyticsSnapshot {
+  id: string;
+  connection_id: string;
+  user_id: string;
+  portal_id: string;
+  platform: SocialPlatformDB;
+  snapshot_date: string;
+  followers_count: number;
+  following_count: number;
+  posts_count: number;
+  engagement_rate: number;
+  impressions: number | null;
+  reach: number | null;
+  likes_total: number | null;
+  comments_total: number | null;
+  shares_total: number | null;
+  raw_data: Record<string, unknown> | null;
+  created_at: string;
 }
 
 export interface DbSocialPost {

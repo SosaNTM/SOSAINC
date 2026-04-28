@@ -8,7 +8,7 @@ import {
 import { RefreshCw, TrendingUp, TrendingDown, Minus, Database, Users, BarChart2, Activity } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/hooks/use-toast";
-import type { SocialConnection, SocialAnalyticsSnapshot, SocialPlatformDB } from "@/lib/supabase.types";
+import type { SocialConnection, SocialAnalyticsSnapshot, SocialPlatformDB } from "@/types/database";
 
 // ── Platform styles ──────────────────────────────────────────────────────────
 
