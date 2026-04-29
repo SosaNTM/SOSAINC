@@ -1443,37 +1443,33 @@ const CloudPage = () => {
 
         <div style={{ height: 1, background: "var(--sosa-border)", margin: "6px 14px" }} />
         {rootFolders.map((f) => renderFolderItem(f, 0))}
-        <div style={{ height: 1, background: "var(--sosa-border)", margin: "6px 14px" }} />
-
-        {/* Trash */}
-        <button
-          type="button"
-          onClick={() => { setShowTrash(true); setCurrentFolderId(null); setShowStorage(false); if (isMobile) setMobileSidebarOpen(false); }}
-          style={{
-            display: "flex", alignItems: "center", gap: 8, width: "100%",
-            padding: "9px 14px", cursor: "pointer",
-            fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: showTrash ? 600 : 400,
-            letterSpacing: "0.04em", textTransform: "uppercase",
-            color: showTrash ? "var(--text-primary)" : "var(--text-tertiary)",
-            background: showTrash ? "rgba(255,255,255,0.04)" : "transparent",
-            borderLeft: showTrash ? "3px solid #ef4444" : "3px solid transparent",
-            border: "none", borderRadius: 0,
-          }}
-          onMouseEnter={(e) => { if (!showTrash) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
-          onMouseLeave={(e) => { if (!showTrash) e.currentTarget.style.background = "transparent"; }}
-        >
-          <Trash2 style={{ width: 14, height: 14, opacity: showTrash ? 1 : 0.45, flexShrink: 0 }} />
-          <span style={{ flex: 1 }}>Trash</span>
-          {trashCount > 0 && (
-            <span style={{
-              fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700,
-              padding: "2px 6px", background: "rgba(239,68,68,0.15)", color: "#ef4444",
-            }}>
-              {trashCount}
-            </span>
-          )}
-        </button>
       </div>
+
+      {/* Trash — pinned above storage */}
+      <button
+        type="button"
+        onClick={() => { setShowTrash(true); setCurrentFolderId(null); setShowStorage(false); if (isMobile) setMobileSidebarOpen(false); }}
+        style={{
+          display: "flex", alignItems: "center", gap: 8, width: "100%",
+          padding: "9px 14px", cursor: "pointer",
+          fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: showTrash ? 600 : 400,
+          letterSpacing: "0.04em", textTransform: "uppercase",
+          color: showTrash ? "var(--text-primary)" : "var(--text-tertiary)",
+          background: showTrash ? "rgba(255,255,255,0.04)" : "transparent",
+          borderLeft: showTrash ? "3px solid #ef4444" : "3px solid transparent",
+          borderTop: "1px solid var(--sosa-border)", borderRight: "none", borderBottom: "none", borderRadius: 0,
+        }}
+        onMouseEnter={(e) => { if (!showTrash) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
+        onMouseLeave={(e) => { if (!showTrash) e.currentTarget.style.background = "transparent"; }}
+      >
+        <Trash2 style={{ width: 14, height: 14, opacity: showTrash ? 1 : 0.45, flexShrink: 0 }} />
+        <span style={{ flex: 1 }}>Trash</span>
+        {trashCount > 0 && (
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, padding: "2px 6px", background: "rgba(239,68,68,0.15)", color: "#ef4444" }}>
+            {trashCount}
+          </span>
+        )}
+      </button>
 
       {/* Storage bar */}
       <button
