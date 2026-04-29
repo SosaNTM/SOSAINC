@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="80" fill="#0a0a0a"/>
+  <rect x="80" y="80" width="352" height="352" rx="48" fill="#111111" stroke="#ccff00" stroke-width="6"/>
+  <text x="256" y="230" font-family="Arial Black, Arial, sans-serif" font-size="88" font-weight="900" fill="#ccff00" text-anchor="middle" letter-spacing="2">SOSA</text>
+  <text x="256" y="330" font-family="Arial Black, Arial, sans-serif" font-size="56" font-weight="900" fill="#ccff00" text-anchor="middle" letter-spacing="8">INC.</text>
+  <line x1="120" y1="260" x2="392" y2="260" stroke="#ccff00" stroke-width="2" opacity="0.3"/>
+</svg>

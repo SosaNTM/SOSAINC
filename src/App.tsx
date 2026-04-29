@@ -16,6 +16,7 @@ import { ThemeProvider } from "./lib/theme";
 import { NumberFormatProvider } from "./lib/numberFormat";
 import { PeriodProvider } from "./lib/periodContext";
 import { AccentProvider } from "./lib/accent";
+import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
 
 // ── Non-lazy imports (critical path: login, hub, not-found) ─────────────────
 import LoginPage from "./pages/LoginPage";
@@ -139,6 +140,7 @@ const App = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
+            <PWAUpdatePrompt />
             <AuthProvider>
               <PortalDBProvider>
               <PortalProvider>
