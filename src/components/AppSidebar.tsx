@@ -51,40 +51,38 @@ function AccordionSection({ label, icon: Icon, isActive, isOpen, onToggle, porta
     <div>
       <button type="button"
         onClick={onToggle}
-        className="flex items-center gap-2.5 w-full transition-all duration-200 group"
+        className="flex items-center gap-2.5 w-full"
         style={{
-          padding: "9px 12px",
+          padding: "9px 14px",
           borderRadius: 0,
-          fontSize: 14,
-          fontWeight: isActive ? 600 : 500,
-          color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
-          background: isActive ? "var(--portal-accent-dim)" : "transparent",
-          borderLeft: isActive ? "3px solid var(--portal-accent)" : "3px solid transparent",
-          borderTop: "none",
-          borderRight: "none",
-          borderBottom: "none",
-          margin: "1px 0",
-          cursor: "pointer",
-          textAlign: "left",
+          fontFamily: "var(--font-mono)",
+          fontSize: 12,
+          fontWeight: 600,
+          letterSpacing: "0.04em",
+          color: isActive ? "var(--text-primary)" : "var(--text-tertiary)",
+          background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
+          borderLeft: isActive ? `3px solid ${portal?.accent || "var(--sosa-yellow)"}` : "3px solid transparent",
+          borderTop: "none", borderRight: "none", borderBottom: "none",
+          cursor: "pointer", textAlign: "left",
         }}
         onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
         onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
       >
         <div className="flex items-center justify-center shrink-0" style={{
-          width: 28, height: 28, borderRadius: 7,
-          background: isActive ? (portal?.accent || "#4A9EFF") : "var(--glass-bg)",
-          transition: "background 0.2s",
+          width: 26, height: 26, borderRadius: 0,
+          background: isActive ? (portal?.accent || "var(--sosa-yellow)") : "var(--sosa-bg-2)",
+          border: isActive ? "none" : "1px solid var(--sosa-border)",
         }}>
-          <Icon style={{ width: 14, height: 14, strokeWidth: 1.8, color: isActive ? "#000000" : "var(--sosa-white-40)" }} />
+          <Icon style={{ width: 13, height: 13, strokeWidth: 1.8, color: isActive ? "#000" : "var(--sosa-white-40)" }} />
         </div>
         <span className="flex-1">{label}</span>
         <ChevronDown
           className="shrink-0 transition-transform duration-200"
-          style={{ width: 14, height: 14, color: "var(--text-quaternary)", transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)" }}
+          style={{ width: 12, height: 12, color: "var(--sosa-white-20)", transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)" }}
         />
       </button>
       <div style={{ overflow: "hidden", maxHeight: isOpen ? "600px" : "0px", transition: "max-height 0.25s ease" }}>
-        <div style={{ paddingLeft: 8, paddingTop: 2, paddingBottom: 2 }}>
+        <div style={{ paddingLeft: 6, paddingTop: 2, paddingBottom: 2 }}>
           {children}
         </div>
       </div>
@@ -188,6 +186,8 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
     if (isSocialActive) setSocialOpen(true);
   }, [isSocialActive]);
 
+  const accentOf = (p: PortalConfig | null) => p?.accent || "var(--sosa-yellow)";
+
   const renderNavItem = (item: { title: string; path: string; icon: React.ElementType }, sub = false) => {
     const isActive = location.pathname === `${prefix}${item.path}`;
     return (
@@ -195,31 +195,22 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
         key={item.path}
         to={`${prefix}${item.path}`}
         onClick={onMobileClose}
-        className="flex items-center gap-3 transition-all duration-200"
+        className="flex items-center gap-2.5"
         style={{
-          padding: sub ? "9px 16px 9px 40px" : "12px 16px",
+          padding: sub ? "8px 14px 8px 36px" : "10px 14px",
           borderRadius: 0,
-          fontSize: sub ? 13 : 14,
-          fontWeight: isActive ? 600 : 500,
-          color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
-          background: isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent",
-          borderLeft: isActive ? `3px solid ${portal?.accent || '#00D4FF'}` : "3px solid transparent",
-          margin: sub ? "1px 0" : "2px 0",
+          fontFamily: "var(--font-mono)",
+          fontSize: 12,
+          fontWeight: isActive ? 600 : 400,
+          letterSpacing: "0.03em",
+          color: isActive ? "var(--text-primary)" : "var(--text-tertiary)",
+          background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
+          borderLeft: isActive ? `3px solid ${accentOf(portal)}` : "3px solid transparent",
         }}
-        onMouseEnter={(e) => {
-          if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)";
-        }}
-        onMouseLeave={(e) => {
-          if (!isActive) e.currentTarget.style.background = "transparent";
-        }}
+        onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
+        onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
       >
-        <item.icon
-          className="shrink-0"
-          style={{
-            width: sub ? 16 : 20, height: sub ? 16 : 20, strokeWidth: 1.7,
-            opacity: isActive ? 1 : 0.7,
-          }}
-        />
+        <item.icon className="shrink-0" style={{ width: sub ? 14 : 16, height: sub ? 14 : 16, strokeWidth: 1.6, opacity: isActive ? 1 : 0.45 }} />
         {!collapsed && <span>{item.title}</span>}
       </NavLink>
     );
@@ -227,7 +218,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
 
 
   const sidebarContent = (
-    <div className="flex flex-col h-full">
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* Back to Hub */}
       {portal && (
         <button type="button"
@@ -290,25 +281,27 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
               key={item.path}
               to={`${prefix}${item.path}`}
               onClick={onMobileClose}
-              className="flex items-center gap-2.5 transition-all duration-200"
+              className="flex items-center gap-2.5"
               style={{
-                padding: "11px 16px",
+                padding: "10px 14px",
                 borderRadius: 0,
-                fontSize: 14,
-                fontWeight: isActive ? 600 : 500,
-                color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
-                background: isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent",
-                borderLeft: isActive ? `3px solid ${portal?.accent || '#00D4FF'}` : "3px solid transparent",
+                fontFamily: "var(--font-mono)",
+                fontSize: 12,
+                fontWeight: isActive ? 600 : 400,
+                letterSpacing: "0.03em",
+                color: isActive ? "var(--text-primary)" : "var(--text-tertiary)",
+                background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
+                borderLeft: isActive ? `3px solid ${accentOf(portal)}` : "3px solid transparent",
               }}
               onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
-              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent"; }}
+              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
             >
               <div className="flex items-center justify-center shrink-0" style={{
-                width: 28, height: 28, borderRadius: 0,
-                background: isActive ? "var(--portal-accent)" : "var(--sosa-bg-3)",
-                transition: "background var(--duration-fast) var(--ease-sharp)",
+                width: 26, height: 26, borderRadius: 0,
+                background: isActive ? accentOf(portal) : "var(--sosa-bg-2)",
+                border: isActive ? "none" : "1px solid var(--sosa-border)",
               }}>
-                <item.icon style={{ width: 14, height: 14, strokeWidth: 1.8, color: isActive ? "#000000" : "var(--sosa-white-40)" }} />
+                <item.icon style={{ width: 13, height: 13, strokeWidth: 1.8, color: isActive ? "#000" : "var(--sosa-white-40)" }} />
               </div>
               <span>{item.title}</span>
             </NavLink>
@@ -330,19 +323,19 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
               return (
                 <NavLink
                   key={item.path} to={`${prefix}${item.path}`} onClick={onMobileClose}
-                  className="flex items-center gap-2 transition-all duration-150"
+                  className="flex items-center gap-2"
                   style={{
-                    padding: "7px 10px 7px 8px", borderRadius: 0, fontSize: 13,
-                    fontWeight: isActive ? 600 : 500,
-                    color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
-                    background: isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent",
-                    borderLeft: isActive ? `3px solid ${portal?.accent || '#00D4FF'}` : "3px solid transparent",
-                    margin: "1px 0",
+                    padding: "7px 14px 7px 10px", borderRadius: 0,
+                    fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: isActive ? 600 : 400,
+                    letterSpacing: "0.03em",
+                    color: isActive ? "var(--text-primary)" : "var(--text-tertiary)",
+                    background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
+                    borderLeft: isActive ? `3px solid ${accentOf(portal)}` : "3px solid transparent",
                   }}
                   onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
-                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent"; }}
+                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
                 >
-                  <item.icon style={{ width: 14, height: 14, strokeWidth: 1.6, opacity: isActive ? 1 : 0.5 }} />
+                  <item.icon style={{ width: 13, height: 13, strokeWidth: 1.6, opacity: isActive ? 1 : 0.4 }} />
                   {item.title}
                 </NavLink>
               );
@@ -363,19 +356,19 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
               return (
                 <NavLink
                   key={item.path} to={`${prefix}${item.path}`} onClick={onMobileClose}
-                  className="flex items-center gap-2 transition-all duration-150"
+                  className="flex items-center gap-2"
                   style={{
-                    padding: "7px 10px 7px 8px", borderRadius: 0, fontSize: 13,
-                    fontWeight: isActive ? 600 : 500,
-                    color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
-                    background: isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent",
-                    borderLeft: isActive ? `3px solid ${portal?.accent || '#00D4FF'}` : "3px solid transparent",
-                    margin: "1px 0",
+                    padding: "7px 14px 7px 10px", borderRadius: 0,
+                    fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: isActive ? 600 : 400,
+                    letterSpacing: "0.03em",
+                    color: isActive ? "var(--text-primary)" : "var(--text-tertiary)",
+                    background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
+                    borderLeft: isActive ? `3px solid ${accentOf(portal)}` : "3px solid transparent",
                   }}
                   onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
-                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent"; }}
+                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
                 >
-                  <item.icon style={{ width: 14, height: 14, strokeWidth: 1.6, opacity: isActive ? 1 : 0.5 }} />
+                  <item.icon style={{ width: 13, height: 13, strokeWidth: 1.6, opacity: isActive ? 1 : 0.4 }} />
                   {item.title}
                 </NavLink>
               );
@@ -384,7 +377,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
         )}
 
         <div style={{ height: 1, background: "var(--sosa-border)", margin: "8px 4px" }} />
-        <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-quaternary)", padding: "2px 12px 6px" }}>
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.14em", color: "var(--sosa-white-20)", padding: "2px 14px 5px" }}>
           Workspace
         </p>
 
@@ -400,22 +393,24 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
             return (
               <NavLink
                 key={item.path} to={`${prefix}${item.path}`} onClick={onMobileClose}
-                className="flex items-center gap-2.5 transition-all duration-200"
+                className="flex items-center gap-2.5"
                 style={{
-                  padding: "11px 16px", borderRadius: 0, fontSize: 14,
-                  fontWeight: isActive ? 600 : 500,
-                  color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
-                  background: isActive ? "var(--portal-accent-dim)" : "transparent",
-                  borderLeft: isActive ? "3px solid var(--portal-accent)" : "3px solid transparent",
+                  padding: "10px 14px", borderRadius: 0,
+                  fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: isActive ? 600 : 400,
+                  letterSpacing: "0.03em",
+                  color: isActive ? "var(--text-primary)" : "var(--text-tertiary)",
+                  background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
+                  borderLeft: isActive ? `3px solid ${accentOf(portal)}` : "3px solid transparent",
                 }}
                 onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
-                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent"; }}
+                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
               >
                 <div className="flex items-center justify-center shrink-0" style={{
-                  width: 28, height: 28, borderRadius: 0,
-                  background: isActive ? (portal?.accent || "#4A9EFF") : "var(--sosa-bg-3)",
+                  width: 26, height: 26, borderRadius: 0,
+                  background: isActive ? accentOf(portal) : "var(--sosa-bg-2)",
+                  border: isActive ? "none" : "1px solid var(--sosa-border)",
                 }}>
-                  <item.icon style={{ width: 14, height: 14, strokeWidth: 1.8, color: isActive ? "#000000" : "var(--sosa-white-40)" }} />
+                  <item.icon style={{ width: 13, height: 13, strokeWidth: 1.8, color: isActive ? "#000" : "var(--sosa-white-40)" }} />
                 </div>
                 <span>{item.title}</span>
               </NavLink>
@@ -431,22 +426,24 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
           return (
             <NavLink
               to={`${prefix}${adminItem.path}`} onClick={onMobileClose}
-              className="flex items-center gap-2.5 transition-all duration-200 px-4"
+              className="flex items-center gap-2.5"
               style={{
-                padding: "11px 16px", borderRadius: 0, fontSize: 14,
-                fontWeight: isActive ? 600 : 500,
-                color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
-                background: isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent",
-                borderLeft: isActive ? `3px solid ${portal?.accent || '#00D4FF'}` : "3px solid transparent",
+                padding: "10px 14px", borderRadius: 0,
+                fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: isActive ? 600 : 400,
+                letterSpacing: "0.03em",
+                color: isActive ? "var(--text-primary)" : "var(--text-tertiary)",
+                background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
+                borderLeft: isActive ? `3px solid ${accentOf(portal)}` : "3px solid transparent",
               }}
               onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
-              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent"; }}
+              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
             >
               <div className="flex items-center justify-center shrink-0" style={{
-                width: 28, height: 28, borderRadius: 0,
-                background: isActive ? (portal?.accent || "#4A9EFF") : "var(--sosa-bg-3)",
+                width: 26, height: 26, borderRadius: 0,
+                background: isActive ? accentOf(portal) : "var(--sosa-bg-2)",
+                border: isActive ? "none" : "1px solid var(--sosa-border)",
               }}>
-                <adminItem.icon style={{ width: 14, height: 14, strokeWidth: 1.8, color: isActive ? "#000000" : "var(--sosa-white-40)" }} />
+                <adminItem.icon style={{ width: 13, height: 13, strokeWidth: 1.8, color: isActive ? "#000" : "var(--sosa-white-40)" }} />
               </div>
               <span>{adminItem.title}</span>
             </NavLink>
@@ -459,22 +456,24 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
           return (
             <NavLink
               to={`${prefix}${settingsItem.path}`} onClick={onMobileClose}
-              className="flex items-center gap-2.5 transition-all duration-200"
+              className="flex items-center gap-2.5"
               style={{
-                padding: "11px 16px", borderRadius: 0, fontSize: 14,
-                fontWeight: isActive ? 600 : 500,
-                color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
-                background: isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent",
-                borderLeft: isActive ? `3px solid ${portal?.accent || '#00D4FF'}` : "3px solid transparent",
+                padding: "10px 14px", borderRadius: 0,
+                fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: isActive ? 600 : 400,
+                letterSpacing: "0.03em",
+                color: isActive ? "var(--text-primary)" : "var(--text-tertiary)",
+                background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
+                borderLeft: isActive ? `3px solid ${accentOf(portal)}` : "3px solid transparent",
               }}
               onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
               onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
             >
               <div className="flex items-center justify-center shrink-0" style={{
-                width: 28, height: 28, borderRadius: 0,
-                background: isActive ? (portal?.accent || "#4A9EFF") : "var(--sosa-bg-3)",
+                width: 26, height: 26, borderRadius: 0,
+                background: isActive ? accentOf(portal) : "var(--sosa-bg-2)",
+                border: isActive ? "none" : "1px solid var(--sosa-border)",
               }}>
-                <settingsItem.icon style={{ width: 14, height: 14, strokeWidth: 1.8, color: isActive ? "#000000" : "var(--sosa-white-40)" }} />
+                <settingsItem.icon style={{ width: 13, height: 13, strokeWidth: 1.8, color: isActive ? "#000" : "var(--sosa-white-40)" }} />
               </div>
               <span>{settingsItem.title}</span>
             </NavLink>
@@ -584,10 +583,10 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
       </aside>
 
       <aside
-        className={`hidden lg:flex flex-col shrink-0 h-full transition-all duration-300 ${
+        className={`hidden lg:flex flex-col shrink-0 transition-all duration-300 ${
           collapsed ? "w-[68px]" : "w-[260px]"
         }`}
-        style={sidebarStyle}
+        style={{ ...sidebarStyle, height: "100%" }}
       >
         {collapsed ? collapsedDock : sidebarContent}
       </aside>

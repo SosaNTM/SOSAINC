@@ -18,7 +18,7 @@ export function AppLayout() {
 
   return (
     <PortalShell workspace={workspace} showHeader={false}>
-      <div style={{ display: "flex", height: "100%", minHeight: "calc(100dvh - 36px)" }}>
+      <div style={{ display: "flex", height: "calc(100dvh - 36px)", overflow: "hidden" }}>
         <AppSidebar
           collapsed={collapsed}
           onToggle={() => setCollapsed(!collapsed)}
