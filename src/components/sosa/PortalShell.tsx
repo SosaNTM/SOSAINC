@@ -1,6 +1,5 @@
 import React from "react";
 import { GrainOverlay }   from "./GrainOverlay";
-import { CornerBrackets } from "./CornerBrackets";
 import { LogoLockup }     from "./LogoLockup";
 import { HashtagFooter }  from "./HashtagFooter";
 import { StatusDot }      from "./StatusDot";
@@ -46,7 +45,6 @@ export function PortalShell({
     >
       {/* Fixed overlays — pointer-events: none, highest z */}
       <GrainOverlay />
-      <CornerBrackets />
 
       {/* Fixed top bar — only when showHeader=true */}
       {showHeader && (
