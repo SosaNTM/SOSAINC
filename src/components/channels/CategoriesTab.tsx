@@ -212,8 +212,7 @@ function CategoryDetailPanel({ category: cat, allCategories, onClose }: { catego
                 <XAxis dataKey="month" tick={{ fill: "var(--chart-axis)", fontSize: 10 }} />
                 <YAxis tick={{ fill: "var(--chart-axis)", fontSize: 10 }} tickFormatter={v => fmtEurShort(v)} />
                 <Tooltip formatter={(v: number) => fmtEur(v)} contentStyle={{
-                  background: "rgba(255, 255, 255, 0.85)", border: "1px solid rgba(255, 255, 255, 0.40)", borderRadius: 10, fontSize: 12,
-                  backdropFilter: "blur(16px)",
+                  background: "var(--sosa-bg-3)", border: "1px solid var(--sosa-border)", borderRadius: 0, fontSize: 12,
                 }} cursor={{ fill: "var(--row-hover)" }} />
                 <Bar dataKey="amount" fill={cat.color} radius={[4, 4, 0, 0]}
                   animationDuration={800} animationEasing="ease-out" />
