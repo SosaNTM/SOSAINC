@@ -31,6 +31,7 @@ interface StorageOverviewProps {
   onMoveToTrash: (fileId: string) => void;
   onRenameFile: (fileId: string, newName: string) => void;
   onMoveFile: (file: CloudFile) => void;
+  onOpenUpload?: () => void;
 }
 
 /* ── Helpers ── */
@@ -64,7 +65,7 @@ function formatExactBytes(bytes: number): string {
 /* ── Component ── */
 export default function StorageOverview({
   files, folders, userId, userRole, getPerm,
-  onNavigateFolder, onPreviewFile, onMoveToTrash, onRenameFile, onMoveFile,
+  onNavigateFolder, onPreviewFile, onMoveToTrash, onRenameFile, onMoveFile, onOpenUpload,
 }: StorageOverviewProps) {
   const isMobile = useIsMobile();
   const [viewFilter, setViewFilter] = useState<ViewFilter>("all");
@@ -547,7 +548,7 @@ export default function StorageOverview({
             </p>
             {activeFiles.length === 0 && (
               <button type="button"
-                onClick={() => toast.info("Upload feature")}
+                onClick={() => onOpenUpload?.()}
                 className="flex items-center gap-1.5 text-xs px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <Upload className="w-3.5 h-3.5" /> Upload Files

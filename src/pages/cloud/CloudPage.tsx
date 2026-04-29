@@ -1576,6 +1576,7 @@ const CloudPage = () => {
                 onMoveToTrash={moveToTrash}
                 onRenameFile={(id, name) => renameFile(id, name)}
                 onMoveFile={(f) => { setMoveFileModal(f); setMoveTarget(null); }}
+                onOpenUpload={() => setShowUploadModal(true)}
               />
             ) : showTrash ? (
               <>
