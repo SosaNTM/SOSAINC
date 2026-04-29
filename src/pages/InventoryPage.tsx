@@ -359,12 +359,12 @@ function ItemRow({
         <td style={{ padding: "12px 14px" }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{item.name}</div>
           {item.description && <div style={{ fontSize: 11, color: "var(--text-quaternary)", marginTop: 2 }}>{item.description}</div>}
-          <div style={{ fontSize: 11, color: "var(--text-quaternary)", marginTop: 3 }}>
-            €{fmtEur(unitPrice)} × {item.amount}
-          </div>
         </td>
         <td style={{ padding: "12px 10px", textAlign: "right", fontSize: 13, color: "var(--text-secondary)", fontWeight: 600, whiteSpace: "nowrap" }}>
           {item.amount}
+        </td>
+        <td style={{ padding: "12px 10px", textAlign: "right", fontSize: 13, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
+          €{fmtEur(unitPrice)}
         </td>
         <td style={{ padding: "12px 10px", textAlign: "right", fontSize: 13, fontWeight: 700, color: "var(--accent-color)", whiteSpace: "nowrap" }}>
           €{fmtEur(item.item_value)}
@@ -532,6 +532,7 @@ export default function InventoryPage() {
                 <tr style={{ background: "rgba(0,0,0,0.1)", borderBottom: "0.5px solid var(--glass-border)" }}>
                   <th style={{ padding: "10px 14px", textAlign: "left", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-quaternary)" }}>Item</th>
                   <th style={{ padding: "10px 10px", textAlign: "right", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-quaternary)", whiteSpace: "nowrap" }}>Qty</th>
+                  <th style={{ padding: "10px 10px", textAlign: "right", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-quaternary)", whiteSpace: "nowrap" }}>Unit Price</th>
                   <th style={{ padding: "10px 10px", textAlign: "right", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-quaternary)", whiteSpace: "nowrap" }}>Total Value</th>
                   <th style={{ padding: "10px 10px", textAlign: "center", width: 24 }} />
                   <th style={{ padding: "10px 10px", textAlign: "right", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-quaternary)" }}>Actions</th>
