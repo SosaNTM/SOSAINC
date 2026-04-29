@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+﻿import { supabase } from "@/lib/supabase";
 import { toPortalUUID } from "@/lib/portalUUID";
 import { newVaultItemSchema, safeValidate } from "@/lib/validation/schemas";
 import type { DbVaultItem, NewDbVaultItem } from "@/types/database";
@@ -10,7 +10,7 @@ import type { DbVaultItem, NewDbVaultItem } from "@/types/database";
  * Recommended: encrypt with AES-256-GCM using a user-derived key before storing.
  */
 
-const LS_KEY = (portalId: string) => `iconoff_vault_items_${portalId}`;
+const LS_KEY = (portalId: string) => `SOSA INC_vault_items_${portalId}`;
 
 function readLocal(portalId: string): DbVaultItem[] {
   try { return JSON.parse(localStorage.getItem(LS_KEY(portalId)) ?? "[]"); }

@@ -1,43 +1,43 @@
-// ── Centralized localStorage / sessionStorage key constants ──────────────────
+﻿// ── Centralized localStorage / sessionStorage key constants ──────────────────
 // Every raw string used with localStorage or sessionStorage is defined here.
 // Import from "@/constants/storageKeys" and use the constant instead of inline strings.
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
-export const STORAGE_AUTH_USER = "iconoff_auth_user";
-export const STORAGE_LAST_LOGIN_PREFIX = "iconoff_last_login_";
+export const STORAGE_AUTH_USER = "SOSA INC_auth_user";
+export const STORAGE_LAST_LOGIN_PREFIX = "SOSA INC_last_login_";
 
 // ── Profile ──────────────────────────────────────────────────────────────────
-export const STORAGE_PROFILE_PREFIX = "iconoff_profile_";
-export const STORAGE_AVATAR_PREFIX = "iconoff_avatar_";
-export const STORAGE_BANNER_PREFIX = "iconoff_banner_";
-export const STORAGE_DENSITY = "iconoff_density";
+export const STORAGE_PROFILE_PREFIX = "SOSA INC_profile_";
+export const STORAGE_AVATAR_PREFIX = "SOSA INC_avatar_";
+export const STORAGE_BANNER_PREFIX = "SOSA INC_banner_";
+export const STORAGE_DENSITY = "SOSA INC_density";
 
 // ── Theme & Appearance ───────────────────────────────────────────────────────
 export const STORAGE_THEME = "theme";
-export const STORAGE_ACCENT = "iconoff-accent";
+export const STORAGE_ACCENT = "SOSA INC-accent";
 
 // ── App Reset ────────────────────────────────────────────────────────────────
 export const STORAGE_APP_RESET_VERSION = "app_reset_version";
 
 // ── Audit ────────────────────────────────────────────────────────────────────
-export const STORAGE_AUDIT_LOG = "iconoff_audit_log";
+export const STORAGE_AUDIT_LOG = "SOSA INC_audit_log";
 
 // ── Tasks & Projects ─────────────────────────────────────────────────────────
-export const STORAGE_TASKS = "iconoff_tasks";
-export const STORAGE_PROJECTS = "iconoff_projects";
+export const STORAGE_TASKS = "SOSA INC_tasks";
+export const STORAGE_PROJECTS = "SOSA INC_projects";
 
 // ── Notes ────────────────────────────────────────────────────────────────────
-export const STORAGE_NOTES = "iconoff_notes";
-export const STORAGE_NOTE_FOLDERS = "iconoff_note_folders";
+export const STORAGE_NOTES = "SOSA INC_notes";
+export const STORAGE_NOTE_FOLDERS = "SOSA INC_note_folders";
 
 // ── Vault ────────────────────────────────────────────────────────────────────
-export const STORAGE_VAULT_ITEMS = "iconoff_vault_items";
+export const STORAGE_VAULT_ITEMS = "SOSA INC_vault_items";
 export const SESSION_VAULT_UNLOCKED = "vault_locked_unlocked";
 
 // ── Cloud ────────────────────────────────────────────────────────────────────
-export const STORAGE_CLOUD_FOLDERS = "iconoff_cloud_folders";
-export const STORAGE_CLOUD_FILES = "iconoff_cloud_files";
-export const STORAGE_CLOUD_SECTIONS = "iconoff_cloud_sections";
+export const STORAGE_CLOUD_FOLDERS = "SOSA INC_cloud_folders";
+export const STORAGE_CLOUD_FILES = "SOSA INC_cloud_files";
+export const STORAGE_CLOUD_SECTIONS = "SOSA INC_cloud_sections";
 export const STORAGE_CLOUD_COLLAPSED_SECTIONS = "cloud_collapsed_sections";
 export const SESSION_CLOUD_UNLOCK_PREFIX = "cloud_unlock_";
 export const STORAGE_CLOUD_UNLOCK_TIMED_PREFIX = "cloud_unlock_timed_";
@@ -92,7 +92,7 @@ export const STORAGE_GIFT_CARD_TX_PREFIX = "gift_card_transactions";
 export const STORAGE_GIFT_CARD_TX_LEGACY = "gift_card_transactions";
 
 // ── Finance: Exchange Rates ──────────────────────────────────────────────────
-export const STORAGE_EXCHANGE_RATES = "iconoff_exchange_rates";
+export const STORAGE_EXCHANGE_RATES = "SOSA INC_exchange_rates";
 
 // ── Inventory ────────────────────────────────────────────────────────────────
-export const STORAGE_INVENTORY_PREFIX = "iconoff_inventory_";
+export const STORAGE_INVENTORY_PREFIX = "SOSA INC_inventory_";

@@ -1,4 +1,4 @@
-# Settings Section Audit
+﻿# Settings Section Audit
 
 ## BEFORE — Issues Found
 
@@ -30,7 +30,7 @@
 | `general/PortalProfile` | No "Annulla" cancel button. |
 
 ### Hardcoded content
-- `SocialAccountsSettings`: hardcoded platform handles from "ICONOFF Studio" — business data in source code.
+- `SocialAccountsSettings`: hardcoded platform handles from "SOSA INC Studio" — business data in source code.
 - `DangerZone`: localStorage key references (`STORAGE_PERSONAL_TX_PREFIX`) instead of DB table names.
 - `TransactionCategories`: hardcoded hex colors (`#22c55e`, `#f97316`, `#ef4444`) instead of CSS variables.
 - `Appearance` Language card: hardcoded `'Bebas Neue'`, `#e8ff00` (fixed in session).

@@ -1,9 +1,9 @@
-import { supabase } from "@/lib/supabase";
+﻿import { supabase } from "@/lib/supabase";
 import { toPortalUUID } from "@/lib/portalUUID";
 import type { DbNote, DbNoteFolder, NewDbNote, NewDbNoteFolder } from "@/types/database";
 
-const LS_NOTES = (portalId: string) => `iconoff_notes_${portalId}`;
-const LS_FOLDERS = (portalId: string) => `iconoff_note_folders_${portalId}`;
+const LS_NOTES = (portalId: string) => `SOSA INC_notes_${portalId}`;
+const LS_FOLDERS = (portalId: string) => `SOSA INC_note_folders_${portalId}`;
 
 // ─── Folders ─────────────────────────────────────────────────────────────────
 

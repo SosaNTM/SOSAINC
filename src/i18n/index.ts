@@ -1,4 +1,4 @@
-/**
+﻿/**
  * INTERNATIONALIZATION SETUP
  *
  * Usage:
@@ -16,7 +16,7 @@ import { initReactI18next } from "react-i18next";
 import it from "./locales/it.json";
 import en from "./locales/en.json";
 
-const savedLang = localStorage.getItem("iconoff_language") || "it";
+const savedLang = localStorage.getItem("SOSA INC_language") || "it";
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -38,11 +38,11 @@ export const SUPPORTED_LANGUAGES = [
 export type SupportedLang = typeof SUPPORTED_LANGUAGES[number]["code"];
 
 export function getStoredLanguage(): SupportedLang {
-  const stored = localStorage.getItem("iconoff_language");
+  const stored = localStorage.getItem("SOSA INC_language");
   return (stored === "en" ? "en" : "it") as SupportedLang;
 }
 
 export function setLanguage(lang: SupportedLang) {
   i18n.changeLanguage(lang);
-  localStorage.setItem("iconoff_language", lang);
+  localStorage.setItem("SOSA INC_language", lang);
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { CheckSquare, Clock, RefreshCw } from "lucide-react";
 import { format, isPast, isToday } from "date-fns";
 import { STORAGE_TASKS } from "@/constants/storageKeys";
@@ -55,10 +55,10 @@ export function ProfileTasksCard({ userId }: ProfileTasksCardProps) {
   // Live sync: re-read localStorage whenever TasksPage writes to it
   useEffect(() => {
     const sync = () => setAllTasks(parseStoredTasks());
-    window.addEventListener("iconoff:tasks-changed", sync);
+    window.addEventListener("SOSA INC:tasks-changed", sync);
     window.addEventListener("storage", sync); // cross-tab fallback
     return () => {
-      window.removeEventListener("iconoff:tasks-changed", sync);
+      window.removeEventListener("SOSA INC:tasks-changed", sync);
       window.removeEventListener("storage", sync);
     };
   }, []);

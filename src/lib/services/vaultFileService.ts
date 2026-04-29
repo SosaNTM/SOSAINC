@@ -1,4 +1,4 @@
-/**
+﻿/**
  * vaultFileService — Vault file upload/download/delete via Supabase Storage.
  *
  * Storage bucket : vault-files  (private, 50 MB limit)
@@ -12,7 +12,7 @@
 import { supabase } from "@/lib/supabase";
 
 const BUCKET = "vault-files";
-const LS_KEY = (portalId: string) => `iconoff_vault_files_${portalId}`;
+const LS_KEY = (portalId: string) => `SOSA INC_vault_files_${portalId}`;
 const MAX_SIZE = 50 * 1024 * 1024; // 50 MB
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -160,7 +160,7 @@ export async function deleteVaultFile(vaultFile: VaultFile): Promise<void> {
 // ── Inventory attachments (reuses same storage bucket logic) ──────────────────
 
 const INV_BUCKET = "inventory-files";
-const INV_LS_KEY = (portalId: string) => `iconoff_inv_attachments_${portalId}`;
+const INV_LS_KEY = (portalId: string) => `SOSA INC_inv_attachments_${portalId}`;
 
 export interface InventoryAttachment {
   id: string;

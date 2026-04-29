@@ -1,4 +1,4 @@
-export interface AuditLogEntry {
+﻿export interface AuditLogEntry {
   id: string;
   userId: string;
   action: string;
@@ -105,7 +105,7 @@ export interface CompanySettings {
 }
 
 export const INITIAL_COMPANY_SETTINGS: CompanySettings = {
-  name: "ICONOFF",
+  name: "SOSA INC",
   timezone: "Europe/Rome",
   language: "Italiano",
   dateFormat: "DD/MM/YYYY",

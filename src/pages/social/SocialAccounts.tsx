@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { RefreshCw, AlertTriangle, Trash2 } from "lucide-react";
 import { mockSocialAccounts, formatSocialNumber, PLATFORM_CONFIG, type SocialPlatform } from "@/lib/socialStore";
@@ -302,7 +302,7 @@ function TelegramSVG({ size = 22 }: { size?: number }) {
 
 function TelegramCard({ profile, onDisconnect }: { profile: Profile; onDisconnect: () => void }) {
   const [hovered, setHovered] = useState(false);
-  const botUsername = (import.meta as any).env?.VITE_TELEGRAM_BOT_USERNAME || "iconoff_bot";
+  const botUsername = (import.meta as any).env?.VITE_TELEGRAM_BOT_USERNAME || "SOSA INC_bot";
   const connected = !!profile.telegram_chat_id;
 
   return (

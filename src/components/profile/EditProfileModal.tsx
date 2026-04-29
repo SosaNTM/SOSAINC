@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { X } from "lucide-react";
 import { MorphingSquare } from "@/components/ui/morphing-square";
 import { toast } from "sonner";
@@ -323,7 +323,7 @@ export function EditProfileModal({ profile, open, onClose, onSaved }: Props) {
                   </div>
                 ) : (
                   <a
-                    href={`https://t.me/${(import.meta as any).env?.VITE_TELEGRAM_BOT_USERNAME || "iconoff_bot"}?start=${profile.id}`}
+                    href={`https://t.me/${(import.meta as any).env?.VITE_TELEGRAM_BOT_USERNAME || "SOSA INC_bot"}?start=${profile.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{

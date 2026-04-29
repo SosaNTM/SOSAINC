@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { CalendarClock, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -261,7 +261,7 @@ export default function PublishingRulesPage() {
         <SettingsFormField label="Hashtag" description="Uno per riga o separati da virgola">
           <textarea className="glass-input" value={hForm.tagsText}
             onChange={(e) => setHForm((f) => ({ ...f, tagsText: e.target.value }))}
-            placeholder="#iconoff, #design, #studio" rows={4} style={{ resize: "vertical" }} />
+            placeholder="#SOSA INC, #design, #studio" rows={4} style={{ resize: "vertical" }} />
         </SettingsFormField>
       </SettingsModal>
 

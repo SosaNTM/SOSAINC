@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+﻿import { useState, useCallback, useEffect, useRef } from "react";
 import { useAuth, ALL_USERS, getUserById } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
 import { STORAGE_TASKS, STORAGE_PROJECTS } from "@/constants/storageKeys";
@@ -52,7 +52,7 @@ const TasksPage = () => {
   // Persist tasks & projects to localStorage on change; broadcast so ProfileTasksCard updates live
   useEffect(() => {
     localStorage.setItem(STORAGE_TASKS, JSON.stringify(issues));
-    window.dispatchEvent(new CustomEvent("iconoff:tasks-changed"));
+    window.dispatchEvent(new CustomEvent("SOSA INC:tasks-changed"));
   }, [issues]);
   useEffect(() => { localStorage.setItem(STORAGE_PROJECTS, JSON.stringify(projects)); }, [projects]);
 

@@ -1,9 +1,9 @@
-/**
+﻿/**
  * One-time migration utility: reads existing localStorage data and pushes it to Supabase.
  * Safe to run multiple times — uses upsert where possible to avoid duplicates.
  *
  * Call `runMigration(userId, portalId)` once per portal after the user logs in.
- * Stores migration state in localStorage under `iconoff_migration_done_<portalId>`.
+ * Stores migration state in localStorage under `SOSA INC_migration_done_<portalId>`.
  */
 
 import { createTransaction } from "@/lib/services/personalTransactionService";
@@ -16,7 +16,7 @@ import { loadInvestments } from "@/lib/investmentStore";
 import { loadBudgetLimits } from "@/portals/finance/services/budgetStorage";
 import type { NewDbPersonalTransaction } from "@/types/database";
 
-const MIGRATION_FLAG = (portalId: string) => `iconoff_migration_done_${portalId}`;
+const MIGRATION_FLAG = (portalId: string) => `SOSA INC_migration_done_${portalId}`;
 
 export interface MigrationResult {
   transactions: number;

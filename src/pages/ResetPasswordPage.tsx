@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, CheckCircle } from "lucide-react";
 import { MorphingSquare } from "@/components/ui/morphing-square";
@@ -63,7 +63,7 @@ const ResetPasswordPage = () => {
 
       <div className="w-full px-4 relative z-10" style={{ maxWidth: "min(420px, 100%)" }}>
         <div className="text-center mb-8">
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.3px" }}>ICONOFF</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.3px" }}>SOSA INC</h1>
           <p style={{ fontSize: 12, fontWeight: 500, color: "var(--text-muted)", marginTop: 4 }}>Company Hub</p>
         </div>
 

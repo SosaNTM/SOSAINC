@@ -1,9 +1,9 @@
-import { supabase } from "@/lib/supabase";
+﻿import { supabase } from "@/lib/supabase";
 import { toPortalUUID } from "@/lib/portalUUID";
 import type { DbTask, DbProject, NewDbTask, NewDbProject, DbTaskComment, NewDbTaskComment } from "@/types/database";
 
-const LS_TASKS = (portalId: string) => `iconoff_tasks_${portalId}`;
-const LS_PROJECTS = (portalId: string) => `iconoff_projects_${portalId}`;
+const LS_TASKS = (portalId: string) => `SOSA INC_tasks_${portalId}`;
+const LS_PROJECTS = (portalId: string) => `SOSA INC_projects_${portalId}`;
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
 

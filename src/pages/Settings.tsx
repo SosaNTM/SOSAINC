@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import {
   Building2,
   Receipt,
@@ -104,7 +104,7 @@ const Settings = () => {
   const { format, setFormat } = useNumberFormat();
   const { period, setPeriod } = usePeriod();
 
-  const [company, setCompany] = useState({ name: "ICONOFF", vat: "", address: "", email: "", phone: "" });
+  const [company, setCompany] = useState({ name: "SOSA INC", vat: "", address: "", email: "", phone: "" });
   const [currency, setCurrency] = useState("EUR");
   const [fiscalStart, setFiscalStart] = useState("January");
 
@@ -158,7 +158,7 @@ const Settings = () => {
           <div style={{ gridColumn: "1 / -1" }}>
             <LabeledInput label="Address" value={company.address} onChange={(e) => setCompany({ ...company, address: e.target.value })} placeholder="Street, City, Country" />
           </div>
-          <LabeledInput label="Email" type="email" value={company.email} onChange={(e) => setCompany({ ...company, email: e.target.value })} placeholder="finance@iconoff.com" />
+          <LabeledInput label="Email" type="email" value={company.email} onChange={(e) => setCompany({ ...company, email: e.target.value })} placeholder="finance@SOSA INC.com" />
           <LabeledInput label="Phone" value={company.phone} onChange={(e) => setCompany({ ...company, phone: e.target.value })} placeholder="+39 02 1234567" />
           <div>
             <label style={labelStyle}>Currency</label>

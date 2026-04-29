@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+﻿import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { addAuditEntry } from "./adminStore";
 import {
   signInWithEmail,
@@ -35,31 +35,31 @@ interface MockUser extends User {
 
 const MOCK_USERS: MockUser[] = [
   {
-    id: "usr_001", email: "owner@iconoff.com",
+    id: "usr_001", email: "owner@SOSA INC.com",
     password: import.meta.env.VITE_MOCK_PASSWORD_OWNER || "dev_only_owner",
     displayName: "Alessandro", role: "owner", avatar: null, bio: "Founder & CEO",
     createdAt: new Date("2024-01-01"), portalAccess: [...ALL_PORTAL_IDS],
   },
   {
-    id: "usr_002", email: "admin@iconoff.com",
+    id: "usr_002", email: "admin@SOSA INC.com",
     password: import.meta.env.VITE_MOCK_PASSWORD_ADMIN || "dev_only_admin",
     displayName: "Marco", role: "admin", avatar: null, bio: "Operations Manager",
     createdAt: new Date("2024-02-15"), portalAccess: [...ALL_PORTAL_IDS],
   },
   {
-    id: "usr_003", email: "sara@iconoff.com",
+    id: "usr_003", email: "sara@SOSA INC.com",
     password: import.meta.env.VITE_MOCK_PASSWORD_SARA || "dev_only_sara",
     displayName: "Sara", role: "member", avatar: null, bio: "Marketing Specialist",
     createdAt: new Date("2024-03-10"), portalAccess: [...ALL_PORTAL_IDS],
   },
   {
-    id: "usr_004", email: "elena@iconoff.com",
+    id: "usr_004", email: "elena@SOSA INC.com",
     password: import.meta.env.VITE_MOCK_PASSWORD_ELENA || "dev_only_elena",
     displayName: "Elena", role: "member", avatar: null, bio: "Designer",
     createdAt: new Date("2024-04-20"), portalAccess: [...ALL_PORTAL_IDS],
   },
   {
-    id: "usr_005", email: "denis@iconoff.com",
+    id: "usr_005", email: "denis@SOSA INC.com",
     password: import.meta.env.VITE_MOCK_PASSWORD_DENIS || "dev_only_denis",
     displayName: "Denis", role: "owner", avatar: null, bio: "",
     createdAt: new Date("2025-02-26"), portalAccess: [...ALL_PORTAL_IDS],

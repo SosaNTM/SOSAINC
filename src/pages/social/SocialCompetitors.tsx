@@ -1,10 +1,10 @@
-import { Plus } from "lucide-react";
+﻿import { Plus } from "lucide-react";
 import { mockCompetitors, mockSocialAccounts, formatSocialNumber } from "@/lib/socialStore";
 import { toast } from "@/hooks/use-toast";
 
 export default function SocialCompetitors() {
   const us = {
-    accountName: "@iconoff_official",
+    accountName: "@SOSA INC_official",
     followersCount: mockSocialAccounts.reduce((s, a) => s + a.followersCount, 0),
     engagementRate: 4.7,
     postsPerWeek: 12,

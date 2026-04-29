@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+﻿import { useEffect } from "react";
 
 export function useKeyboardShortcuts() {
   useEffect(() => {
@@ -9,7 +9,7 @@ export function useKeyboardShortcuts() {
 
       // Escape: close any open modal via custom event
       if (e.key === "Escape") {
-        document.dispatchEvent(new CustomEvent("iconoff:close-modal"));
+        document.dispatchEvent(new CustomEvent("SOSA INC:close-modal"));
       }
 
       // Cmd/Ctrl+K: future command palette placeholder

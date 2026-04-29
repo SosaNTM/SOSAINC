@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { ChevronRight, ChevronLeft, Check } from "lucide-react";
 import { MorphingSquare } from "@/components/ui/morphing-square";
 import { toast } from "sonner";
@@ -24,7 +24,7 @@ export function OnboardingModal({ profile, open, onComplete }: Props) {
 
   const steps = [
     {
-      title: "Welcome to ICONOFF 👋",
+      title: "Welcome to SOSA INC 👋",
       subtitle: "Let's set up your profile in a few quick steps.",
       content: (
         <div className="flex flex-col gap-4">
