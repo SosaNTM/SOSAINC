@@ -279,9 +279,8 @@ function ItemFormModal({
             </div>
           </div>
 
-          {/* Files (only for new items — existing items have their own AttachmentsPanel) */}
-          {!initial && (
-            <div className="flex flex-col gap-2">
+          {/* Files */}
+          <div className="flex flex-col gap-2">
               <label style={{ fontSize: 13, color: "var(--text-secondary)" }}>Files <span style={{ color: "var(--text-quaternary)" }}>(optional)</span></label>
               <input ref={fileRef} type="file" multiple style={{ display: "none" }} onChange={(e) => addFiles(e.target.files)} />
               <div
@@ -308,7 +307,7 @@ function ItemFormModal({
                 </div>
               )}
             </div>
-          )}
+          </div>
 
           {/* Total preview */}
           <div className="flex justify-between items-center py-2 px-3 rounded-lg" style={{ background: "rgba(0,0,0,0.15)", border: "0.5px solid var(--glass-border)" }}>
@@ -440,21 +439,19 @@ export default function InventoryPage() {
 
     if (editTarget) {
       await updateItem(editTarget.id, data);
+      if (files.length > 0) {
+        await Promise.all(
+          files.map((f) => uploadInventoryAttachment(f, editTarget.id, portalId, userId).catch(() => null))
+        );
+      }
     } else {
       const ok = await addItem(fullData);
-      // upload files after item is created — we need the item id from the refreshed list
-      // For now, files are uploaded after the list refreshes via the AttachmentsPanel in the row
-      // If ok = true the item is in the list; files attached via expanded row
       if (!ok) return;
-      // If files were provided at creation time, we need the new item id
-      // The item is added via the hook which triggers a reload; we can't get the id here directly.
-      // Files added at creation time are surfaced as "pending" to the user via the row's AttachmentsPanel.
-      // This is a known limitation — advise user to expand the row to attach files after creation.
       if (files.length > 0) {
         toast({ title: "Item added", description: "Expand the row to attach files." });
       }
     }
-  }, [editTarget, addItem, updateItem, toast]);
+  }, [editTarget, addItem, updateItem, toast, portalId, userId]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
