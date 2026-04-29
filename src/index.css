@@ -314,26 +314,26 @@
     --text-dim: var(--text-quaternary);
     --text-ultra-dim: rgba(255, 255, 255, 0.10);
 
-    /* Glass Material */
-    --glass-bg: rgba(255, 255, 255, 0.06);
-    --glass-bg-hover: rgba(255, 255, 255, 0.09);
-    --glass-bg-active: rgba(255, 255, 255, 0.12);
-    --glass-bg-subtle: rgba(255, 255, 255, 0.03);
-    --glass-bg-subtle-hover: rgba(255, 255, 255, 0.06);
-    --glass-bg-elevated: rgba(20, 24, 38, 0.90);
-    --glass-bg-elevated-hover: rgba(20, 24, 38, 0.95);
+    /* Glass Material — remapped to SOSA tokens */
+    --glass-bg: var(--sosa-bg-2);
+    --glass-bg-hover: var(--sosa-bg-3);
+    --glass-bg-active: var(--sosa-bg-3);
+    --glass-bg-subtle: var(--sosa-bg);
+    --glass-bg-subtle-hover: var(--sosa-bg-2);
+    --glass-bg-elevated: var(--sosa-bg-3);
+    --glass-bg-elevated-hover: var(--sosa-bg-3);
 
-    /* Borders */
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --glass-border-hover: rgba(255, 255, 255, 0.14);
-    --glass-border-subtle: rgba(255, 255, 255, 0.04);
-    --glass-border-strong: rgba(255, 255, 255, 0.16);
-    --glass-border-top: rgba(255, 255, 255, 0.10);
+    /* Borders — remapped to SOSA tokens */
+    --glass-border: var(--sosa-border);
+    --glass-border-hover: #252525;
+    --glass-border-subtle: var(--sosa-border-dim);
+    --glass-border-strong: #252525;
+    --glass-border-top: var(--sosa-border);
 
-    /* Shadows */
-    --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
-    --glass-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.45);
-    --glass-shadow-xl: 0 16px 64px rgba(0, 0, 0, 0.55);
+    /* Shadows — none in SOSA design */
+    --glass-shadow: none;
+    --glass-shadow-lg: none;
+    --glass-shadow-xl: none;
 
     /* Dividers & Surfaces */
     --divider: rgba(255, 255, 255, 0.06);
@@ -357,22 +357,22 @@
     --nav-item-active-color: var(--text-primary);
     --nav-hover-bg: rgba(255, 255, 255, 0.04);
 
-    /* Inputs */
-    --input-bg: rgba(255, 255, 255, 0.06);
-    --input-border: rgba(255, 255, 255, 0.10);
+    /* Inputs — remapped to SOSA tokens */
+    --input-bg: var(--sosa-bg-2);
+    --input-border: var(--sosa-border);
     --input-text: rgba(255, 255, 255, 0.90);
-    --input-placeholder: rgba(255, 255, 255, 0.25);
-    --input-focus-border: #4A9EFF;
-    --input-focus-ring: rgba(74, 158, 255, 0.20);
+    --input-placeholder: var(--sosa-white-20);
+    --input-focus-border: var(--sosa-yellow);
+    --input-focus-ring: rgba(212, 255, 0, 0.12);
 
-    /* Buttons */
-    --btn-glass-bg: rgba(255, 255, 255, 0.06);
-    --btn-glass-border: rgba(255, 255, 255, 0.10);
-    --btn-text: var(--text-secondary);
-    --btn-primary-bg: linear-gradient(135deg, #00D4FF, #4A9EFF);
-    --btn-primary-border: rgba(255, 255, 255, 0.15);
-    --btn-primary-text: #ffffff;
-    --btn-primary-hover-bg: linear-gradient(135deg, #00C4EF, #3A8EEF);
+    /* Buttons — remapped to SOSA tokens */
+    --btn-glass-bg: var(--sosa-bg-2);
+    --btn-glass-border: var(--sosa-border);
+    --btn-text: var(--sosa-white-40);
+    --btn-primary-bg: var(--sosa-yellow);
+    --btn-primary-border: none;
+    --btn-primary-text: #000000;
+    --btn-primary-hover-bg: var(--sosa-yellow);
     --btn-destructive-bg: rgba(255, 90, 90, 0.12);
     --btn-destructive-border: rgba(255, 90, 90, 0.20);
     --btn-destructive-text: #FF5A5A;
@@ -391,12 +391,12 @@
     --tooltip-shadow: 0 8px 32px rgba(0, 0, 0, 0.50);
     --tooltip-text: var(--text-primary);
 
-    /* Modals */
-    --modal-overlay: rgba(0, 0, 0, 0.60);
-    --modal-overlay-blur: blur(12px);
-    --modal-bg: rgba(16, 20, 32, 0.95);
-    --modal-border: rgba(255, 255, 255, 0.08);
-    --modal-shadow: var(--glass-shadow-xl);
+    /* Modals — remapped to SOSA tokens */
+    --modal-overlay: rgba(0, 0, 0, 0.75);
+    --modal-overlay-blur: none;
+    --modal-bg: var(--sosa-bg-3);
+    --modal-border: var(--sosa-border);
+    --modal-shadow: none;
 
     /* Tables */
     --table-header-color: var(--text-quaternary);
