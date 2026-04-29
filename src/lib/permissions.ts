@@ -1,12 +1,14 @@
 import { useAuth } from "./authContext";
+import { usePortalDB } from "./portalContextDB";
 
-export type Role = "owner" | "admin" | "manager" | "member";
+export type Role = "owner" | "admin" | "manager" | "member" | "viewer";
 
 export const ROLE_HIERARCHY: Record<Role, number> = {
   owner: 100,
   admin: 75,
   manager: 50,
   member: 25,
+  viewer: 10,
 };
 
 export const PERMISSIONS: Record<string, Role[]> = {
@@ -80,8 +82,12 @@ export const PERMISSIONS: Record<string, Role[]> = {
 
 export function usePermission(permission: string): boolean {
   const { user } = useAuth();
+  const { userRole } = usePortalDB();
   if (!user) return false;
   const allowedRoles = PERMISSIONS[permission];
   if (!allowedRoles) return false;
-  return allowedRoles.includes(user.role as Role);
+  // Source of truth: portal_members.role for the current portal.
+  // Fall back to JWT meta role only outside any portal context (unlikely).
+  const effectiveRole = (userRole ?? user.role) as Role;
+  return allowedRoles.includes(effectiveRole);
 }

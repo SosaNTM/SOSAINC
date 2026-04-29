@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { toPortalUUID } from "@/lib/portalUUID";
 import { newTransactionSchema, safeValidate } from "@/lib/validation/schemas";
 import type { DbPersonalTransaction, NewDbPersonalTransaction } from "@/types/database";
+import { toast } from "sonner";
 
 const LS_KEY = (portalId: string) => `personal_transactions_local_${portalId}`;
 
@@ -99,7 +100,11 @@ export async function createTransaction(
     const updated = readLocal(portalId).map((t) => (t.id === optimisticId ? data : t));
     writeLocal(portalId, updated);
     return data;
-  } catch {
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Errore sconosciuto";
+    toast.error("Salvataggio non riuscito", {
+      description: `${msg} — la transazione è in cache locale e verrà sincronizzata al prossimo retry.`,
+    });
     return optimistic;
   }
 }
@@ -124,7 +129,9 @@ export async function updateTransaction(
       .single();
     if (error) throw error;
     return data;
-  } catch {
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Errore sconosciuto";
+    toast.error("Aggiornamento non riuscito", { description: msg });
     return updated.find((t) => t.id === id) ?? null;
   }
 }
@@ -138,7 +145,9 @@ export async function deleteTransaction(id: string, portalId: string): Promise<b
     const { error } = await supabase.from("personal_transactions").delete().eq("id", id).eq("portal_id", toPortalUUID(portalId));
     if (error) throw error;
     return true;
-  } catch {
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Errore sconosciuto";
+    toast.error("Eliminazione non riuscita", { description: msg });
     return false;
   }
 }

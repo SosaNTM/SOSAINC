@@ -23,12 +23,15 @@ export const newTransactionSchema = z.object({
   currency: currencySchema,
   category: z.string().min(1).max(100).nullable().optional(),
   category_id: uuidSchema.nullable().optional(),
+  title: z.string().max(200).nullable().optional(),
+  subcategory: z.string().max(100).nullable().optional(),
   description: z.string().max(500).nullable().optional(),
   date: dateSchema,
   cost_classification: z.enum(["fixed", "variable", "semi-variable", "one-time"]).nullable().optional(),
   payment_method: z.string().max(50).nullable().optional(),
   reference: z.string().max(200).nullable().optional(),
   tags: z.array(z.string().max(50)).nullable().optional(),
+  is_recurring: z.boolean().optional(),
   user_id: uuidSchema,
 });
 

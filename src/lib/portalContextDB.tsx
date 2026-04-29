@@ -21,9 +21,29 @@ export function PortalDBProvider({ children }: { children: ReactNode }) {
   const [portals, setPortals] = useState<Portal[]>([]);
   const [currentPortal, setCurrentPortalState] = useState<Portal | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<PortalMember["role"] | null>(null);
   const currentPortalRef = useRef<Portal | null>(null);
   const portalsRef = useRef<Portal[]>([]);
   const pendingSlugRef = useRef<string | null>(null);
+
+  // Recompute userRole whenever currentPortal changes by reading portal_members
+  useEffect(() => {
+    if (!currentPortal) { setUserRole(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth?.user?.id;
+      if (!uid) { if (!cancelled) setUserRole(null); return; }
+      const { data: row } = await supabase
+        .from("portal_members")
+        .select("role")
+        .eq("portal_id", currentPortal.id)
+        .eq("user_id", uid)
+        .maybeSingle();
+      if (!cancelled) setUserRole((row?.role as PortalMember["role"] | undefined) ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [currentPortal]);
 
   const fetchPortals = useCallback(async () => {
     const { data: portalData, error: portalsError } = await supabase
@@ -84,9 +104,9 @@ export function PortalDBProvider({ children }: { children: ReactNode }) {
       portals,
       currentPortal,
       currentPortalId: currentPortal?.id ?? null,
-      userRole: "owner",
-      isAdmin: true,
-      isOwner: true,
+      userRole,
+      isAdmin: userRole === "owner" || userRole === "admin",
+      isOwner: userRole === "owner",
       loadingPortals: loading,
       setCurrentPortal,
       setCurrentPortalBySlug,

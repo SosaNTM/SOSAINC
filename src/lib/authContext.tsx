@@ -153,12 +153,15 @@ const STORAGE_KEY = STORAGE_AUTH_USER;
 function getStoredUser(): User | null {
   try {
     const data = localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(STORAGE_KEY);
-    if (data) {
-      const parsed = JSON.parse(data);
-      // Re-sync portalAccess from MOCK_USERS in case it was updated this session
-      const live = MOCK_USERS.find(u => u.id === parsed.id);
-      return { ...parsed, createdAt: new Date(parsed.createdAt), portalAccess: live?.portalAccess ?? parsed.portalAccess ?? ALL_PORTAL_IDS };
+    if (!data) return null;
+    const parsed = JSON.parse(data);
+    if (USE_REAL_AUTH) {
+      // Real auth: trust persisted portalAccess. Source of truth is portal_members in DB.
+      return { ...parsed, createdAt: new Date(parsed.createdAt), portalAccess: parsed.portalAccess ?? [] };
     }
+    // Mock auth: re-sync portalAccess from MOCK_USERS in case it was updated this session
+    const live = MOCK_USERS.find(u => u.id === parsed.id);
+    return { ...parsed, createdAt: new Date(parsed.createdAt), portalAccess: live?.portalAccess ?? parsed.portalAccess ?? ALL_PORTAL_IDS };
   } catch (err) {
     console.warn("Failed to parse stored user:", err);
   }
@@ -197,14 +200,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const portalIds = await getUserPortalIds(supaUser.id);
 
+      const meta = supaUser.user_metadata ?? {};
       const userData: User = {
         id: supaUser.id,
         email: supaUser.email ?? "",
-        displayName: (supaUser.user_metadata?.full_name as string | undefined) ?? supaUser.email ?? "",
-        role: ((supaUser.user_metadata?.role as User["role"] | undefined) ?? "member"),
+        displayName:
+          (meta.full_name as string | undefined) ??
+          (meta.name as string | undefined) ??
+          (meta.display_name as string | undefined) ??
+          (supaUser.email ? supaUser.email.split("@")[0] : ""),
+        role: ((meta.role as User["role"] | undefined) ?? "member"),
         portalAccess: portalIds.length > 0 ? (portalIds as PortalId[]) : [...ALL_PORTAL_IDS],
-        avatar: (supaUser.user_metadata?.avatar_url as string | undefined) ?? null,
-        bio: (supaUser.user_metadata?.bio as string | undefined) ?? "",
+        avatar: (meta.avatar_url as string | undefined) ?? null,
+        bio: (meta.bio as string | undefined) ?? "",
         createdAt: new Date(supaUser.created_at),
       };
 

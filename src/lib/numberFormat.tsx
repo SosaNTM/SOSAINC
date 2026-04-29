@@ -25,17 +25,19 @@ export function NumberFormatProvider({ children }: { children: React.ReactNode }
 
   const formatCurrency = (value: number, short = false) => {
     const locale = format === "eu" ? "de-DE" : "en-US";
-    
+    const sign = value < 0 ? "-" : "";
+    const abs = Math.abs(value);
+
     if (short) {
-      if (Math.abs(value) >= 1_000_000) {
-        return `€${(value / 1_000_000).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`;
+      if (abs >= 1_000_000) {
+        return `${sign}€${(abs / 1_000_000).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`;
       }
-      if (Math.abs(value) >= 1_000) {
-        return `€${(value / 1_000).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}K`;
+      if (abs >= 1_000) {
+        return `${sign}€${(abs / 1_000).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}K`;
       }
     }
 
-    return `€${value.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    return `${sign}€${abs.toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
   return (

@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth, userCanAccessPortal } from "@/lib/authContext";
+import { useAuth } from "@/lib/authContext";
 import { usePortal, PORTALS, getLastAccessed, type PortalConfig } from "@/lib/portalContext";
+import { usePortalDB } from "@/lib/portalContextDB";
 import { formatDistanceToNow } from "date-fns";
 import s from "./HubPage.module.css";
 
-/* ── Portal visual config ─────────────────────────────────── */
+/* ── Portal visual config (fallback for unknown slugs) ─────────────────── */
 
 const PORTAL_META: Record<string, { icon: string; color: string; desc: string }> = {
   sosa:    { icon: "▣", color: "#4488ff", desc: "Corporate management & operations" },
@@ -13,6 +14,8 @@ const PORTAL_META: Record<string, { icon: string; color: string; desc: string }>
   redx:    { icon: "⚡", color: "#ff4444", desc: "Performance & growth operations" },
   trustme: { icon: "◈", color: "#ff6b00", desc: "Compliance, legal & trust layer" },
 };
+const FALLBACK_META = { icon: "◻", color: "#6b7280", desc: "Workspace" };
+const PORTALS_BY_SLUG = new Map(PORTALS.map((p) => [p.id, p]));
 
 /* ── HubPage ──────────────────────────────────────────────── */
 
@@ -20,6 +23,7 @@ export default function HubPage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { setPortal } = usePortal();
+  const { portals: dbPortals, loadingPortals } = usePortalDB();
   const [loaded, setLoaded] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [hoveredEnter, setHoveredEnter] = useState<string | null>(null);
@@ -29,10 +33,24 @@ export default function HubPage() {
     return () => clearTimeout(t);
   }, []);
 
-  const accessiblePortals = PORTALS.filter((p) => userCanAccessPortal(user, p.id));
+  // Source of truth: portals returned by DB (already RLS-filtered to user's portal_members).
+  // Map each DB portal to a display config, preferring the hardcoded PORTAL_META for known slugs.
+  const accessiblePortals = useMemo(() => dbPortals.map((p) => {
+    const known = PORTALS_BY_SLUG.get(p.slug as PortalConfig["id"]);
+    return {
+      id: p.slug,
+      uuid: p.id,
+      name: p.name,
+      subtitle: p.description ?? known?.subtitle ?? FALLBACK_META.desc,
+      accent: known?.accent ?? FALLBACK_META.color,
+      icon: known?.icon ?? "Building2",
+      routePrefix: `/${p.slug}`,
+    } as PortalConfig & { uuid: string };
+  }), [dbPortals]);
 
   const handleSelectPortal = (portal: PortalConfig): void => {
-    setPortal(portal);
+    const known = PORTALS_BY_SLUG.get(portal.id as PortalConfig["id"]);
+    setPortal(known ?? portal);
     navigate(`${portal.routePrefix}/dashboard`);
   };
 
@@ -64,10 +82,19 @@ export default function HubPage() {
         <p className={s.subtitle}>Select your workspace</p>
       </div>
 
-      {/* ── PORTAL ROW — 4 columns ─────────────────────────────── */}
+      {/* ── PORTAL ROW ─────────────────────────────── */}
+      {loadingPortals ? (
+        <div className={s.portalRow} style={{ opacity: 0.5 }}>
+          <p style={{ color: "var(--text-tertiary)", fontSize: 12 }}>Loading workspaces…</p>
+        </div>
+      ) : accessiblePortals.length === 0 ? (
+        <div className={s.portalRow}>
+          <p style={{ color: "var(--text-tertiary)", fontSize: 12 }}>No workspaces available for this account.</p>
+        </div>
+      ) : (
       <div className={s.portalRow}>
         {accessiblePortals.map((portal, i) => {
-          const meta = PORTAL_META[portal.id] ?? { icon: "◻", color: portal.accent, desc: portal.subtitle };
+          const meta = PORTAL_META[portal.id] ?? { icon: FALLBACK_META.icon, color: portal.accent, desc: portal.subtitle };
           const lastAccessed = getLastAccessed(portal.id);
           let lastAccessedText = "Not yet accessed";
           if (lastAccessed) {
@@ -149,6 +176,7 @@ export default function HubPage() {
           );
         })}
       </div>
+      )}
 
       {/* ── FOOTER ─────────────────────────────────────────────── */}
       {user && (

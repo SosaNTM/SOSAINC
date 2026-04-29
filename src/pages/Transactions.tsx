@@ -77,7 +77,7 @@ function TxRow({ tx, onRequestDelete, onRequestEdit, getCatColor, getCatIcon }: 
         {/* Description + meta */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {tx.description || tx.category}
+            {tx.subcategory || tx.description || tx.category}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
             <span style={{ fontSize: 10, color: "var(--text-quaternary)" }}>{fmtDate(tx.date)}</span>
@@ -308,12 +308,13 @@ export default function Transactions() {
               </div>
             )}
 
-            {/* Category filter */}
+            {/* Category filter (deduped by name — income+expense may share names like "Other") */}
             {allCategories.length > 0 && (
               <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)}
                 className="glass-input" style={{ fontSize: 11, padding: "4px 10px", borderRadius: 8, minWidth: 120 }}>
                 <option value="">All categories</option>
-                {allCategories.map((c) => <option key={c.id} value={c.name}>{c.icon} {c.name}</option>)}
+                {Array.from(new Map(allCategories.map((c) => [c.name, c])).values())
+                  .map((c) => <option key={c.id} value={c.name}>{c.icon} {c.name}</option>)}
               </select>
             )}
           </div>

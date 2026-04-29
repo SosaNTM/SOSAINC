@@ -167,8 +167,11 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
       </div>
 
       {/* Left — greeting */}
-      <div className="hidden md:flex flex-col">
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)' }}>
+      <div className="hidden md:flex flex-col" style={{ minWidth: 0, maxWidth: 280 }}>
+        <h1 style={{
+          fontSize: 22, fontWeight: 700, color: 'var(--text-primary)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
           Hi, {user?.displayName || 'there'}! 👋
         </h1>
         <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>

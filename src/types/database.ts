@@ -33,12 +33,15 @@ export interface DbPersonalTransaction {
   currency: string;
   category: string | null;
   category_id: string | null;
+  title: string | null;
+  subcategory: string | null;
   description: string | null;
   date: string;
   cost_classification: "fixed" | "variable" | "semi-variable" | "one-time" | null;
   payment_method: string | null;
   reference: string | null;
   tags: string[] | null;
+  is_recurring: boolean;
   created_at: string;
   updated_at: string;
 }

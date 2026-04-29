@@ -25,7 +25,18 @@ export async function addAuditEntry(
   entry: Omit<NewDbAuditLogEntry, "portal_id">,
   portalId: string,
 ): Promise<void> {
+  // Pre-check membership — avoids noisy 403 in console when RLS would reject anyway.
+  // If the current user isn't a member of this portal, skip the audit insert entirely.
   try {
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth?.user?.id;
+    if (!uid) return;
+    const { count } = await supabase
+      .from("portal_members")
+      .select("*", { count: "exact", head: true })
+      .eq("portal_id", toPortalUUID(portalId))
+      .eq("user_id", uid);
+    if (!count) return;
     await supabase.from("audit_log").insert({
       ...entry,
       portal_id: toPortalUUID(portalId),
