@@ -330,12 +330,17 @@ const ProfilePage = () => {
         </GlassSection>
 
         {/* Sensitive Data */}
-        {hasSensitiveData && (
+        {(hasSensitiveData || canViewSensitive) && (
           <GlassSection
             title="Sensitive Data"
             icon={<ShieldAlert className="w-4 h-4" style={{ color: "#f87171" }} />}
             badge={<span className="flex items-center gap-1 text-[10px]" style={{ color: "#f87171" }}><Lock className="w-3 h-3" /> Protected</span>}
           >
+            {!profile.tax_id && !profile.iban && (
+              <div className="p-3 mb-2 rounded-[var(--radius-sm)] text-center" style={{ background: "var(--glass-bg-subtle)", color: "var(--text-quaternary)", fontSize: 12 }}>
+                No sensitive data on file
+              </div>
+            )}
             {profile.tax_id && (
               <MaskedField
                 label="Tax ID"
@@ -388,7 +393,7 @@ const ProfilePage = () => {
         )}
 
         {/* Banking & VAT */}
-        {(hasBankingData || canEdit) && (
+        {(hasBankingData || canEdit || canViewSensitive) && (
           <GlassSection
             title="Banking & VAT"
             icon={<Landmark className="w-4 h-4" style={{ color: "#60a5fa" }} />}
@@ -411,7 +416,11 @@ const ProfilePage = () => {
               >
                 + Add bank details
               </div>
-            ) : null}
+            ) : (
+              <div className="p-3 mb-3 rounded-[var(--radius-sm)] text-center" style={{ background: "var(--glass-bg-subtle)", color: "var(--text-quaternary)", fontSize: 12 }}>
+                No banking details on file
+              </div>
+            )}
 
             {profile.iban && (
               <MaskedField
