@@ -21,17 +21,19 @@ import {
 import { format, differenceInMonths, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import type { Role } from "@/lib/permissions";
+import { usePortalDB } from "@/lib/portalContextDB";
 
 /* ── Page ── */
 const ProfilePage = () => {
   const { userId } = useParams<{ userId?: string }>();
   const { user: currentUser } = useAuth();
+  const { userRole: dbRole } = usePortalDB();
   const { theme, setTheme } = useTheme();
   const { accent, setAccent } = useAccent();
 
   const isOwn = !userId || userId === currentUser?.id;
   const profileUser: User | undefined = isOwn ? (currentUser ?? undefined) : getUserById(userId!);
-  const viewerRole = (currentUser?.role || "member") as Role;
+  const viewerRole = ((dbRole ?? currentUser?.role) || "member") as Role;
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [localAvatar, setLocalAvatar] = useState<string | null>(null);
