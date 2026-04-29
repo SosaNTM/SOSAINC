@@ -28,9 +28,7 @@ export function SettingsDeleteConfirm({
             onClick={onClose}
             style={{
               position: "absolute", inset: 0,
-              background: "var(--modal-overlay)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
+              background: "rgba(0,0,0,0.7)",
             }}
           />
           <motion.div
@@ -40,12 +38,9 @@ export function SettingsDeleteConfirm({
             transition={{ duration: 0.2 }}
             style={{
               position: "relative", zIndex: 1, width: "90%", maxWidth: 400,
-              background: "var(--glass-bg-elevated)",
-              backdropFilter: "var(--glass-blur-heavy)",
-              WebkitBackdropFilter: "var(--glass-blur-heavy)",
-              border: "0.5px solid var(--glass-border)",
-              borderRadius: "var(--radius-xl)",
-              boxShadow: "var(--glass-shadow-xl)",
+              background: "var(--sosa-bg-3)",
+              border: "1px solid var(--sosa-border)",
+              borderRadius: 0,
               padding: "32px 24px",
               textAlign: "center",
             }}

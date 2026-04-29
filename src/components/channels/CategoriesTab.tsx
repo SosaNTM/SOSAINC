@@ -38,13 +38,13 @@ function CategoryModal({ category, onClose }: { category?: AppCategory; onClose:
 
   return (
     <>
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 999, background: "rgba(0,0,0,0.35)", backdropFilter: "blur(4px)", animation: "fadeIn 0.2s ease" }} />
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 999, background: "rgba(0,0,0,0.7)" }} />
       <div onClick={e => e.stopPropagation()} style={{
         position: "fixed", left: "50%", top: "50%", transform: "translate(-50%,-50%)", zIndex: 1000,
         width: "min(520px, 92vw)", maxHeight: "85vh", overflowY: "auto",
-        background: "rgba(255, 255, 255, 0.85)", backdropFilter: "blur(24px)",
-        border: "1px solid rgba(255, 255, 255, 0.40)", borderRadius: 22,
-        boxShadow: "0 8px 40px rgba(0,0,0,0.12)", padding: 28, animation: "modalIn 0.25s ease",
+        background: "var(--sosa-bg-3)",
+        border: "1px solid var(--sosa-border)", borderRadius: 0,
+        padding: 28,
       }}>
         <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
           <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>
@@ -151,9 +151,10 @@ function CategoryModal({ category, onClose }: { category?: AppCategory; onClose:
         <div className="flex justify-end gap-3">
           <button type="button" onClick={onClose} style={{ padding: "10px 20px", borderRadius: 12, fontSize: 13, fontWeight: 600, background: "var(--input-bg)", border: "1px solid var(--glass-border)", color: "var(--text-primary)", cursor: "pointer" }}>Cancel</button>
           <button type="button" onClick={handleSave} disabled={!name.trim()} style={{
-            padding: "10px 24px", borderRadius: 12, fontSize: 13, fontWeight: 700,
-            background: "linear-gradient(135deg, #00D4FF, #4A9EFF)", color: "#fff", border: "none", cursor: name.trim() ? "pointer" : "not-allowed",
-            opacity: name.trim() ? 1 : 0.5, transition: "all 0.15s",
+            padding: "10px 24px", borderRadius: 0, fontSize: 13, fontWeight: 700,
+            background: "var(--sosa-yellow)", color: "#000", border: "none", cursor: name.trim() ? "pointer" : "not-allowed",
+            opacity: name.trim() ? 1 : 0.5, transition: "opacity 0.15s",
+            fontFamily: "var(--font-mono)", letterSpacing: "0.08em",
           }}>
             {isEdit ? "Update Category" : "Save Category"}
           </button>
@@ -174,12 +175,12 @@ function CategoryDetailPanel({ category: cat, allCategories, onClose }: { catego
 
   return (
     <>
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 999, background: "rgba(0,0,0,0.35)", backdropFilter: "blur(4px)", animation: "fadeIn 0.2s ease" }} />
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 999, background: "rgba(0,0,0,0.7)" }} />
       <div onClick={e => e.stopPropagation()} style={{
         position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 1000, width: "min(460px, 92vw)",
-        background: "rgba(255, 255, 255, 0.85)", backdropFilter: "blur(24px)",
-        borderLeft: "1px solid rgba(255, 255, 255, 0.40)", boxShadow: "-8px 0 40px rgba(0,0,0,0.10)",
-        display: "flex", flexDirection: "column", animation: "slideInRight 0.3s cubic-bezier(0.4,0,0.2,1)",
+        background: "var(--sosa-bg-3)",
+        borderLeft: "1px solid var(--sosa-border)",
+        display: "flex", flexDirection: "column",
       }}>
         <div className="flex items-center justify-between" style={{ padding: "20px 24px", borderBottom: "1px solid var(--divider)", flexShrink: 0 }}>
           <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>{cat.icon} {cat.name} — Detail</h3>
@@ -315,14 +316,13 @@ export function CategoriesTab() {
   const totalIncome = incomeCategories.reduce((s, c) => s + c.annualAmount, 0);
   const totalExpenses = expenseCategories.reduce((s, c) => s + c.annualAmount, 0);
 
-  const renderColumn = (title: string, emoji: string, items: AppCategory[], total: number, type: "income" | "expense") => (
+  const renderColumn = (title: string, _emoji: string, items: AppCategory[], total: number, type: "income" | "expense") => (
     <div style={{
-      background: "var(--glass-bg)", border: "1px solid var(--glass-border)",
-      borderRadius: 16, backdropFilter: "blur(16px)", overflow: "hidden",
-      boxShadow: "var(--glass-shadow)",
+      background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)",
+      borderRadius: 0, overflow: "hidden",
     }}>
-      <div style={{ padding: "18px 20px", borderBottom: "1px solid var(--divider)" }}>
-        <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{emoji} {title}</h3>
+      <div style={{ padding: "18px 20px", borderBottom: "1px solid var(--sosa-border)" }}>
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em" }}>{title}</h3>
         <p style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 4 }}>
           Total: {fmtEur(total)} · {items.length} categories
         </p>
@@ -348,8 +348,8 @@ export function CategoriesTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {renderColumn("Income Categories", "💰", incomeCategories, totalIncome, "income")}
-        {renderColumn("Expense Categories", "📉", expenseCategories, totalExpenses, "expense")}
+        {renderColumn("Income Categories", "", incomeCategories, totalIncome, "income")}
+        {renderColumn("Expense Categories", "", expenseCategories, totalExpenses, "expense")}
       </div>
 
       {addType && <CategoryModal onClose={() => setAddType(null)} />}

@@ -122,39 +122,24 @@ export function ConnectPlatformModal({ platform, onClose, onConnected }: Connect
 
   return (
     <div
-      style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.72)", backdropFilter: "blur(14px)" }}
+      style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.7)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{ width: "min(480px, calc(100% - 2rem))", background: "#0d1117", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 22, overflow: "hidden", boxShadow: "0 32px 80px rgba(0,0,0,0.65)" }}>
+      <div style={{ width: "min(480px, calc(100% - 2rem))", background: "var(--sosa-bg-3)", border: "1px solid var(--sosa-border)", borderLeft: `3px solid ${platform.color}`, borderRadius: 0, overflow: "hidden" }}>
 
         {/* Branded header */}
         <div style={{
           padding: "24px 24px 20px",
-          background: `linear-gradient(135deg, ${platform.color}20 0%, rgba(13,17,23,0) 60%)`,
-          borderBottom: `1px solid ${platform.color}18`,
-          position: "relative",
-          overflow: "hidden",
+          borderBottom: "1px solid var(--sosa-border)",
         }}>
-          {/* Ambient orb */}
-          <div style={{
-            position: "absolute", top: -40, left: -20,
-            width: 160, height: 160,
-            background: platform.color,
-            borderRadius: "50%",
-            filter: "blur(60px)",
-            opacity: 0.12,
-            pointerEvents: "none",
-          }} />
-
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <div style={{
-                width: 54, height: 54, borderRadius: 16,
-                background: `${platform.color}20`,
-                border: `1.5px solid ${platform.color}40`,
+                width: 54, height: 54,
+                background: "var(--sosa-bg-2)",
+                border: `1px solid ${platform.color}`,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 26,
-                boxShadow: `0 8px 24px ${platform.color}30`,
+                fontFamily: "var(--font-mono)", fontSize: 14, fontWeight: 700, color: platform.color, letterSpacing: "0.06em",
               }}>
                 {platform.emoji}
               </div>
@@ -170,13 +155,13 @@ export function ConnectPlatformModal({ platform, onClose, onConnected }: Connect
             <button type="button"
               onClick={onClose}
               style={{
-                width: 32, height: 32, borderRadius: "50%",
-                background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.09)",
+                width: 32, height: 32,
+                background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 cursor: "pointer", flexShrink: 0,
               }}
             >
-              <X style={{ width: 14, height: 14, color: "rgba(255,255,255,0.45)" }} />
+              <X style={{ width: 14, height: 14, color: "var(--sosa-white-40)" }} />
             </button>
           </div>
         </div>
@@ -243,26 +228,21 @@ export function ConnectPlatformModal({ platform, onClose, onConnected }: Connect
               style={{
                 width: "100%",
                 padding: "14px 20px",
-                borderRadius: 13,
-                background: oauthLoading
-                  ? `${platform.color}60`
-                  : `linear-gradient(135deg, ${platform.color}, ${platform.color}cc)`,
+                background: "var(--sosa-yellow)",
                 border: "none",
-                color: "#fff",
+                color: "#000",
                 fontSize: 14,
                 fontWeight: 700,
                 cursor: anyLoading ? "not-allowed" : "pointer",
-                fontFamily: "inherit",
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.08em",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 8,
-                transition: "opacity 0.2s, box-shadow 0.2s",
-                boxShadow: oauthLoading ? "none" : `0 6px 20px ${platform.color}40`,
+                opacity: oauthLoading ? 0.6 : 1,
                 marginBottom: 10,
               }}
-              onMouseEnter={(e) => { if (!anyLoading) e.currentTarget.style.opacity = "0.88"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
             >
               {oauthLoading ? (
                 <>
@@ -285,29 +265,19 @@ export function ConnectPlatformModal({ platform, onClose, onConnected }: Connect
             style={{
               width: "100%",
               padding: isOAuthSupported ? "10px 20px" : "14px 20px",
-              borderRadius: 13,
-              background: isOAuthSupported
-                ? "rgba(255,255,255,0.04)"
-                : (loading
-                    ? `${platform.color}60`
-                    : `linear-gradient(135deg, ${platform.color}, ${platform.color}cc)`),
-              border: isOAuthSupported
-                ? "1px solid rgba(255,255,255,0.08)"
-                : "none",
-              color: isOAuthSupported ? "rgba(255,255,255,0.45)" : "#fff",
+              background: isOAuthSupported ? "var(--sosa-bg-2)" : "var(--sosa-yellow)",
+              border: isOAuthSupported ? "1px solid var(--sosa-border)" : "none",
+              color: isOAuthSupported ? "var(--sosa-white-40)" : "#000",
               fontSize: isOAuthSupported ? 12 : 14,
               fontWeight: 600,
               cursor: anyLoading ? "not-allowed" : "pointer",
-              fontFamily: "inherit",
+              fontFamily: "var(--font-mono)", letterSpacing: "0.08em",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
-              transition: "opacity 0.2s, box-shadow 0.2s",
-              boxShadow: (loading || isOAuthSupported) ? "none" : `0 6px 20px ${platform.color}40`,
+              opacity: anyLoading ? 0.6 : 1,
             }}
-            onMouseEnter={(e) => { if (!anyLoading) e.currentTarget.style.opacity = "0.88"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
           >
             {loading ? (
               <>

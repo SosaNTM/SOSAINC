@@ -49,13 +49,13 @@ function ChannelModal({ channel, onClose }: { channel?: Channel; onClose: () => 
 
   return (
     <>
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 999, background: "rgba(0,0,0,0.35)", backdropFilter: "blur(4px)", animation: "fadeIn 0.2s ease" }} />
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 999, background: "rgba(0,0,0,0.7)" }} />
       <div onClick={e => e.stopPropagation()} style={{
         position: "fixed", left: "50%", top: "50%", transform: "translate(-50%,-50%)", zIndex: 1000,
         width: "min(520px, 92vw)", maxHeight: "85vh", overflowY: "auto",
-        background: "rgba(255, 255, 255, 0.85)", backdropFilter: "blur(24px)",
-        border: "1px solid rgba(255, 255, 255, 0.40)", borderRadius: 22,
-        boxShadow: "0 8px 40px rgba(0,0,0,0.12)", padding: 28, animation: "modalIn 0.25s ease",
+        background: "var(--sosa-bg-3)",
+        border: "1px solid var(--sosa-border)", borderRadius: 0,
+        padding: 28,
       }}>
         <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
           <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>
@@ -145,9 +145,10 @@ function ChannelModal({ channel, onClose }: { channel?: Channel; onClose: () => 
         <div className="flex justify-end gap-3">
           <button type="button" onClick={onClose} style={{ padding: "10px 20px", borderRadius: 12, fontSize: 13, fontWeight: 600, background: "var(--input-bg)", border: "1px solid var(--glass-border)", color: "var(--text-primary)", cursor: "pointer" }}>Cancel</button>
           <button type="button" onClick={handleSave} disabled={!name.trim()} style={{
-            padding: "10px 24px", borderRadius: 12, fontSize: 13, fontWeight: 700,
-            background: "linear-gradient(135deg, #00D4FF, #4A9EFF)", color: "#fff", border: "none", cursor: name.trim() ? "pointer" : "not-allowed",
-            opacity: name.trim() ? 1 : 0.5, transition: "all 0.15s",
+            padding: "10px 24px", borderRadius: 0, fontSize: 13, fontWeight: 700,
+            background: "var(--sosa-yellow)", color: "#000", border: "none", cursor: name.trim() ? "pointer" : "not-allowed",
+            opacity: name.trim() ? 1 : 0.5, transition: "opacity 0.15s",
+            fontFamily: "var(--font-mono)", letterSpacing: "0.08em",
           }}>
             {isEdit ? "Update Channel" : "Save Channel"}
           </button>
@@ -169,13 +170,12 @@ function ChannelCard({ ch, totalRevAll, onClick }: { ch: Channel; totalRevAll: n
   return (
     <>
       <div onClick={onClick} style={{
-        background: "var(--glass-bg)", border: "1px solid var(--divider)",
-        borderLeft: `3px solid ${ch.color}`, borderRadius: 18,
-        padding: 18, cursor: "pointer", transition: "all 0.2s ease", position: "relative",
-        backdropFilter: "blur(16px)",
+        background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)",
+        borderLeft: `3px solid ${ch.color}`, borderRadius: 0,
+        padding: 18, cursor: "pointer", transition: "background 0.15s", position: "relative",
       }}
-        onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 32px rgba(0,0,0,0.10)"; }}
-        onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
+        onMouseEnter={e => { e.currentTarget.style.background = "var(--sosa-bg-3)"; }}
+        onMouseLeave={e => { e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
       >
         <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
           <div className="flex items-center gap-2">

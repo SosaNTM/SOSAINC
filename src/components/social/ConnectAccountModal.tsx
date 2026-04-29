@@ -5,13 +5,13 @@ import { toast } from "@/hooks/use-toast";
 import type { SocialPlatformDB, SocialConnection } from "@/types/database";
 
 // Platform brand colors for glows
-const PLATFORM_STYLE: Record<SocialPlatformDB, { label: string; icon: string; color: string; gradient: string }> = {
-  instagram: { label: "Instagram", icon: "📸", color: "#E1306C", gradient: "linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)" },
-  linkedin: { label: "LinkedIn", icon: "🔵", color: "#0A66C2", gradient: "linear-gradient(135deg,#0a66c2,#0077b5)" },
-  twitter: { label: "Twitter / X", icon: "🐦", color: "#1DA1F2", gradient: "linear-gradient(135deg,#1da1f2,#0d8ecf)" },
-  facebook: { label: "Facebook", icon: "📘", color: "#1877F2", gradient: "linear-gradient(135deg,#1877f2,#0062cc)" },
-  tiktok: { label: "TikTok", icon: "🎵", color: "#FE2C55", gradient: "linear-gradient(135deg,#fe2c55,#25f4ee)" },
-  youtube: { label: "YouTube", icon: "🔴", color: "#FF0000", gradient: "linear-gradient(135deg,#ff0000,#cc0000)" },
+const PLATFORM_STYLE: Record<SocialPlatformDB, { label: string; icon: string; color: string }> = {
+  instagram: { label: "Instagram", icon: "IG", color: "#E1306C" },
+  linkedin:  { label: "LinkedIn",  icon: "LI", color: "#0A66C2" },
+  twitter:   { label: "Twitter / X", icon: "TW", color: "#1DA1F2" },
+  facebook:  { label: "Facebook", icon: "FB", color: "#1877F2" },
+  tiktok:    { label: "TikTok",   icon: "TT", color: "#FE2C55" },
+  youtube:   { label: "YouTube",  icon: "YT", color: "#FF0000" },
 };
 
 interface ConnectAccountModalProps {
@@ -70,46 +70,33 @@ export function ConnectAccountModal({ platform, onClose, onConnected }: ConnectA
         position: "fixed", inset: 0, zIndex: 9999,
         display: "flex", alignItems: "center", justifyContent: "center",
         background: "rgba(0,0,0,0.7)",
-        backdropFilter: "blur(12px)",
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
         style={{
           width: "100%", maxWidth: 420,
-          background: "rgba(8,12,24,0.92)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: 20,
-          boxShadow: `0 32px 80px rgba(0,0,0,0.6), 0 0 60px ${p.color}18`,
+          background: "var(--sosa-bg-3)",
+          border: "1px solid var(--sosa-border)",
+          borderLeft: `3px solid ${p.color}`,
+          borderRadius: 0,
           overflow: "hidden",
           position: "relative",
         }}
       >
-        {/* Ambient color orb */}
-        <div
-          style={{
-            position: "absolute", top: -40, right: -40,
-            width: 140, height: 140,
-            background: p.color,
-            borderRadius: "50%",
-            filter: "blur(60px)",
-            opacity: 0.15,
-            pointerEvents: "none",
-          }}
-        />
 
         {/* Header */}
-        <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid var(--sosa-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: `${p.color}20`, border: `1px solid ${p.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+            <div style={{ width: 38, height: 38, background: "var(--sosa-bg-2)", border: `1px solid ${p.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: p.color, letterSpacing: "0.08em" }}>
               {p.icon}
             </div>
             <div>
-              <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Connect {p.label}</p>
-              <p style={{ fontSize: 11, color: "var(--text-quaternary)", marginTop: 1 }}>Link your account manually</p>
+              <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}>Connect {p.label}</p>
+              <p style={{ fontSize: 11, color: "var(--sosa-white-20)", marginTop: 1 }}>Link your account manually</p>
             </div>
           </div>
-          <button type="button" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", color: "var(--text-quaternary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <button type="button" onClick={onClose} style={{ width: 30, height: 30, background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", color: "var(--sosa-white-40)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <X style={{ width: 14, height: 14 }} />
           </button>
         </div>
@@ -184,7 +171,7 @@ export function ConnectAccountModal({ platform, onClose, onConnected }: ConnectA
           <div style={{ display: "flex", gap: 10 }}>
             <button type="button"
               onClick={onClose}
-              style={{ flex: 1, padding: "10px 0", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", color: "var(--text-secondary)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+              style={{ flex: 1, padding: "10px 0", background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", color: "var(--sosa-white-40)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-mono)", letterSpacing: "0.06em" }}
             >
               Cancel
             </button>
@@ -192,17 +179,16 @@ export function ConnectAccountModal({ platform, onClose, onConnected }: ConnectA
               onClick={handleSave}
               disabled={saving}
               style={{
-                flex: 2, padding: "10px 0", borderRadius: 10,
-                background: saving ? "rgba(255,255,255,0.05)" : p.color,
+                flex: 2, padding: "10px 0",
+                background: "var(--sosa-yellow)",
                 border: "none",
-                color: saving ? "var(--text-quaternary)" : "#fff",
+                color: "#000",
                 fontSize: 13, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer",
-                fontFamily: "inherit",
-                transition: "opacity 0.2s",
+                fontFamily: "var(--font-mono)", letterSpacing: "0.08em",
                 opacity: saving ? 0.6 : 1,
               }}
             >
-              {saving ? "Connecting…" : `Connect ${p.label}`}
+              {saving ? "Connecting…" : `Connect ${p.label} ↗`}
             </button>
           </div>
         </div>

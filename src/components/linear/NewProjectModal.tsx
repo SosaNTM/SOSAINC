@@ -36,10 +36,9 @@ export function NewProjectModal({ onClose, onCreate }: Props) {
       <div
         className="fixed z-[90] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-[480px] animate-scale-in"
         style={{
-          background: "#0d1117",
-          border: "0.5px solid var(--glass-border)",
-          borderRadius: 16, padding: 24,
-          boxShadow: "var(--glass-shadow-xl)",
+          background: "var(--sosa-bg-3)",
+          border: "1px solid var(--sosa-border)",
+          borderRadius: 0, padding: 24,
         }}
       >
         <div className="flex items-center justify-between mb-5">

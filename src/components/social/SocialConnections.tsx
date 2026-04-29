@@ -12,21 +12,20 @@ const PLATFORMS: Array<{
   label: string;
   icon: string;
   color: string;
-  gradient: string;
 }> = [
-  { id: "instagram", label: "Instagram", icon: "📸", color: "#E1306C", gradient: "radial-gradient(ellipse at top left, rgba(225,48,108,0.18) 0%, transparent 70%)" },
-  { id: "linkedin", label: "LinkedIn", icon: "🔵", color: "#0A66C2", gradient: "radial-gradient(ellipse at top left, rgba(10,102,194,0.18) 0%, transparent 70%)" },
-  { id: "twitter", label: "Twitter / X", icon: "🐦", color: "#1DA1F2", gradient: "radial-gradient(ellipse at top left, rgba(29,161,242,0.18) 0%, transparent 70%)" },
-  { id: "facebook", label: "Facebook", icon: "📘", color: "#1877F2", gradient: "radial-gradient(ellipse at top left, rgba(24,119,242,0.18) 0%, transparent 70%)" },
-  { id: "tiktok", label: "TikTok", icon: "🎵", color: "#FE2C55", gradient: "radial-gradient(ellipse at top left, rgba(254,44,85,0.18) 0%, transparent 70%)" },
-  { id: "youtube", label: "YouTube", icon: "🔴", color: "#FF0000", gradient: "radial-gradient(ellipse at top left, rgba(255,0,0,0.18) 0%, transparent 70%)" },
+  { id: "instagram", label: "Instagram",   icon: "IG", color: "#E1306C" },
+  { id: "linkedin",  label: "LinkedIn",    icon: "LI", color: "#0A66C2" },
+  { id: "twitter",   label: "Twitter / X", icon: "TW", color: "#1DA1F2" },
+  { id: "facebook",  label: "Facebook",    icon: "FB", color: "#1877F2" },
+  { id: "tiktok",    label: "TikTok",      icon: "TT", color: "#FE2C55" },
+  { id: "youtube",   label: "YouTube",     icon: "YT", color: "#FF0000" },
 ];
 
 // ── Skeleton card ────────────────────────────────────────────────────────────
 
 function SkeletonCard() {
   return (
-    <div style={{ background: "var(--glass-bg)", border: "1px solid var(--glass-border)", borderRadius: 16, padding: 20, minHeight: 170 }}>
+    <div style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: 20, minHeight: 170 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
         <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(255,255,255,0.05)" }} className="animate-pulse" />
         <div style={{ width: 80, height: 14, borderRadius: 6, background: "rgba(255,255,255,0.05)" }} className="animate-pulse" />
@@ -44,10 +43,10 @@ function DisconnectDialog({ connection, onConfirm, onCancel }: { connection: Soc
   const p = PLATFORMS.find((x) => x.id === connection.platform)!;
   return (
     <div
-      style={{ position: "fixed", inset: 0, zIndex: 9998, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.65)", backdropFilter: "blur(10px)" }}
+      style={{ position: "fixed", inset: 0, zIndex: 9998, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.7)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
     >
-      <div style={{ width: "100%", maxWidth: 360, background: "rgba(8,12,24,0.95)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 18, padding: 24, boxShadow: "0 24px 64px rgba(0,0,0,0.5)" }}>
+      <div style={{ width: "100%", maxWidth: 360, background: "var(--sosa-bg-3)", border: "1px solid var(--color-error)", borderRadius: 0, padding: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
           <AlertCircle style={{ width: 18, height: 18, color: "#ef4444" }} />
           <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Disconnect {p.label}?</p>
@@ -56,10 +55,10 @@ function DisconnectDialog({ connection, onConfirm, onCancel }: { connection: Soc
           <strong style={{ color: "var(--text-secondary)" }}>{connection.account_handle}</strong> will be removed. Analytics history will be preserved.
         </p>
         <div style={{ display: "flex", gap: 10 }}>
-          <button type="button" onClick={onCancel} style={{ flex: 1, padding: "9px 0", borderRadius: 9, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", color: "var(--text-secondary)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+          <button type="button" onClick={onCancel} style={{ flex: 1, padding: "9px 0", background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", color: "var(--sosa-white-40)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-mono)", letterSpacing: "0.06em" }}>
             Cancel
           </button>
-          <button type="button" onClick={onConfirm} style={{ flex: 1, padding: "9px 0", borderRadius: 9, background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.25)", color: "#ef4444", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+          <button type="button" onClick={onConfirm} style={{ flex: 1, padding: "9px 0", background: "var(--color-error)", border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "var(--font-mono)", letterSpacing: "0.08em" }}>
             Disconnect
           </button>
         </div>
@@ -130,7 +129,7 @@ export function SocialConnections({ onConnectionsChange }: SocialConnectionsProp
 
   if (!isAuthed && !loading) {
     return (
-      <div style={{ background: "var(--glass-bg)", border: "1px solid var(--glass-border)", borderRadius: 16, padding: "28px 24px", marginBottom: 32, textAlign: "center" }}>
+      <div style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: "28px 24px", marginBottom: 32, textAlign: "center" }}>
         <p style={{ fontSize: 14, color: "var(--text-tertiary)" }}>Sign in to manage your connected social accounts.</p>
       </div>
     );
@@ -164,39 +163,21 @@ export function SocialConnections({ onConnectionsChange }: SocialConnectionsProp
                   key={p.id}
                   style={{
                     position: "relative",
-                    background: conn
-                      ? `rgba(8,12,24,0.7)`
-                      : "var(--glass-bg)",
-                    backgroundImage: conn ? p.gradient : undefined,
-                    border: `1px solid ${conn ? `${p.color}25` : "var(--glass-border)"}`,
-                    borderRadius: 16,
+                    background: "var(--sosa-bg-2)",
+                    borderLeft: conn ? `3px solid ${p.color}` : "3px solid var(--sosa-border)",
+                    border: "1px solid var(--sosa-border)",
+                    borderRadius: 0,
                     padding: 20,
                     overflow: "hidden",
-                    transition: "border-color 0.25s, box-shadow 0.25s",
-                    boxShadow: conn ? `0 0 32px ${p.color}12` : undefined,
+                    transition: "border-color 0.15s",
                   }}
                 >
-                  {/* Ambient orb (connected only) */}
-                  {conn && (
-                    <div
-                      style={{
-                        position: "absolute", top: -20, right: -20,
-                        width: 80, height: 80,
-                        background: p.color,
-                        borderRadius: "50%",
-                        filter: "blur(35px)",
-                        opacity: 0.2,
-                        pointerEvents: "none",
-                      }}
-                    />
-                  )}
-
                   {/* Platform icon + name */}
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: conn ? 12 : 14 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: `${p.color}20`, border: `1px solid ${p.color}28`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>
+                    <div style={{ width: 36, height: 36, background: "var(--sosa-bg-3)", border: `1px solid ${conn ? p.color : "var(--sosa-border)"}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: conn ? p.color : "var(--sosa-white-20)", letterSpacing: "0.08em", flexShrink: 0 }}>
                       {p.icon}
                     </div>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{p.label}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-mono)" }}>{p.label}</span>
                   </div>
 
                   {conn ? (
@@ -218,18 +199,16 @@ export function SocialConnections({ onConnectionsChange }: SocialConnectionsProp
                       </div>
 
                       {/* Connected badge */}
-                      <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", padding: "2px 8px", borderRadius: 20, marginBottom: 14, marginTop: 4 }}>
-                        <CheckCircle2 style={{ width: 10, height: 10, color: "#10b981" }} />
-                        <span style={{ fontSize: 10, fontWeight: 700, color: "#10b981", letterSpacing: "0.3px" }}>Connected</span>
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "var(--sosa-bg-3)", border: "1px solid var(--color-success)", padding: "2px 8px", marginBottom: 14, marginTop: 4 }}>
+                        <CheckCircle2 style={{ width: 10, height: 10, color: "var(--color-success)" }} />
+                        <span style={{ fontSize: 10, fontWeight: 700, color: "var(--color-success)", letterSpacing: "0.08em", fontFamily: "var(--font-mono)" }}>Connected</span>
                       </div>
 
                       {/* Disconnect button */}
                       <div>
                         <button type="button"
                           onClick={() => setPendingDisconnect(conn)}
-                          style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.15)", color: "rgba(239,68,68,0.7)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "background 0.2s" }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.07)"; }}
+                          style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "var(--sosa-bg-3)", border: "1px solid var(--color-error)", color: "var(--color-error)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-mono)", letterSpacing: "0.06em" }}
                         >
                           <Trash2 style={{ width: 11, height: 11 }} /> Disconnect
                         </button>
@@ -246,19 +225,15 @@ export function SocialConnections({ onConnectionsChange }: SocialConnectionsProp
                         style={{
                           display: "flex", alignItems: "center", gap: 6,
                           padding: "8px 14px",
-                          borderRadius: 9,
-                          background: `${p.color}18`,
-                          border: `1px solid ${p.color}30`,
-                          color: p.color,
+                          background: "var(--sosa-yellow)",
+                          border: "none",
+                          color: "#000",
                           fontSize: 12, fontWeight: 700,
                           cursor: "pointer",
-                          fontFamily: "inherit",
-                          transition: "background 0.2s",
+                          fontFamily: "var(--font-mono)", letterSpacing: "0.08em",
                         }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = `${p.color}28`; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = `${p.color}18`; }}
                       >
-                        <Plus style={{ width: 12, height: 12 }} /> Connect
+                        <Plus style={{ width: 12, height: 12 }} /> Connect ↗
                       </button>
                     </>
                   )}
@@ -288,7 +263,7 @@ export function SocialConnections({ onConnectionsChange }: SocialConnectionsProp
       {connections.length > 0 && !loading && (
         <button type="button"
           onClick={fetchConnections}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 9, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", color: "var(--text-quaternary)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginBottom: 40 }}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", color: "var(--sosa-white-40)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", marginBottom: 40 }}
         >
           <RefreshCw style={{ width: 11, height: 11 }} /> Refresh
         </button>

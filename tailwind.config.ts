@@ -76,6 +76,16 @@ export default {
         '3xl':   '2px',
         full:    '9999px',
       },
+      boxShadow: {
+        DEFAULT: 'none',
+        none:    'none',
+        sm:      'none',
+        md:      'none',
+        lg:      'none',
+        xl:      'none',
+        '2xl':   'none',
+        inner:   'none',
+      },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
