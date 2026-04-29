@@ -81,7 +81,23 @@ export function PortalDBProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchPortals(); }, [fetchPortals]);
+  useEffect(() => {
+    fetchPortals();
+    // Re-fetch when auth session becomes available (handles post-login case
+    // where this provider mounted before the Supabase JWT was established).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") fetchPortals();
+      if (event === "SIGNED_OUT") {
+        setPortals([]);
+        portalsRef.current = [];
+        setCurrentPortalState(null);
+        currentPortalRef.current = null;
+        setUserRole(null);
+        setLoading(false);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [fetchPortals]);
 
   const setCurrentPortal = useCallback((portal: Portal) => {
     setCurrentPortalState(portal);
