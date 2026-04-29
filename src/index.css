@@ -1289,3 +1289,89 @@ select option {
     padding-bottom: 80px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   SOSA INC DESIGN SYSTEM — §2 Color Tokens
+   Added by feat/sosa-design-system
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* Core palette */
+  --sosa-bg:           #000000;
+  --sosa-bg-2:         #0a0a0a;
+  --sosa-bg-3:         #111111;
+  --sosa-border:       #1a1a1a;
+  --sosa-border-dim:   #0f0f0f;
+
+  --sosa-yellow:       #d4ff00;
+  --sosa-yellow-dim:   rgba(212, 255, 0, 0.15);
+  --sosa-yellow-glow:  rgba(212, 255, 0, 0.06);
+
+  --sosa-white:        #ffffff;
+  --sosa-white-70:     rgba(255, 255, 255, 0.70);
+  --sosa-white-40:     rgba(255, 255, 255, 0.40);
+  --sosa-white-20:     rgba(255, 255, 255, 0.20);
+  --sosa-white-10:     rgba(255, 255, 255, 0.10);
+  --sosa-white-05:     rgba(255, 255, 255, 0.05);
+
+  /* Portal accent defaults to SOSA yellow */
+  --portal-accent:     #d4ff00;
+  --portal-accent-dim: rgba(212, 255, 0, 0.15);
+
+  /* Semantic */
+  --color-success:     #39ff14;
+  --color-error:       #ff2d55;
+  --color-warning:     #ff9f00;
+  --color-info:        #00d4ff;
+
+  /* Typography */
+  --font-mono:    'JetBrains Mono', 'Space Mono', 'Fira Code', 'Courier New', monospace;
+  --font-body:    'Inter', system-ui, sans-serif;
+  --font-display: 'Inter', system-ui, sans-serif;
+
+  /* Spacing (8px grid) */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Motion */
+  --ease-sharp:      cubic-bezier(0.25, 0, 0, 1);
+  --duration-fast:   80ms;
+  --duration-normal: 160ms;
+  --duration-slow:   280ms;
+}
+
+/* Per-portal accent overrides */
+[data-portal="sosa"] {
+  --portal-accent:     #d4ff00;
+  --portal-accent-dim: rgba(212, 255, 0, 0.15);
+}
+
+[data-portal="keylo"] {
+  --portal-accent:     #00d4ff;
+  --portal-accent-dim: rgba(0, 212, 255, 0.15);
+}
+
+[data-portal="redx"] {
+  --portal-accent:     #ff2d55;
+  --portal-accent-dim: rgba(255, 45, 85, 0.15);
+}
+
+[data-portal="trustme"] {
+  --portal-accent:     #39ff14;
+  --portal-accent-dim: rgba(57, 255, 20, 0.15);
+}
+
+/* Grain overlay: hide when user prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  [data-sosa-grain] {
+    opacity: 0 !important;
+  }
+}

@@ -21,10 +21,10 @@ export default {
         '3xl': '1920px',
       },
       fontFamily: {
-        sans: ['Space Mono', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        display: ['Bebas Neue', 'Arial', 'sans-serif'],
-        body: ['Space Mono', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        mono: ['Space Mono', 'SF Mono', 'Fira Code', 'monospace'],
+        sans: ['Inter', 'Space Mono', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        display: ['Inter', 'Bebas Neue', 'Arial', 'sans-serif'],
+        body: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Space Mono', 'Fira Code', 'Courier New', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -52,11 +52,29 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        sosa: {
+          yellow:  '#d4ff00',
+          bg:      '#000000',
+          'bg-2':  '#0a0a0a',
+          'bg-3':  '#111111',
+          border:  '#1a1a1a',
+          white:   '#ffffff',
+        },
+      },
+      letterSpacing: {
+        widest:       '0.12em',
+        'extra-wide': '0.16em',
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        DEFAULT: '0',
+        none:    '0',
+        sm:      '0',
+        md:      '2px',
+        lg:      '2px',
+        xl:      '2px',
+        '2xl':   '2px',
+        '3xl':   '2px',
+        full:    '9999px',
       },
       keyframes: {
         "accordion-down": {

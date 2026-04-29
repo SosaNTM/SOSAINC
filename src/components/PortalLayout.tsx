@@ -27,8 +27,12 @@ export function PortalLayout() {
       setPortal(portal);
       setActivePortal(portal.id);
       if (portalId) setCurrentPortalBySlug(portalId);
+      document.body.setAttribute("data-portal", portal.id);
     }
-    return () => setPortal(null);
+    return () => {
+      setPortal(null);
+      document.body.removeAttribute("data-portal");
+    };
   }, [portal?.id, hasAccess, portalId, setPortal, setCurrentPortalBySlug]);
 
   // Wait for auth + portal list to resolve before evaluating access
