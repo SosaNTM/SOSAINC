@@ -234,12 +234,17 @@ function EmptyStateSearch({
   );
 
   return (
-    <div className="flex flex-col items-center justify-center h-full overflow-hidden gap-4">
-      <h2 className="text-lg font-semibold text-foreground text-lg">
-        Cosa stai cercando?
-      </h2>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", overflow: "hidden", gap: 24 }}>
+      <div style={{ textAlign: "center" }}>
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--sosa-white-20)", marginBottom: 10 }}>
+          CLOUD STORAGE
+        </p>
+        <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 26, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "0.02em" }}>
+          Cosa stai cercando?
+        </h2>
+      </div>
       <SearchBar
-        placeholder="Search all files..."
+        placeholder="→ search all files..."
         results={results}
         onQueryChange={setQuery}
         onSelectResult={handleSelect}
@@ -333,7 +338,7 @@ export default function FolderView(props: FolderViewProps) {
         onDragStart={(e) => e.dataTransfer.setData("fileId", file.id)}
         onClick={() => setPreviewFile(file)}
         onDoubleClick={() => toast.info("Download started")}
-        className="relative bg-card border border-border rounded-xl p-4 cursor-pointer hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200"
+        style={{ position: "relative", background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: 14, cursor: "pointer" }}
       >
         <div className="flex items-start justify-between mb-3">
           <span className="text-[28px]">{icon.emoji}</span>
@@ -673,135 +678,75 @@ export default function FolderView(props: FolderViewProps) {
 
       {/* Toolbar */}
       {(currentFolderId || showTrash || searchQuery.trim()) && (
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
-          <div className="flex items-center gap-2">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", borderBottom: "1px solid var(--sosa-border)", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {showTrash && (
-              <span className="text-xs text-muted-foreground">
-                {trashCount} item{trashCount !== 1 ? "s" : ""} •{" "}
-                {formatFileSize(trashSize)}
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>
+                {trashCount} item{trashCount !== 1 ? "s" : ""} · {formatFileSize(trashSize)}
               </span>
             )}
             {showTrash && userRole === "owner" && trashCount > 0 && (
-              <button
-                type="button"
-                onClick={() => setConfirmEmptyTrash(true)}
-                className="flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors font-medium"
-              >
+              <button type="button" onClick={() => setConfirmEmptyTrash(true)}
+                style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: "var(--font-mono)", fontSize: 10, padding: "4px 10px", background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "none", borderRadius: 0, cursor: "pointer", fontWeight: 600 }}>
                 Empty Trash
               </button>
             )}
             {currentPerm === "admin" && currentFolderId && !showTrash && (
-              <button
-                type="button"
-                onClick={() => setPermissionsModal(currentFolderId)}
-                className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border border-border hover:bg-accent transition-colors"
-              >
-                <Shield className="w-3 h-3" /> Permissions
+              <button type="button" onClick={() => setPermissionsModal(currentFolderId)}
+                style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: "var(--font-mono)", fontSize: 10, padding: "4px 10px", background: "transparent", color: "var(--text-tertiary)", border: "1px solid var(--sosa-border)", borderRadius: 0, cursor: "pointer" }}>
+                <Shield style={{ width: 11, height: 11 }} /> Permissions
               </button>
             )}
-            {/* Lock status & actions */}
-            {currentFolder?.isLocked &&
-              currentFolderUnlocked &&
-              !showTrash && (
-                <>
-                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                    <Unlock className="w-3 h-3 text-muted-foreground/60" />{" "}
-                    Unlocked
-                    {currentFolderUnlockState?.expiresAt && (
-                      <span className="text-muted-foreground/50">
-                        • Auto-locks in{" "}
-                        {Math.max(
-                          1,
-                          Math.ceil(
-                            (currentFolderUnlockState.expiresAt - Date.now()) /
-                              60000
-                          )
-                        )}{" "}
-                        min
-                      </span>
-                    )}
-                    {!currentFolderUnlockState?.expiresAt && !isOwner && (
-                      <span className="text-muted-foreground/50">
-                        • This session
-                      </span>
-                    )}
-                  </span>
-                  {!isOwner && (
-                    <button
-                      type="button"
-                      onClick={() => lockFolderNow(currentFolderId!)}
-                      className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border border-amber-500/30 text-amber-600 hover:bg-amber-500/10 transition-colors"
-                    >
-                      <Lock className="w-3 h-3" /> Lock Now
-                    </button>
-                  )}
-                </>
-              )}
-            {/* Password management in toolbar for admin */}
-            {currentFolder &&
-              !showTrash &&
-              getPerm(currentFolderId!) === "admin" && (
-                <span onClick={(e) => e.stopPropagation()}>
-                  {getFolderMenuItems(currentFolder).length > 0 && (
-                    <ActionMenu
-                      trigger={
-                        <Lock className="w-3.5 h-3.5 text-muted-foreground" />
-                      }
-                      items={getFolderMenuItems(currentFolder)}
-                    />
+            {currentFolder?.isLocked && currentFolderUnlocked && !showTrash && (
+              <>
+                <span style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>
+                  <Unlock style={{ width: 11, height: 11, opacity: 0.5 }} /> Unlocked
+                  {currentFolderUnlockState?.expiresAt && (
+                    <span style={{ opacity: 0.5 }}>· {Math.max(1, Math.ceil((currentFolderUnlockState.expiresAt - Date.now()) / 60000))} min</span>
                   )}
                 </span>
-              )}
+                {!isOwner && (
+                  <button type="button" onClick={() => lockFolderNow(currentFolderId!)}
+                    style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: "var(--font-mono)", fontSize: 10, padding: "4px 10px", background: "transparent", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 0, cursor: "pointer" }}>
+                    <Lock style={{ width: 11, height: 11 }} /> Lock Now
+                  </button>
+                )}
+              </>
+            )}
+            {currentFolder && !showTrash && getPerm(currentFolderId!) === "admin" && (
+              <span onClick={(e) => e.stopPropagation()}>
+                {getFolderMenuItems(currentFolder).length > 0 && (
+                  <ActionMenu trigger={<Lock style={{ width: 13, height: 13, color: "var(--text-tertiary)" }} />} items={getFolderMenuItems(currentFolder)} />
+                )}
+              </span>
+            )}
           </div>
           {!showTrash && (
-            <div className="flex items-center gap-2">
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               {canWrite && (
                 <>
-                  <button
-                    type="button"
-                    onClick={() => setShowUploadModal(true)}
-                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                  >
-                    <Upload className="w-3.5 h-3.5" /> Upload
+                  <button type="button" onClick={() => setShowUploadModal(true)}
+                    style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, padding: "5px 12px", background: "var(--portal-accent)", color: "#000", border: "none", borderRadius: 0, cursor: "pointer", letterSpacing: "0.04em" }}>
+                    <Upload style={{ width: 12, height: 12 }} /> Upload ↑
                   </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowNewFolderModal(true);
-                    }}
-                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border bg-background hover:bg-accent transition-colors"
-                  >
-                    <FolderPlus className="w-3.5 h-3.5" /> Folder
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setShowNewFolderModal(true); }}
+                    style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "var(--font-mono)", fontSize: 10, padding: "5px 12px", background: "transparent", color: "var(--text-tertiary)", border: "1px solid var(--sosa-border)", borderRadius: 0, cursor: "pointer" }}>
+                    <FolderPlus style={{ width: 12, height: 12 }} /> Folder
                   </button>
                 </>
               )}
-              <div className="flex border border-border rounded-md overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setView("grid")}
-                  className={`p-1 ${
-                    view === "grid"
-                      ? "bg-accent text-foreground"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  <LayoutGrid className="w-3.5 h-3.5" />
+              <div style={{ display: "flex", border: "1px solid var(--sosa-border)" }}>
+                <button type="button" onClick={() => setView("grid")}
+                  style={{ padding: "5px 7px", background: view === "grid" ? "var(--sosa-bg-2)" : "transparent", border: "none", cursor: "pointer", color: view === "grid" ? "var(--text-primary)" : "var(--text-tertiary)" }}>
+                  <LayoutGrid style={{ width: 13, height: 13 }} />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setView("list")}
-                  className={`p-1 ${
-                    view === "list"
-                      ? "bg-accent text-foreground"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  <List className="w-3.5 h-3.5" />
+                <button type="button" onClick={() => setView("list")}
+                  style={{ padding: "5px 7px", background: view === "list" ? "var(--sosa-bg-2)" : "transparent", border: "none", borderLeft: "1px solid var(--sosa-border)", cursor: "pointer", color: view === "list" ? "var(--text-primary)" : "var(--text-tertiary)" }}>
+                  <List style={{ width: 13, height: 13 }} />
                 </button>
               </div>
               <select
-                className="text-[11px] p-1 rounded border border-input bg-background"
+                style={{ fontFamily: "var(--font-mono)", fontSize: 10, padding: "4px 8px", background: "var(--sosa-bg-2)", color: "var(--text-tertiary)", border: "1px solid var(--sosa-border)", borderRadius: 0 }}
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
               >

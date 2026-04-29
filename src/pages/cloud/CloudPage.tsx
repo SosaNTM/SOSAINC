@@ -1362,54 +1362,51 @@ const CloudPage = () => {
 
     return (
       <div key={folder.id}>
-        <div className="flex items-center group">
+        <div style={{ display: "flex", alignItems: "center" }} className="group">
           <button
             type="button"
-            onClick={() => {
-              attemptNavigateFolder(folder.id);
-              if (isMobile) setMobileSidebarOpen(false);
+            onClick={() => { attemptNavigateFolder(folder.id); if (isMobile) setMobileSidebarOpen(false); }}
+            style={{
+              display: "flex", alignItems: "center", gap: 5, flex: 1, textAlign: "left",
+              padding: `7px 14px 7px ${depth * 12 + 14}px`,
+              fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: isActive ? 600 : 400,
+              letterSpacing: "0.03em",
+              color: isActive ? "var(--text-primary)" : "var(--text-tertiary)",
+              background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
+              borderLeft: isActive ? "3px solid var(--portal-accent)" : "3px solid transparent",
+              border: "none", borderRadius: 0, cursor: "pointer",
             }}
-            className={`flex items-center gap-1.5 flex-1 transition-colors rounded-lg text-left text-[13px] ${
-              isActive
-                ? "bg-accent text-accent-foreground font-semibold"
-                : "text-muted-foreground hover:bg-accent/50"
-            }`}
-            style={{ padding: "6px 8px", paddingLeft: depth * 16 + 8 }}
+            onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
+            onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
           >
             {hasChildren ? (
-              <span
-                onClick={(e) => { e.stopPropagation(); toggleExpand(folder.id); }}
-                className="flex cursor-pointer"
-              >
-                {isExpanded ? (
-                  <ChevronDown className="w-3.5 h-3.5" />
-                ) : (
-                  <ChevronRight className="w-3.5 h-3.5" />
-                )}
+              <span onClick={(e) => { e.stopPropagation(); toggleExpand(folder.id); }} style={{ display: "flex", cursor: "pointer" }}>
+                {isExpanded
+                  ? <ChevronDown style={{ width: 11, height: 11, color: "var(--sosa-white-40)" }} />
+                  : <ChevronRight style={{ width: 11, height: 11, color: "var(--sosa-white-40)" }} />}
               </span>
             ) : (
-              <span className="w-3.5" />
+              <span style={{ width: 11 }} />
             )}
-            <FolderIcon className="w-4 h-4 shrink-0 text-primary" />
-            <span className="truncate flex-1">{folder.name}</span>
-            {isLocked &&
-              (isUnlocked ? (
-                <Unlock className="w-3.5 h-3.5 shrink-0 text-muted-foreground/40" />
-              ) : (
-                <Lock className="w-3.5 h-3.5 shrink-0 text-amber-500" />
-              ))}
+            <FolderIcon style={{ width: 13, height: 13, flexShrink: 0, color: isActive ? "var(--portal-accent)" : "var(--sosa-white-40)" }} />
+            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{folder.name}</span>
+            {isLocked && (isUnlocked
+              ? <Unlock style={{ width: 11, height: 11, flexShrink: 0, color: "var(--sosa-white-20)" }} />
+              : <Lock style={{ width: 11, height: 11, flexShrink: 0, color: "#f59e0b" }} />
+            )}
             {fileCount > 0 && (
-              <span className="text-[10px] text-muted-foreground/60">{fileCount}</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--sosa-white-20)" }}>{fileCount}</span>
             )}
           </button>
           {isActive && getPerm(folder.id) === "admin" && (
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setConfirmDeleteFolder(folder); }}
-              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded text-destructive"
+              className="opacity-0 group-hover:opacity-100"
+              style={{ padding: 4, cursor: "pointer", background: "transparent", border: "none", color: "#ef4444", flexShrink: 0 }}
               title="Move to Trash"
             >
-              <Trash2 className="w-3 h-3" />
+              <Trash2 style={{ width: 11, height: 11 }} />
             </button>
           )}
         </div>
@@ -1419,75 +1416,89 @@ const CloudPage = () => {
   };
 
   // ── Sidebar content ──
+  const isHomeActive = !currentFolderId && !showTrash && !showStorage;
   const sidebarContent = (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-0.5">
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+        {/* Home */}
         <button
           type="button"
-          onClick={() => {
-            setCurrentFolderId(null);
-            setShowTrash(false);
-            setShowStorage(false);
-            if (isMobile) setMobileSidebarOpen(false);
+          onClick={() => { setCurrentFolderId(null); setShowTrash(false); setShowStorage(false); if (isMobile) setMobileSidebarOpen(false); }}
+          style={{
+            display: "flex", alignItems: "center", gap: 8, width: "100%",
+            padding: "9px 14px", cursor: "pointer",
+            fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: isHomeActive ? 600 : 400,
+            letterSpacing: "0.04em", textTransform: "uppercase",
+            color: isHomeActive ? "var(--text-primary)" : "var(--text-tertiary)",
+            background: isHomeActive ? "rgba(255,255,255,0.04)" : "transparent",
+            borderLeft: isHomeActive ? "3px solid var(--portal-accent)" : "3px solid transparent",
+            border: "none", borderRadius: 0,
           }}
-          className={`flex items-center gap-2 w-full rounded-lg text-left text-[13px] transition-colors ${
-            !currentFolderId && !showTrash && !showStorage
-              ? "bg-accent text-accent-foreground font-semibold"
-              : "text-muted-foreground hover:bg-accent/50"
-          }`}
-          style={{ padding: "6px 11px" }}
+          onMouseEnter={(e) => { if (!isHomeActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
+          onMouseLeave={(e) => { if (!isHomeActive) e.currentTarget.style.background = "transparent"; }}
         >
-          <Home className="w-4 h-4 shrink-0" />
+          <Home style={{ width: 14, height: 14, opacity: isHomeActive ? 1 : 0.45, flexShrink: 0 }} />
           <span>Home</span>
         </button>
-        <div className="h-px bg-border my-1" />
+
+        <div style={{ height: 1, background: "var(--sosa-border)", margin: "6px 14px" }} />
         {rootFolders.map((f) => renderFolderItem(f, 0))}
-        <div className="h-px bg-border my-2" />
+        <div style={{ height: 1, background: "var(--sosa-border)", margin: "6px 14px" }} />
+
+        {/* Trash */}
         <button
           type="button"
-          onClick={() => {
-            setShowTrash(true);
-            setCurrentFolderId(null);
-            setShowStorage(false);
-            if (isMobile) setMobileSidebarOpen(false);
+          onClick={() => { setShowTrash(true); setCurrentFolderId(null); setShowStorage(false); if (isMobile) setMobileSidebarOpen(false); }}
+          style={{
+            display: "flex", alignItems: "center", gap: 8, width: "100%",
+            padding: "9px 14px", cursor: "pointer",
+            fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: showTrash ? 600 : 400,
+            letterSpacing: "0.04em", textTransform: "uppercase",
+            color: showTrash ? "var(--text-primary)" : "var(--text-tertiary)",
+            background: showTrash ? "rgba(255,255,255,0.04)" : "transparent",
+            borderLeft: showTrash ? "3px solid #ef4444" : "3px solid transparent",
+            border: "none", borderRadius: 0,
           }}
-          className={`flex items-center gap-2 w-full rounded-lg text-left text-[13px] transition-colors ${
-            showTrash
-              ? "bg-accent text-accent-foreground font-semibold"
-              : "text-muted-foreground hover:bg-accent/50"
-          }`}
-          style={{ padding: "6px 11px" }}
+          onMouseEnter={(e) => { if (!showTrash) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
+          onMouseLeave={(e) => { if (!showTrash) e.currentTarget.style.background = "transparent"; }}
         >
-          <Trash2 className="w-4 h-4 shrink-0" />
-          <span>Trash</span>
+          <Trash2 style={{ width: 14, height: 14, opacity: showTrash ? 1 : 0.45, flexShrink: 0 }} />
+          <span style={{ flex: 1 }}>Trash</span>
           {trashCount > 0 && (
-            <span className="ml-auto text-[10px] bg-destructive/15 text-destructive px-1.5 py-0.5 rounded-full font-medium">
+            <span style={{
+              fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700,
+              padding: "2px 6px", background: "rgba(239,68,68,0.15)", color: "#ef4444",
+            }}>
               {trashCount}
             </span>
           )}
         </button>
       </div>
+
+      {/* Storage bar */}
       <button
         type="button"
-        onClick={() => {
-          setShowStorage(true);
-          setCurrentFolderId(null);
-          setShowTrash(false);
-          if (isMobile) setMobileSidebarOpen(false);
+        onClick={() => { setShowStorage(true); setCurrentFolderId(null); setShowTrash(false); if (isMobile) setMobileSidebarOpen(false); }}
+        style={{
+          padding: "12px 14px", borderTop: "1px solid var(--sosa-border)", width: "100%",
+          textAlign: "left", cursor: "pointer", borderRadius: 0,
+          background: showStorage ? "rgba(255,255,255,0.04)" : "transparent",
+          border: "none", borderLeft: "none", borderRight: "none", borderBottom: "none",
         }}
-        className={`p-3 border-t border-border w-full text-left transition-colors ${
-          showStorage ? "bg-accent/50" : "hover:bg-muted/50"
-        }`}
+        onMouseEnter={(e) => { if (!showStorage) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = showStorage ? "rgba(255,255,255,0.04)" : "transparent"; }}
       >
-        <div className="flex items-center justify-between mb-1.5">
-          <span className={`text-[11px] ${showStorage ? "text-foreground font-semibold" : "text-muted-foreground"}`}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--sosa-white-40)" }}>
             Storage
           </span>
-          <span className="text-[11px] text-muted-foreground">
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--sosa-white-40)" }}>
             {USED_STORAGE_GB} / {TOTAL_STORAGE_GB} GB
           </span>
         </div>
-        <Progress value={(USED_STORAGE_GB / TOTAL_STORAGE_GB) * 100} className="h-1.5" />
+        <div style={{ height: 2, background: "var(--sosa-border)", position: "relative" }}>
+          <div style={{ position: "absolute", top: 0, left: 0, height: "100%", width: `${(USED_STORAGE_GB / TOTAL_STORAGE_GB) * 100}%`, background: "var(--portal-accent)" }} />
+        </div>
       </button>
     </div>
   );
@@ -1533,9 +1544,9 @@ const CloudPage = () => {
         )}
 
         {/* Two-panel layout */}
-        <div className="flex gap-0 flex-1 bg-card border border-border rounded-2xl overflow-hidden">
+        <div style={{ display: "flex", flex: 1, background: "var(--sosa-bg)", border: "1px solid var(--sosa-border)", overflow: "hidden" }}>
           {!isMobile && (
-            <div className="w-[240px] border-r border-border bg-muted/30 shrink-0">
+            <div style={{ width: 220, borderRight: "1px solid var(--sosa-border)", background: "var(--sosa-bg)", flexShrink: 0, display: "flex", flexDirection: "column" }}>
               {sidebarContent}
             </div>
           )}
