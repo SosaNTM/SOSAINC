@@ -16,7 +16,7 @@ import { OnboardingModal } from "@/components/profile/OnboardingModal";
 import { RoleBadge } from "@/components/RoleBadge";
 import {
   Check, Sun, Moon, Camera, MapPin, Settings, Eye, EyeOff, Lock, ShieldAlert,
-  Briefcase, Zap, Download, ImagePlus, LogIn, Loader2, Landmark,
+  Briefcase, Zap, Download, ImagePlus, LogIn, Loader2,
 } from "lucide-react";
 import { format, differenceInMonths, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -44,9 +44,7 @@ const ProfilePage = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showCF, setShowCF] = useState(false);
   const [showIBAN, setShowIBAN] = useState(false);
-  const [showVAT, setShowVAT] = useState(false);
-  const [showSWIFT, setShowSWIFT] = useState(false);
-  const [showBankIBAN, setShowBankIBAN] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
@@ -156,7 +154,7 @@ const ProfilePage = () => {
   };
 
   const hasSensitiveData = canViewSensitive && (profile.tax_id || profile.iban);
-  const hasBankingData = canViewSensitive && (profile.iban || profile.vat_number || profile.bank_name || profile.swift_bic || profile.account_holder_name);
+
 
   return (
     <div className="w-full px-3 md:px-5 lg:px-8 py-3 md:py-5 flex flex-col gap-4 pb-10">
@@ -392,108 +390,6 @@ const ProfilePage = () => {
           </GlassSection>
         )}
 
-        {/* Banking & VAT */}
-        {(hasBankingData || canEdit || canViewSensitive) && (
-          <GlassSection
-            title="Banking & VAT"
-            icon={<Landmark className="w-4 h-4" style={{ color: "#60a5fa" }} />}
-            badge={<span className="flex items-center gap-1 text-[10px]" style={{ color: "#60a5fa" }}><Lock className="w-3 h-3" /> Private</span>}
-          >
-            {(profile.account_holder_name || profile.bank_name) ? (
-              <div className="flex flex-col gap-0.5 mb-3 p-3 rounded-[var(--radius-sm)]" style={{ background: "var(--glass-bg-subtle)" }}>
-                {profile.account_holder_name && (
-                  <span className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{profile.account_holder_name}</span>
-                )}
-                {profile.bank_name && (
-                  <span className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>{profile.bank_name}</span>
-                )}
-              </div>
-            ) : canEdit ? (
-              <div
-                className="flex items-center justify-center gap-2 p-4 mb-3 rounded-[var(--radius-sm)] cursor-pointer"
-                style={{ border: "1px dashed var(--glass-border)", color: "var(--text-quaternary)", fontSize: 12 }}
-                onClick={() => setEditOpen(true)}
-              >
-                + Add bank details
-              </div>
-            ) : (
-              <div className="p-3 mb-3 rounded-[var(--radius-sm)] text-center" style={{ background: "var(--glass-bg-subtle)", color: "var(--text-quaternary)", fontSize: 12 }}>
-                No banking details on file
-              </div>
-            )}
-
-            {profile.iban && (
-              <MaskedField
-                label="IBAN"
-                value={profile.iban}
-                maskedValue={maskIBAN(profile.iban)}
-                show={showBankIBAN}
-                onToggle={() => {
-                  setShowBankIBAN(!showBankIBAN);
-                  if (!showBankIBAN) {
-                    toast.info("IBAN revealed — logged");
-                    addAuditEntry({
-                      userId: currentUser?.id ?? "unknown",
-                      action: `Revealed IBAN for ${profile.display_name || "user"}`,
-                      category: "profile",
-                      details: "Banking data accessed",
-                      icon: "🏦",
-                    });
-                  }
-                }}
-              />
-            )}
-            {profile.swift_bic && (
-              <MaskedField
-                label="SWIFT / BIC"
-                value={profile.swift_bic}
-                maskedValue={maskValue(profile.swift_bic, 4, 2)}
-                show={showSWIFT}
-                onToggle={() => {
-                  setShowSWIFT(!showSWIFT);
-                  if (!showSWIFT) {
-                    addAuditEntry({
-                      userId: currentUser?.id ?? "unknown",
-                      action: `Revealed SWIFT for ${profile.display_name || "user"}`,
-                      category: "profile",
-                      details: "Banking data accessed",
-                      icon: "🏦",
-                    });
-                  }
-                }}
-              />
-            )}
-            {profile.vat_number && (
-              <MaskedField
-                label="VAT Number"
-                value={profile.vat_number}
-                maskedValue={maskValue(profile.vat_number, 4, 2)}
-                show={showVAT}
-                onToggle={() => {
-                  setShowVAT(!showVAT);
-                  if (!showVAT) {
-                    addAuditEntry({
-                      userId: currentUser?.id ?? "unknown",
-                      action: `Revealed VAT for ${profile.display_name || "user"}`,
-                      category: "profile",
-                      details: "Fiscal data accessed",
-                      icon: "💼",
-                    });
-                  }
-                }}
-              />
-            )}
-            {!profile.iban && !profile.vat_number && !profile.swift_bic && !profile.account_holder_name && !profile.bank_name && (
-              <p className="text-[12px] text-center py-2" style={{ color: "var(--text-quaternary)" }}>No banking data — edit profile to add</p>
-            )}
-            <div
-              className="flex items-center gap-1.5 text-[10px] rounded-[var(--radius-sm)] p-2 mt-1"
-              style={{ color: "var(--text-tertiary)", background: "var(--glass-bg-subtle)" }}
-            >
-              <Lock className="w-3 h-3 shrink-0" /> Visible only to you and the Owner.
-            </div>
-          </GlassSection>
-        )}
       </div>
 
       {/* ══════════ TASKS ══════════ */}
