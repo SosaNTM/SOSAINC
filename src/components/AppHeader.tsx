@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { STORAGE_AVATAR_PREFIX } from "@/constants/storageKeys";
 import {
-  Menu, Search, X, LogOut, Bell, ChevronDown, ArrowLeft,
+  Menu, Search, X, LogOut, Bell, ChevronDown,
   LayoutDashboard, BarChart3, PieChart, ArrowLeftRight, Layers,
   SlidersHorizontal, FileText, Lock, Cloud, CheckSquare, StickyNote,
   ShieldCheck, Settings, User, TrendingUp, Radio, FileImage, Users, Swords,
@@ -11,6 +11,7 @@ import { searchAll, GROUP_ORDER, MAX_PER_GROUP, type SearchEntry, type SearchGro
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
 import { UserAvatar } from "@/components/UserAvatar";
+import { LogoLockup } from "@/components/sosa/LogoLockup";
 
 interface AppHeaderProps {
   onMenuClick: () => void;
@@ -150,33 +151,31 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
 
   return (
     <header
-      className="sticky top-0 z-30 flex items-center gap-3 px-4 sm:px-6 h-14 md:h-20"
+      className="sticky top-0 z-30 flex items-center gap-3 px-4 sm:px-5"
       style={{
-        background: "transparent",
+        background:   "var(--sosa-bg)",
+        borderBottom: "1px solid var(--sosa-border)",
+        height:       56,
       }}
     >
-      {/* Left — hamburger (mobile only) + greeting */}
+      {/* Mobile hamburger */}
       <div className="shrink-0 lg:hidden">
-        <button type="button"
+        <button
+          type="button"
           onClick={onMenuClick}
-          className="glass-btn"
-          style={{ width: 44, height: 44, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+          style={{
+            width: 36, height: 36, display: "flex", alignItems: "center",
+            justifyContent: "center", padding: 0, background: "transparent",
+            border: "1px solid var(--sosa-border)", cursor: "pointer", borderRadius: 0,
+          }}
         >
-          <Menu className="h-5 w-5" style={{ color: "var(--text-primary)", strokeWidth: 1.7 }} />
+          <Menu className="h-4 w-4" style={{ color: "var(--sosa-white-70)", strokeWidth: 1.7 }} />
         </button>
       </div>
 
-      {/* Left — greeting */}
-      <div className="hidden md:flex flex-col" style={{ minWidth: 0, maxWidth: 280 }}>
-        <h1 style={{
-          fontSize: 22, fontWeight: 700, color: 'var(--text-primary)',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          Hi, {user?.displayName || 'there'}! 👋
-        </h1>
-        <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>
-          Welcome to your Workspace
-        </p>
+      {/* Left — LogoLockup (desktop) */}
+      <div className="hidden md:flex items-center" style={{ minWidth: 0 }}>
+        <LogoLockup workspace={portal?.id ?? "sosa"} />
       </div>
 
       {/* Center — search bar */}
@@ -184,38 +183,45 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
         <div className="w-full max-w-[480px] hidden md:block">
           <div className="relative">
             <div
-              className="flex items-center gap-2.5 px-3.5 h-10 rounded-xl transition-all duration-200"
+              className="flex items-center gap-2.5 px-3 h-9"
               style={{
-                background: open ? "var(--glass-bg-hover)" : "var(--glass-bg)",
-                border: open ? "1px solid var(--glass-border-strong)" : "1px solid var(--glass-border)",
-                boxShadow: open ? "0 4px 24px rgba(0,0,0,0.08)" : "none",
+                background:   "var(--sosa-bg-2)",
+                border:       `1px solid ${open ? "var(--sosa-yellow)" : "var(--sosa-border)"}`,
+                transition:   "border-color var(--duration-fast) var(--ease-sharp)",
               }}
             >
-              <Search style={{ width: 14, height: 14, color: "var(--text-quaternary)", flexShrink: 0, strokeWidth: 2 }} />
+              <Search style={{ width: 13, height: 13, color: "var(--sosa-white-40)", flexShrink: 0, strokeWidth: 2 }} />
               <input
                 ref={inputRef}
                 type="text"
                 value={query}
                 onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
                 onFocus={() => setOpen(true)}
-                placeholder="Search everything…"
-                className="flex-1 bg-transparent outline-none text-[13px] placeholder:text-[var(--text-quaternary)]"
-                style={{ color: "var(--text-primary)", caretColor: "var(--accent-color)" }}
+                placeholder="→ search everything"
+                className="flex-1 bg-transparent outline-none"
+                style={{
+                  fontFamily:  "var(--font-mono)",
+                  fontSize:    12,
+                  color:       "var(--sosa-white)",
+                  caretColor:  "var(--sosa-yellow)",
+                }}
               />
               {query ? (
                 <button type="button"
                   onClick={() => { setQuery(""); setOpen(false); inputRef.current?.focus(); }}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 2 }}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 2, background: "transparent", border: "none", cursor: "pointer" }}
                 >
-                  <X style={{ width: 12, height: 12, color: "var(--text-quaternary)", strokeWidth: 2 }} />
+                  <X style={{ width: 11, height: 11, color: "var(--sosa-white-40)", strokeWidth: 2 }} />
                 </button>
               ) : (
                 <span
-                  className="hidden sm:flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded"
                   style={{
-                    color: "var(--text-quaternary)",
-                    background: "var(--glass-bg-subtle)",
-                    border: "1px solid var(--glass-border)",
+                    fontFamily:  "var(--font-mono)",
+                    fontSize:    10,
+                    color:       "var(--sosa-white-20)",
+                    border:      "1px solid var(--sosa-border)",
+                    padding:     "1px 5px",
+                    letterSpacing: "0.05em",
                   }}
                 >
                   ⌘K
@@ -227,19 +233,20 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
             {showDropdown && (
               <div
                 ref={dropdownRef}
-                className="absolute top-full mt-2 w-full rounded-xl overflow-hidden py-1.5"
+                className="absolute top-full mt-1 w-full overflow-hidden py-1"
                 style={{
-                  background: "var(--modal-bg)",
-                  border: "1px solid var(--glass-border-strong)",
-                  boxShadow: "0 20px 60px rgba(0,0,0,0.12)",
-                  backdropFilter: "blur(40px)",
-                  maxHeight: "min(400px, 55vh)",
-                  overflowY: "auto",
+                  background:   "var(--sosa-bg-3)",
+                  border:       "1px solid var(--sosa-border)",
+                  maxHeight:    "min(400px, 55vh)",
+                  overflowY:    "auto",
+                  zIndex:       200,
                 }}
               >
                 {grouped.length === 0 ? (
                   <div className="py-5 text-center">
-                    <span className="text-[13px]" style={{ color: "var(--text-quaternary)" }}>No results for "{query}"</span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--sosa-white-40)", textTransform: "uppercase", letterSpacing: "0.10em" }}>
+                      NO RESULTS — "{query}"
+                    </span>
                   </div>
                 ) : (
                   grouped.map(({ group, items }) => {
@@ -247,8 +254,8 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
                     return (
                       <div key={group}>
                         <div className="flex items-center gap-2 px-3 pt-2 pb-1">
-                          <div style={{ width: 6, height: 6, borderRadius: "50%", background: groupColor, flexShrink: 0 }} />
-                          <span className="text-[10px] font-semibold tracking-wider uppercase" style={{ color: "var(--text-quaternary)" }}>
+                          <div style={{ width: 5, height: 5, background: groupColor, flexShrink: 0 }} />
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--sosa-white-40)" }}>
                             {group}
                           </span>
                         </div>
@@ -265,32 +272,29 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
                               onMouseEnter={() => setActiveIdx(globalIdx)}
                               onMouseDown={() => handleSelect(entry)}
                               className="w-full flex items-center gap-3 px-3 py-2 text-left"
-                              style={{ background: isActive ? "var(--nav-hover-bg)" : "transparent" }}
+                              style={{ background: isActive ? "var(--sosa-bg-2)" : "transparent", borderLeft: isActive ? "2px solid var(--portal-accent)" : "2px solid transparent" }}
                             >
                               <div
-                                className="flex items-center justify-center flex-shrink-0 text-[13px]"
-                                style={{ width: 28, height: 28, borderRadius: 8, background: "var(--glass-bg-subtle)" }}
+                                className="flex items-center justify-center flex-shrink-0"
+                                style={{ width: 24, height: 24, background: "var(--sosa-bg)", border: "1px solid var(--sosa-border)" }}
                               >
-                                {entry.emoji ? (
-                                  <span>{entry.emoji}</span>
-                                ) : Icon ? (
-                                  <Icon style={{ width: 13, height: 13, color: groupColor, strokeWidth: 1.7 }} />
+                                {Icon ? (
+                                  <Icon style={{ width: 12, height: 12, color: groupColor, strokeWidth: 1.7 }} />
                                 ) : null}
                               </div>
 
                               <div className="flex-1 min-w-0">
-                                <p className="text-[13px] font-medium truncate" style={{ color: "var(--text-primary)" }}>
+                                <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--sosa-white)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                   {entry.title}
                                 </p>
-                                <p className="text-[11px] truncate" style={{ color: "var(--text-quaternary)" }}>
+                                <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--sosa-white-40)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                                   {entry.subtitle}
                                 </p>
                               </div>
 
                               {entry.badge && badgeStyle && (
                                 <span
-                                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0"
-                                  style={{ background: badgeStyle.bg, color: badgeStyle.color }}
+                                  style={{ fontFamily: "var(--font-mono)", fontSize: 9, padding: "2px 6px", background: badgeStyle.bg, color: badgeStyle.color, flexShrink: 0, letterSpacing: "0.08em", textTransform: "uppercase" }}
                                 >
                                   {entry.badge}
                                 </span>
@@ -304,10 +308,10 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
                 )}
 
                 {grouped.length > 0 && (
-                  <div className="flex items-center gap-3 px-3 py-2 mt-1" style={{ borderTop: "1px solid var(--divider)" }}>
-                    <span className="text-[10px]" style={{ color: "var(--text-quaternary)" }}>↑↓ navigate</span>
-                    <span className="text-[10px]" style={{ color: "var(--text-quaternary)" }}>↵ open</span>
-                    <span className="text-[10px]" style={{ color: "var(--text-quaternary)" }}>esc close</span>
+                  <div className="flex items-center gap-3 px-3 py-2 mt-1" style={{ borderTop: "1px solid var(--sosa-border)" }}>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--sosa-white-20)", textTransform: "uppercase", letterSpacing: "0.08em" }}>↑↓ navigate</span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--sosa-white-20)", textTransform: "uppercase", letterSpacing: "0.08em" }}>↵ open</span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--sosa-white-20)", textTransform: "uppercase", letterSpacing: "0.08em" }}>esc close</span>
                   </div>
                 )}
               </div>
@@ -316,92 +320,89 @@ export function AppHeader({ onMenuClick }: AppHeaderProps) {
         </div>
       </div>
 
-      {/* Right side — bell + avatar pill */}
-      <div className="flex items-center gap-3 shrink-0">
+      {/* Right side — bell + user */}
+      <div className="flex items-center gap-2 shrink-0">
         {/* Notification bell */}
-        <button type="button" className="relative flex items-center justify-center" style={{ width: 36, height: 36 }}>
-          <Bell style={{ width: 20, height: 20, color: 'var(--text-primary)', strokeWidth: 1.7 }} />
-          <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500" />
+        <button
+          type="button"
+          className="relative flex items-center justify-center"
+          style={{ width: 34, height: 34, background: "transparent", border: "1px solid var(--sosa-border)", cursor: "pointer" }}
+        >
+          <Bell style={{ width: 16, height: 16, color: "var(--sosa-white-70)", strokeWidth: 1.7 }} />
+          <span className="absolute top-1.5 right-1.5" style={{ width: 5, height: 5, background: "var(--color-error)", borderRadius: "50%" }} />
         </button>
 
-        {/* User avatar pill */}
+        {/* User */}
         {user && (
           <div ref={profileRef} className="shrink-0 relative">
-            <button type="button"
+            <button
+              type="button"
               onClick={() => setProfileOpen((p) => !p)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-all"
-              style={{
-                background: 'var(--glass-bg)',
-                border: '1px solid var(--glass-border)',
-              }}
+              className="flex items-center gap-2 px-2 py-1"
+              style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", cursor: "pointer" }}
             >
-              <UserAvatar user={{ ...user, avatar: localAvatar || user.avatar }} size={30} />
-              <span className="hidden md:inline" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{user.displayName}</span>
-              <span className="hidden lg:inline" style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>- {user.role || 'Admin'}</span>
-              <ChevronDown style={{ width: 14, height: 14, color: 'var(--text-quaternary)' }} />
+              <UserAvatar user={{ ...user, avatar: localAvatar || user.avatar }} size={26} />
+              <span className="hidden md:inline" style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, color: "var(--sosa-white-70)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                {user.displayName}
+              </span>
+              <ChevronDown style={{ width: 12, height: 12, color: "var(--sosa-white-40)" }} />
             </button>
 
             {profileOpen && (
               <div
-                className="absolute right-0 top-full mt-2 rounded-2xl py-1 z-50"
+                className="absolute right-0 top-full mt-1 z-50 py-1"
                 style={{
-                  width: 230,
-                  background: "var(--modal-bg)",
-                  border: "1px solid var(--glass-border-strong)",
-                  boxShadow: "var(--glass-shadow-lg)",
-                  backdropFilter: "blur(40px)",
+                  width:      220,
+                  background: "var(--sosa-bg-3)",
+                  border:     "1px solid var(--sosa-border)",
                 }}
               >
-                {/* User info header */}
-                <div className="flex items-center gap-3 px-4 py-3.5">
-                  <UserAvatar user={{ ...user, avatar: localAvatar || user.avatar }} size={40} />
+                {/* User info */}
+                <div className="flex items-center gap-3 px-3 py-3" style={{ borderBottom: "1px solid var(--sosa-border)" }}>
+                  <UserAvatar user={{ ...user, avatar: localAvatar || user.avatar }} size={36} />
                   <div className="min-w-0 flex-1">
-                    <p className="text-[14px] font-semibold truncate" style={{ color: "var(--text-primary)" }}>
+                    <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, color: "var(--sosa-white)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {user.displayName}
                     </p>
-                    <p className="text-[11px] truncate mt-0.5" style={{ color: "var(--text-tertiary)" }}>
-                      {user.email}
+                    <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--sosa-white-40)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      {user.role ?? "member"}
                     </p>
                   </div>
                 </div>
 
-                <div style={{ height: 1, background: "var(--divider)", margin: "0 0" }} />
-
-                <div className="px-1.5 py-1.5">
-                  <button type="button"
-                    onClick={() => { navigate(prefix + "/profile"); setProfileOpen(false); }}
-                    className="flex items-center gap-3 w-full text-left rounded-xl px-3 py-2.5 transition-colors"
-                    style={{ color: "var(--text-primary)", fontSize: 13 }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-hover)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                  >
-                    <User className="w-4 h-4 shrink-0" style={{ color: "var(--text-tertiary)" }} />
-                    View Profile
-                  </button>
-                  <button type="button"
-                    onClick={() => { navigate(prefix + "/settings"); setProfileOpen(false); }}
-                    className="flex items-center gap-3 w-full text-left rounded-xl px-3 py-2.5 transition-colors"
-                    style={{ color: "var(--text-primary)", fontSize: 13 }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-hover)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                  >
-                    <Settings className="w-4 h-4 shrink-0" style={{ color: "var(--text-tertiary)" }} />
-                    Settings
-                  </button>
+                <div className="py-1">
+                  {[
+                    { label: "View Profile →", icon: User, action: () => { navigate(prefix + "/profile"); setProfileOpen(false); } },
+                    { label: "Settings →",     icon: Settings, action: () => { navigate(prefix + "/settings"); setProfileOpen(false); } },
+                  ].map(({ label, icon: Icon, action }) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={action}
+                      className="flex items-center gap-3 w-full text-left px-3 py-2"
+                      style={{ background: "transparent", border: "none", cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--sosa-white-70)", textTransform: "uppercase", letterSpacing: "0.08em" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "var(--sosa-bg-2)"; e.currentTarget.style.borderLeft = "2px solid var(--portal-accent)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderLeft = "2px solid transparent"; }}
+                    >
+                      <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--sosa-white-40)" }} />
+                      {label}
+                    </button>
+                  ))}
                 </div>
 
-                <div style={{ height: 1, background: "var(--divider)" }} />
+                <div style={{ height: 1, background: "var(--sosa-border)" }} />
 
-                <div className="px-1.5 py-1.5">
-                  <button type="button"
+                <div className="py-1">
+                  <button
+                    type="button"
                     onClick={() => { logout(); navigate("/login"); }}
-                    className="flex items-center gap-3 w-full text-left rounded-xl px-3 py-2.5 transition-colors"
-                    style={{ color: "#f87171", fontSize: 13 }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(239,68,68,0.1)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    className="flex items-center gap-3 w-full text-left px-3 py-2"
+                    style={{ background: "transparent", border: "none", cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-error)", textTransform: "uppercase", letterSpacing: "0.08em" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,45,85,0.08)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                   >
-                    <LogOut className="w-4 h-4 shrink-0" />
-                    Log Out
+                    <LogOut className="w-3.5 h-3.5 shrink-0" />
+                    Log Out →
                   </button>
                 </div>
               </div>

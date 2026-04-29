@@ -1,3 +1,4 @@
+export { PortalShell }    from "./PortalShell";
 export { GrainOverlay }   from "./GrainOverlay";
 export { CornerBrackets } from "./CornerBrackets";
 export { DiagonalAccent } from "./DiagonalAccent";
