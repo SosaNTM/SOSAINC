@@ -75,11 +75,11 @@ function AttachmentPreview({ att, onClose }: { att: InventoryAttachment; onClose
     <>
       <div className="fixed inset-0 z-[9998]" style={{ background: "rgba(0,0,0,0.7)" }} onClick={onClose} />
       <div className="fixed z-[9999] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-        style={{ width: "min(90vw,780px)", maxHeight: "88vh", display: "flex", flexDirection: "column", background: "var(--modal-bg,#141414)", border: "1px solid var(--glass-border)", borderRadius: 16, overflow: "hidden", boxShadow: "0 32px 100px rgba(0,0,0,0.7)" }}>
-        <div className="flex items-center justify-between px-5 py-3 flex-shrink-0" style={{ borderBottom: "0.5px solid var(--glass-border)" }}>
+        style={{ width: "min(90vw,780px)", maxHeight: "88vh", display: "flex", flexDirection: "column", background: "var(--sosa-bg-3)", border: "1px solid var(--sosa-border)", overflow: "hidden" }}>
+        <div className="flex items-center justify-between px-5 py-3 flex-shrink-0" style={{ borderBottom: "1px solid var(--sosa-border)" }}>
           <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{att.file_name}</span>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={download} style={{ fontSize: 12, padding: "4px 12px", borderRadius: 7, border: "0.5px solid var(--glass-border)", background: "var(--glass-bg)", color: "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <button type="button" onClick={download} style={{ fontSize: 12, padding: "4px 12px", border: "1px solid var(--sosa-border)", background: "var(--sosa-bg-2)", color: "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontFamily: "var(--font-mono)" }}>
               <Download className="w-3.5 h-3.5" /> Download
             </button>
             <button type="button" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X className="w-5 h-5" /></button>
@@ -92,7 +92,7 @@ function AttachmentPreview({ att, onClose }: { att: InventoryAttachment; onClose
           {!loading && url && kind === "video" && <div className="flex justify-center p-4 bg-black"><video controls src={url} style={{ maxWidth: "100%", maxHeight: "70vh" }} /></div>}
           {!loading && url && kind === "audio" && <div className="flex justify-center p-8"><audio controls src={url} style={{ width: "100%", maxWidth: 480 }} /></div>}
           {!loading && url && kind === "text" && <pre style={{ margin: 0, padding: "20px 24px", fontSize: 12, lineHeight: 1.6, color: "var(--text-secondary)", fontFamily: "monospace", overflowX: "auto", whiteSpace: "pre-wrap", background: "rgba(0,0,0,0.2)" }}>{text ?? "Loading…"}</pre>}
-          {!loading && kind === "none" && <div className="flex flex-col items-center justify-center h-48 gap-3"><Package className="w-12 h-12" style={{ color: "var(--text-quaternary)" }} /><button type="button" onClick={download} style={{ fontSize: 13, padding: "6px 18px", borderRadius: 8, border: "0.5px solid var(--glass-border)", background: "var(--glass-bg)", color: "var(--text-secondary)", cursor: "pointer" }}>Download to view</button></div>}
+          {!loading && kind === "none" && <div className="flex flex-col items-center justify-center h-48 gap-3"><Package className="w-12 h-12" style={{ color: "var(--text-quaternary)" }} /><button type="button" onClick={download} style={{ fontSize: 13, padding: "6px 18px", borderRadius: 0, border: "1px solid var(--sosa-border)", background: "var(--sosa-bg-2)", color: "var(--text-secondary)", cursor: "pointer" }}>Download to view</button></div>}
         </div>
       </div>
     </>,
@@ -141,7 +141,7 @@ function AttachmentsPanel({ item, portalId, userId }: { item: InventoryItem; por
         <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Attachments ({atts.length})</span>
         <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
           className="flex items-center gap-1.5"
-          style={{ fontSize: 11, padding: "4px 10px", borderRadius: 7, border: "0.5px solid var(--glass-border)", background: "var(--glass-bg)", color: "var(--text-secondary)", cursor: "pointer" }}>
+          style={{ fontSize: 11, padding: "4px 10px", border: "1px solid var(--sosa-border)", background: "var(--sosa-bg-2)", color: "var(--text-secondary)", cursor: "pointer", fontFamily: "var(--font-mono)" }}>
           {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
           Add files
         </button>
@@ -231,7 +231,7 @@ function ItemFormModal({
     <>
       <div className="fixed inset-0 z-[9998]" style={{ background: "rgba(0,0,0,0.5)" }} onClick={onClose} />
       <div className="fixed z-[9999] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-[500px] max-h-[90vh] overflow-y-auto"
-        style={{ background: "var(--modal-bg,#141414)", border: "1px solid var(--glass-border)", borderRadius: 16, padding: 24, boxShadow: "0 24px 80px rgba(0,0,0,0.6)" }}>
+        style={{ background: "var(--sosa-bg-3)", border: "1px solid var(--sosa-border)", padding: 24 }}>
 
         <div className="flex items-center justify-between mb-5">
           <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>
@@ -288,7 +288,7 @@ function ItemFormModal({
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
-                style={{ border: `2px dashed ${dragOver ? "var(--accent-color)" : "var(--glass-border)"}`, borderRadius: 10, padding: "18px", textAlign: "center", cursor: "pointer", background: dragOver ? "var(--accent-color-dim,rgba(110,231,183,0.05))" : "var(--glass-bg)", fontSize: 12, color: "var(--text-quaternary)", transition: "all 0.15s" }}>
+                style={{ border: `2px dashed ${dragOver ? "var(--sosa-yellow)" : "var(--sosa-border)"}`, padding: "18px", textAlign: "center", cursor: "pointer", background: dragOver ? "rgba(212,255,0,0.04)" : "var(--sosa-bg-2)", fontSize: 12, color: "var(--sosa-white-20)", transition: "border-color 0.15s, background 0.15s", fontFamily: "var(--font-mono)" }}>
                 Click or drag files here to attach
               </div>
               {pendingFiles.length > 0 && (
@@ -307,23 +307,22 @@ function ItemFormModal({
                 </div>
               )}
             </div>
-          </div>
 
           {/* Total preview */}
-          <div className="flex justify-between items-center py-2 px-3 rounded-lg" style={{ background: "rgba(0,0,0,0.15)", border: "0.5px solid var(--glass-border)" }}>
-            <span style={{ fontSize: 12, color: "var(--text-quaternary)" }}>
+          <div className="flex justify-between items-center py-2 px-3" style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)" }}>
+            <span style={{ fontSize: 12, color: "var(--sosa-white-40)", fontFamily: "var(--font-mono)" }}>
               €{fmtEur(form.amount > 0 ? form.item_value / form.amount : 0)} × {form.amount}
             </span>
-            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--accent-color)" }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "var(--portal-accent)", fontFamily: "var(--font-mono)" }}>
               €{fmtEur(form.item_value)}
             </span>
           </div>
 
           <div className="flex gap-2 justify-end pt-1">
-            <button type="button" onClick={onClose} disabled={saving} style={{ fontSize: 13, padding: "8px 18px", borderRadius: 8, border: "0.5px solid var(--glass-border)", background: "var(--glass-bg)", color: "var(--text-secondary)", cursor: "pointer" }}>Cancel</button>
+            <button type="button" onClick={onClose} disabled={saving} style={{ fontSize: 13, padding: "8px 18px", border: "1px solid var(--sosa-border)", background: "var(--sosa-bg-2)", color: "var(--sosa-white-40)", cursor: "pointer", fontFamily: "var(--font-mono)", letterSpacing: "0.06em" }}>Cancel</button>
             <button type="button" onClick={submit} disabled={saving}
               className="glass-btn-primary flex items-center gap-2"
-              style={{ fontSize: 13, padding: "8px 18px", borderRadius: 8, opacity: saving ? 0.7 : 1 }}>
+              style={{ fontSize: 13, padding: "8px 18px", borderRadius: 0, opacity: saving ? 0.7 : 1 }}>
               {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               {saving ? "Saving…" : initial ? "Save Changes" : "Add Item"}
             </button>
@@ -353,7 +352,7 @@ function ItemRow({
   return (
     <>
       <tr
-        style={{ borderBottom: "0.5px solid var(--glass-border)", cursor: "pointer" }}
+        style={{ borderBottom: "1px solid var(--sosa-border)", cursor: "pointer" }}
         onClick={() => setExpanded((p) => !p)}>
         <td style={{ padding: "12px 14px" }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{item.name}</div>
@@ -365,7 +364,7 @@ function ItemRow({
         <td style={{ padding: "12px 10px", textAlign: "right", fontSize: 13, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
           €{fmtEur(unitPrice)}
         </td>
-        <td style={{ padding: "12px 10px", textAlign: "right", fontSize: 13, fontWeight: 700, color: "var(--accent-color)", whiteSpace: "nowrap" }}>
+        <td style={{ padding: "12px 10px", textAlign: "right", fontSize: 13, fontWeight: 700, color: "var(--portal-accent)", whiteSpace: "nowrap" }}>
           €{fmtEur(item.item_value)}
         </td>
         <td style={{ padding: "12px 10px", textAlign: "center" }}>
@@ -478,14 +477,14 @@ export default function InventoryPage() {
           <div className="flex items-center gap-2">
             {/* Portfolio total */}
             <div className="hidden sm:flex flex-col items-end">
-              <span style={{ fontSize: 10, color: "var(--text-quaternary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Stock Value</span>
-              <span style={{ fontSize: 18, fontWeight: 700, color: "var(--accent-color)" }}>€{fmtEur(portfolioTotal)}</span>
+              <span style={{ fontSize: 10, color: "var(--sosa-white-20)", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "var(--font-mono)" }}>Stock Value</span>
+              <span style={{ fontSize: 18, fontWeight: 700, color: "var(--portal-accent)", fontFamily: "var(--font-mono)" }}>€{fmtEur(portfolioTotal)}</span>
             </div>
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: "var(--text-quaternary)" }} />
               <input className="glass-input" value={search} onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search items…"
-                style={{ fontSize: 12, padding: "6px 10px 6px 28px", borderRadius: 8, width: 180 }} />
+                style={{ fontSize: 12, padding: "6px 10px 6px 28px", borderRadius: 0, width: 180 }} />
             </div>
             <button type="button" onClick={() => { setEditTarget(null); setShowForm(true); }}
               className="glass-btn-primary flex items-center gap-1.5"
@@ -496,14 +495,14 @@ export default function InventoryPage() {
         </div>
 
         {/* Portfolio total — mobile */}
-        <div className="flex sm:hidden justify-between items-center px-4 py-3 rounded-xl"
-          style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)" }}>
-          <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Stock Value</span>
-          <span style={{ fontSize: 20, fontWeight: 700, color: "var(--accent-color)" }}>€{fmtEur(portfolioTotal)}</span>
+        <div className="flex sm:hidden justify-between items-center px-4 py-3"
+          style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)" }}>
+          <span style={{ fontSize: 13, color: "var(--sosa-white-40)", fontFamily: "var(--font-mono)" }}>Stock Value</span>
+          <span style={{ fontSize: 20, fontWeight: 700, color: "var(--portal-accent)", fontFamily: "var(--font-mono)" }}>€{fmtEur(portfolioTotal)}</span>
         </div>
 
         {/* Table */}
-        <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 16, overflow: "hidden" }}>
+        <div style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", overflow: "hidden" }}>
           {isLoading && (
             <div className="p-5 space-y-3">
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-14 rounded-xl" />)}
@@ -526,7 +525,7 @@ export default function InventoryPage() {
           {!isLoading && items.length > 0 && (
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ background: "rgba(0,0,0,0.1)", borderBottom: "0.5px solid var(--glass-border)" }}>
+                <tr style={{ background: "var(--sosa-bg-3)", borderBottom: "1px solid var(--sosa-border)" }}>
                   <th style={{ padding: "10px 14px", textAlign: "left", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-quaternary)" }}>Item</th>
                   <th style={{ padding: "10px 10px", textAlign: "right", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-quaternary)", whiteSpace: "nowrap" }}>Qty</th>
                   <th style={{ padding: "10px 10px", textAlign: "right", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-quaternary)", whiteSpace: "nowrap" }}>Unit Price</th>
@@ -548,11 +547,11 @@ export default function InventoryPage() {
                 ))}
               </tbody>
               <tfoot>
-                <tr style={{ background: "rgba(0,0,0,0.12)", borderTop: "0.5px solid var(--glass-border)" }}>
+                <tr style={{ background: "rgba(0,0,0,0.12)", borderTop: "1px solid var(--sosa-border)" }}>
                   <td colSpan={2} style={{ padding: "12px 14px", fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>
                     Stock Value ({items.length} item{items.length !== 1 ? "s" : ""})
                   </td>
-                  <td style={{ padding: "12px 10px", textAlign: "right", fontSize: 16, fontWeight: 800, color: "var(--accent-color)" }}>
+                  <td style={{ padding: "12px 10px", textAlign: "right", fontSize: 16, fontWeight: 800, color: "var(--portal-accent)" }}>
                     €{fmtEur(portfolioTotal)}
                   </td>
                   <td colSpan={2} />
@@ -579,7 +578,7 @@ export default function InventoryPage() {
         <>
           <div className="fixed inset-0 z-[9998]" style={{ background: "rgba(0,0,0,0.6)" }} onClick={() => setDeleteTarget(null)} />
           <div className="fixed z-[9999] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-            style={{ width: "min(90vw,380px)", background: "var(--modal-bg,#141414)", border: "1px solid var(--glass-border)", borderRadius: 14, padding: 24 }}>
+            style={{ width: "min(90vw,380px)", background: "var(--sosa-bg-3)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: 24 }}>
             <div className="flex items-start gap-3 mb-4">
               <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "#f59e0b" }} />
               <div>
@@ -591,11 +590,11 @@ export default function InventoryPage() {
             </div>
             <div className="flex gap-2 justify-end">
               <button type="button" onClick={() => setDeleteTarget(null)} disabled={deleting}
-                style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8, border: "0.5px solid var(--glass-border)", background: "var(--glass-bg)", color: "var(--text-secondary)", cursor: "pointer" }}>
+                style={{ fontSize: 13, padding: "7px 16px", borderRadius: 0, border: "1px solid var(--sosa-border)", background: "var(--sosa-bg-2)", color: "var(--text-secondary)", cursor: "pointer" }}>
                 Cancel
               </button>
               <button type="button" onClick={handleDelete} disabled={deleting}
-                style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", cursor: deleting ? "wait" : "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                style={{ fontSize: 13, padding: "7px 16px", borderRadius: 0, border: "none", background: "#ef4444", color: "#fff", cursor: deleting ? "wait" : "pointer", display: "flex", alignItems: "center", gap: 6 }}>
                 {deleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Delete
               </button>

@@ -619,81 +619,79 @@
     pointer-events: none;
   }
 
-  /* ─── Glass Button ─── */
+  /* ─── Glass Button (remapped → SOSA) ─── */
   .glass-btn {
-    background: var(--btn-glass-bg);
-    border: 0.5px solid var(--btn-glass-border);
-    backdrop-filter: var(--glass-blur-light);
-    -webkit-backdrop-filter: var(--glass-blur-light);
-    border-radius: var(--radius-md);
-    transition: all 0.2s ease;
+    background: var(--sosa-bg-2);
+    border: 1px solid var(--sosa-border);
+    border-radius: 0;
+    transition: background 0.15s;
     cursor: pointer;
     font-size: 13px;
     font-weight: 500;
-    color: var(--btn-text);
+    color: var(--sosa-white-40);
+    font-family: var(--font-mono);
+    letter-spacing: 0.06em;
   }
 
   .glass-btn:hover {
-    background: var(--glass-bg-hover);
+    background: var(--sosa-bg-3);
     color: var(--text-primary);
-    border-color: var(--glass-border-hover);
   }
 
   .glass-btn:active {
-    transform: scale(0.97);
+    opacity: 0.8;
   }
 
   .glass-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
-    transform: none;
   }
 
-  /* ─── Primary Button ─── */
+  /* ─── Primary Button (remapped → SOSA yellow) ─── */
   .glass-btn-primary {
-    background: linear-gradient(135deg, #00D4FF, #4A9EFF);
-    border: 1.5px solid rgba(255, 255, 255, 0.40);
-    backdrop-filter: var(--glass-blur-light);
-    -webkit-backdrop-filter: var(--glass-blur-light);
-    border-radius: var(--radius-md);
-    transition: all 0.2s ease;
+    background: var(--sosa-yellow);
+    border: none;
+    border-radius: 0;
+    transition: opacity 0.15s;
     cursor: pointer;
-    color: #ffffff;
-    font-weight: 600;
-    font-size: 15px;
-    padding: 13px 24px;
-    box-shadow: 0 4px 20px rgba(74, 158, 255, 0.35);
+    color: #000000;
+    font-weight: 700;
+    font-size: 13px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.08em;
   }
 
   .glass-btn-primary:hover {
-    background: linear-gradient(135deg, #00C4EF, #3A8EEF);
-    border-color: rgba(255, 255, 255, 0.50);
-    box-shadow: 0 6px 28px rgba(74, 158, 255, 0.45);
+    opacity: 0.88;
   }
 
   .glass-btn-primary:active {
-    transform: scale(0.97);
+    opacity: 0.75;
   }
 
-  /* ─── Glass Input ─── */
+  .glass-btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* ─── Glass Input (remapped → SOSA) ─── */
   .glass-input {
-    background: var(--input-bg);
-    border: 0.5px solid var(--input-border);
-    backdrop-filter: var(--glass-blur-light);
-    -webkit-backdrop-filter: var(--glass-blur-light);
-    border-radius: var(--radius-md);
-    transition: all 0.2s ease;
+    background: var(--sosa-bg-2);
+    border: 1px solid var(--sosa-border);
+    border-radius: 0;
+    transition: border-color 0.15s;
     font-size: 14px;
-    color: var(--input-text);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    outline: none;
   }
 
   .glass-input::placeholder {
-    color: var(--input-placeholder);
+    color: var(--sosa-white-20);
   }
 
   .glass-input:focus {
-    border-color: var(--input-focus-border);
-    box-shadow: 0 0 0 3px var(--input-focus-ring);
+    border-color: var(--sosa-yellow);
     outline: none;
   }
 
