@@ -159,7 +159,7 @@ export function AddTransactionModal({ open, onClose, onSave, initialData, title 
           style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px 16px" }}
         >
           {/* Backdrop */}
-          <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.70)", backdropFilter: "blur(4px)" }} />
+          <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.75)" }} />
 
           {/* Modal */}
           <motion.div

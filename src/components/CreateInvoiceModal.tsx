@@ -112,7 +112,7 @@ export function CreateInvoiceModal({ open, onClose }: Props) {
       <div
         className="fixed inset-0 z-50"
         onClick={onClose}
-        style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(20px)" }}
+        style={{ background: "rgba(0,0,0,0.75)" }}
       />
       <div
         className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-2xl glass-card max-h-[90vh] overflow-y-auto"
@@ -149,7 +149,7 @@ export function CreateInvoiceModal({ open, onClose }: Props) {
               {showClientDropdown && (
                 <div
                   className="absolute top-full left-0 right-0 z-50 mt-1"
-                  style={{ background: "rgba(30,30,35,0.95)", borderRadius: 14, border: "0.5px solid rgba(255,255,255,0.15)", padding: 4, boxShadow: "0 12px 40px rgba(0,0,0,0.5)", backdropFilter: "blur(20px)", maxHeight: 200, overflowY: "auto" }}
+                  style={{ background: "var(--sosa-bg-3)", borderRadius: 0, border: "1px solid var(--sosa-border)", padding: 4, maxHeight: 200, overflowY: "auto" }}
                 >
                   {filteredClients.map((c) => (
                     <button type="button"

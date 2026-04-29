@@ -12,24 +12,24 @@ import { AddTransactionModal } from "@/components/finance/AddTransactionModal";
 import { GlassTooltip } from "@/components/ui/GlassTooltip";
 import type { NewPersonalTransaction } from "@/types/finance";
 
-// ── Tooltip formatter ────────────────────────────────────────────────────────
+// â”€â”€ Tooltip formatter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-const fmtEurTooltip = (v: number) => `€${Number(v).toLocaleString("en-US")}`;
+const fmtEurTooltip = (v: number) => `â‚¬${Number(v).toLocaleString("en-US")}`;
 
-// NOTE: Custom tooltip — too specialized for GlassTooltip (accesses payload[0].payload.percentage)
+// NOTE: Custom tooltip â€” too specialized for GlassTooltip (accesses payload[0].payload.percentage)
 function PieTip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 8, padding: "7px 12px" }}>
+    <div style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: "7px 12px" }}>
       <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{payload[0].name}</p>
       <p style={{ fontSize: 11, color: "var(--text-tertiary)", margin: "2px 0 0" }}>
-        €{Number(payload[0].value).toLocaleString("en-US")} · {payload[0].payload.percentage}%
+        â‚¬{Number(payload[0].value).toLocaleString("en-US")} Â· {payload[0].payload.percentage}%
       </p>
     </div>
   );
 }
 
-// ── CSV export ────────────────────────────────────────────────────────────────
+// â”€â”€ CSV export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function exportCSV(rows: any[], filename: string) {
   if (!rows.length) return;
@@ -42,7 +42,7 @@ function exportCSV(rows: any[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function Analytics() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -86,16 +86,16 @@ export default function Analytics() {
   const tableData = useMemo(() =>
     [...s12.monthlyBreakdown].reverse().map((m) => ({
       Month:        m.label,
-      Income:       `€${Math.round(m.income).toLocaleString("en-US")}`,
-      Expenses:     `€${Math.round(m.expenses).toLocaleString("en-US")}`,
-      Net:          `€${Math.round(m.net).toLocaleString("en-US")}`,
+      Income:       `â‚¬${Math.round(m.income).toLocaleString("en-US")}`,
+      Expenses:     `â‚¬${Math.round(m.expenses).toLocaleString("en-US")}`,
+      Net:          `â‚¬${Math.round(m.net).toLocaleString("en-US")}`,
       Transactions: m.count,
     })),
   [s12]);
 
   const stat = (label: string, value: string, color: string, icon: React.ReactNode) => (
-    <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 14, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
-      <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+    <div style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ width: 36, height: 36, borderRadius: 0, background: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
         {icon}
       </div>
       <div>
@@ -109,7 +109,7 @@ export default function Analytics() {
     <div className="space-y-5">
       <LiquidGlassFilter />
 
-      {/* ── Header + stats ─────────────────────────────────────── */}
+      {/* â”€â”€ Header + stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
         <div className="flex items-center justify-between mb-4">
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.5px", margin: 0 }}>Analytics</h1>
@@ -120,14 +120,14 @@ export default function Analytics() {
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {stat("Income (6m)", `€${Math.round(s6.totalIncome).toLocaleString("en-US")}`, "#4ade80", <TrendingUp style={{ width: 18, height: 18 }} />)}
-          {stat("Expenses (6m)",  `€${Math.round(s6.totalExpenses).toLocaleString("en-US")}`, "#FF5A5A", <TrendingDown style={{ width: 18, height: 18 }} />)}
-          {stat("Net (6m)", `${s6.netBalance >= 0 ? "+" : ""}€${Math.round(s6.netBalance).toLocaleString("en-US")}`, s6.netBalance >= 0 ? "#4ade80" : "#FF5A5A", <BarChart2 style={{ width: 18, height: 18 }} />)}
+          {stat("Income (6m)", `â‚¬${Math.round(s6.totalIncome).toLocaleString("en-US")}`, "#4ade80", <TrendingUp style={{ width: 18, height: 18 }} />)}
+          {stat("Expenses (6m)",  `â‚¬${Math.round(s6.totalExpenses).toLocaleString("en-US")}`, "#FF5A5A", <TrendingDown style={{ width: 18, height: 18 }} />)}
+          {stat("Net (6m)", `${s6.netBalance >= 0 ? "+" : ""}â‚¬${Math.round(s6.netBalance).toLocaleString("en-US")}`, s6.netBalance >= 0 ? "#4ade80" : "#FF5A5A", <BarChart2 style={{ width: 18, height: 18 }} />)}
           {stat("Categories", String(s6.categoryBreakdown.length), "#e8ff00", <PieIcon style={{ width: 18, height: 18 }} />)}
         </div>
       </motion.div>
 
-      {/* ── Charts row 1: Income vs Expenses + Pie ─────────────── */}
+      {/* â”€â”€ Charts row 1: Income vs Expenses + Pie â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div
         className="grid grid-cols-1 lg:grid-cols-3 gap-5"
         initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
@@ -136,7 +136,7 @@ export default function Analytics() {
         {/* Bar chart: Entrate vs Uscite (last 6m) */}
         <div className="lg:col-span-2">
           <LiquidGlassCard accentColor="#4ade80" hover={false}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>Income vs Expenses — Last 6 Months</h3>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>Income vs Expenses â€” Last 6 Months</h3>
             {l6 ? (
               <div style={{ height: 220, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-quaternary)", fontSize: 13 }}>Loading...</div>
             ) : (
@@ -144,7 +144,7 @@ export default function Analytics() {
                 <BarChart data={monthlyData.slice(-6)} barGap={4} barCategoryGap="30%">
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                   <XAxis dataKey="name" tick={{ fontSize: 10, fill: "var(--text-quaternary)" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "var(--text-quaternary)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `€${v}`} />
+                  <YAxis tick={{ fontSize: 10, fill: "var(--text-quaternary)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `â‚¬${v}`} />
                   <Tooltip content={<GlassTooltip formatter={fmtEurTooltip} />} />
                   <Bar dataKey="income"   name="Income"   fill="#4ade80" radius={[4, 4, 0, 0]} opacity={0.85} />
                   <Bar dataKey="expenses" name="Expenses" fill="#FF5A5A" radius={[4, 4, 0, 0]} opacity={0.85} />
@@ -187,7 +187,7 @@ export default function Analytics() {
         </LiquidGlassCard>
       </motion.div>
 
-      {/* ── Charts row 2: Daily + Top5 ─────────────────────────── */}
+      {/* â”€â”€ Charts row 2: Daily + Top5 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div
         className="grid grid-cols-1 lg:grid-cols-2 gap-5"
         initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
@@ -203,7 +203,7 @@ export default function Analytics() {
               <LineChart data={dailyData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis dataKey="name" tick={{ fontSize: 10, fill: "var(--text-quaternary)" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: "var(--text-quaternary)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `€${v}`} />
+                <YAxis tick={{ fontSize: 10, fill: "var(--text-quaternary)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `â‚¬${v}`} />
                 <Tooltip content={<GlassTooltip formatter={fmtEurTooltip} />} />
                 <Line type="monotone" dataKey="amount" name="Expenses" stroke="#e8ff00" strokeWidth={2} dot={false} />
               </LineChart>
@@ -222,7 +222,7 @@ export default function Analytics() {
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={top5.map((c) => ({ name: c.category, amount: Math.round(c.amount) }))} layout="vertical" barCategoryGap="25%">
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 10, fill: "var(--text-quaternary)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `€${v}`} />
+                <XAxis type="number" tick={{ fontSize: 10, fill: "var(--text-quaternary)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `â‚¬${v}`} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "var(--text-quaternary)" }} axisLine={false} tickLine={false} width={80} />
                 <Tooltip content={<GlassTooltip formatter={fmtEurTooltip} />} />
                 <Bar dataKey="amount" name="Amount" radius={[0, 4, 4, 0]}>
@@ -234,14 +234,14 @@ export default function Analytics() {
         </LiquidGlassCard>
       </motion.div>
 
-      {/* ── Monthly table ───────────────────────────────────────── */}
+      {/* â”€â”€ Monthly table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}>
         <LiquidGlassCard accentColor="#64748b" hover={false}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Monthly Summary — Last 12 Months</h3>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Monthly Summary â€” Last 12 Months</h3>
             <button
               onClick={() => exportCSV(tableData, "finance-analytics.csv")}
-              style={{ height: 28, padding: "0 10px", borderRadius: 8, background: "rgba(232,255,0,0.10)", border: "1px solid rgba(232,255,0,0.25)", color: "#e8ff00", fontSize: 11, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+              style={{ height: 28, padding: "0 10px", borderRadius: 0, background: "rgba(232,255,0,0.10)", border: "1px solid rgba(232,255,0,0.25)", color: "#e8ff00", fontSize: 11, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
               <Download style={{ width: 12, height: 12 }} />
               Export CSV
             </button>
@@ -257,7 +257,7 @@ export default function Analytics() {
                 <thead>
                   <tr>
                     {["Month", "Income", "Expenses", "Net", "Transactions"].map((h) => (
-                      <th key={h} style={{ textAlign: h === "Month" ? "left" : "right", padding: "6px 10px", fontWeight: 700, fontSize: 10, color: "var(--text-quaternary)", letterSpacing: "0.07em", textTransform: "uppercase", borderBottom: "0.5px solid var(--glass-border)" }}>
+                      <th key={h} style={{ textAlign: h === "Month" ? "left" : "right", padding: "6px 10px", fontWeight: 700, fontSize: 10, color: "var(--text-quaternary)", letterSpacing: "0.07em", textTransform: "uppercase", borderBottom: "1px solid var(--sosa-border)" }}>
                         {h}
                       </th>
                     ))}
@@ -265,7 +265,7 @@ export default function Analytics() {
                 </thead>
                 <tbody>
                   {tableData.map((row, i) => (
-                    <tr key={i} style={{ borderBottom: "0.5px solid var(--glass-border)" }}
+                    <tr key={i} style={{ borderBottom: "1px solid var(--sosa-border)" }}
                       onMouseEnter={(e) => { e.currentTarget.style.background = "var(--nav-hover-bg)"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
                       <td style={{ padding: "8px 10px", color: "var(--text-primary)", fontWeight: 600 }}>{row.Month}</td>
@@ -282,7 +282,7 @@ export default function Analytics() {
         </LiquidGlassCard>
       </motion.div>
 
-      {/* ── Add Transaction Modal ─────────────────────────────── */}
+      {/* â”€â”€ Add Transaction Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <AddTransactionModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}

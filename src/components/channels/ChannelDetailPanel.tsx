@@ -25,12 +25,12 @@ export function ChannelDetailPanel({ channel: ch, onClose }: { channel: Channel;
 
   return (
     <>
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 999, background: "rgba(0,0,0,0.35)", backdropFilter: "blur(4px)", animation: "fadeIn 0.2s ease" }} />
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 999, background: "rgba(0,0,0,0.7)" }} />
       <div onClick={e => e.stopPropagation()} style={{
         position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 1000, width: "min(460px, 92vw)",
-        background: "rgba(255, 255, 255, 0.85)", backdropFilter: "blur(24px)",
-        borderLeft: "1px solid rgba(255, 255, 255, 0.40)", boxShadow: "-8px 0 40px rgba(0,0,0,0.10)",
-        display: "flex", flexDirection: "column", animation: "slideInRight 0.3s cubic-bezier(0.4,0,0.2,1)",
+        background: "var(--sosa-bg-3)",
+        borderLeft: "1px solid var(--sosa-border)",
+        display: "flex", flexDirection: "column",
       }}>
         {/* Header */}
         <div className="flex items-center justify-between" style={{ padding: "20px 24px", borderBottom: "1px solid var(--divider)", flexShrink: 0 }}>
@@ -76,8 +76,7 @@ export function ChannelDetailPanel({ channel: ch, onClose }: { channel: Channel;
                 <XAxis dataKey="month" tick={{ fill: "var(--chart-axis)", fontSize: 10 }} />
                 <YAxis tick={{ fill: "var(--chart-axis)", fontSize: 10 }} tickFormatter={v => fmtEurShort(v)} />
                 <Tooltip formatter={(v: number) => fmtEur(v)} contentStyle={{
-                  background: "rgba(255, 255, 255, 0.85)", border: "1px solid rgba(255, 255, 255, 0.40)", borderRadius: 10, fontSize: 12,
-                  backdropFilter: "blur(16px)",
+                  background: "var(--sosa-bg-3)", border: "1px solid var(--sosa-border)", borderRadius: 0, fontSize: 12,
                 }} cursor={{ stroke: "var(--glass-border)", strokeDasharray: "4 4" }} />
                 <Area type="monotone" dataKey="revenue" stroke={ch.color} strokeWidth={2} fill={`url(#grad-${ch.id})`}
                   activeDot={{ r: 5, fill: ch.color, stroke: "var(--glass-bg-elevated)", strokeWidth: 2, style: { filter: `drop-shadow(0 0 4px ${ch.color})` } }}

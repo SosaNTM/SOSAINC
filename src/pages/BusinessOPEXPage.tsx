@@ -1,4 +1,4 @@
-// TODO: removed from navigation during audit — routes disabled in App.tsx. Re-enable when business finance module is ready.
+// TODO: removed from navigation during audit â€” routes disabled in App.tsx. Re-enable when business finance module is ready.
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Building2, Plus, Pencil, Trash2, X } from "lucide-react";
@@ -21,7 +21,7 @@ const FREQ_LABELS: Record<string, string> = {
 };
 
 function formatEUR(v: number): string {
-  return `€${v.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `â‚¬${v.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function categoryLabel(cat: string): string {
@@ -51,15 +51,15 @@ const EMPTY_FORM: ModalData = {
   frequency: "monthly",
 };
 
-// NOTE: Custom tooltip — too specialized for GlassTooltip (colored category boxes, EUR formatting per entry)
+// NOTE: Custom tooltip â€” too specialized for GlassTooltip (colored category boxes, EUR formatting per entry)
 function StackedAreaTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div
       style={{
         background: "var(--glass-bg-elevated, rgba(30,30,40,0.92))",
-        border: "0.5px solid var(--glass-border)",
-        borderRadius: 10,
+        border: "1px solid var(--sosa-border)",
+        borderRadius: 0,
         padding: "10px 14px",
         backdropFilter: "blur(12px)",
       }}
@@ -212,7 +212,7 @@ export default function BusinessOPEXPage() {
             style={{
               width: 32,
               height: 32,
-              borderRadius: 10,
+              borderRadius: 0,
               background: "rgba(245,158,11,0.12)",
               display: "flex",
               alignItems: "center",
@@ -318,7 +318,7 @@ export default function BusinessOPEXPage() {
                 tick={{ fontSize: 11, fill: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(v: number) => `€${(v / 1000).toFixed(0)}k`}
+                tickFormatter={(v: number) => `â‚¬${(v / 1000).toFixed(0)}k`}
               />
               <Tooltip content={<StackedAreaTooltip />} />
               {areaCategories.map((cat, idx) => (
@@ -388,13 +388,13 @@ export default function BusinessOPEXPage() {
                     {categoryLabel(item.category)}
                   </td>
                   <td style={{ padding: "10px", fontSize: 13, color: "var(--text-secondary)" }}>
-                    {item.subcategory || "—"}
+                    {item.subcategory || "â€”"}
                   </td>
                   <td style={{ padding: "10px", fontSize: 13, color: "var(--text-secondary)" }}>
-                    {item.description || "—"}
+                    {item.description || "â€”"}
                   </td>
                   <td style={{ padding: "10px", fontSize: 13, color: "var(--text-secondary)" }}>
-                    {item.vendor || "—"}
+                    {item.vendor || "â€”"}
                   </td>
                   <td
                     style={{
@@ -427,11 +427,11 @@ export default function BusinessOPEXPage() {
                         Si
                       </span>
                     ) : (
-                      <span style={{ fontSize: 12, color: "var(--text-quaternary)" }}>—</span>
+                      <span style={{ fontSize: 12, color: "var(--text-quaternary)" }}>â€”</span>
                     )}
                   </td>
                   <td style={{ padding: "10px", fontSize: 12, color: "var(--text-secondary)" }}>
-                    {item.frequency ? FREQ_LABELS[item.frequency] || item.frequency : "—"}
+                    {item.frequency ? FREQ_LABELS[item.frequency] || item.frequency : "â€”"}
                   </td>
                   <td style={{ padding: "10px", textAlign: "right" }}>
                     <div className="flex items-center justify-end gap-1.5">
@@ -439,8 +439,8 @@ export default function BusinessOPEXPage() {
                         type="button"
                         onClick={() => openEdit(item)}
                         style={{
-                          background: "var(--glass-bg)",
-                          border: "0.5px solid var(--glass-border)",
+                          background: "var(--sosa-bg-2)",
+                          border: "1px solid var(--sosa-border)",
                           borderRadius: 6,
                           padding: "5px 7px",
                           cursor: "pointer",
@@ -470,8 +470,8 @@ export default function BusinessOPEXPage() {
                           type="button"
                           onClick={() => setDeleteId(item.id)}
                           style={{
-                            background: "var(--glass-bg)",
-                            border: "0.5px solid var(--glass-border)",
+                            background: "var(--sosa-bg-2)",
+                            border: "1px solid var(--sosa-border)",
                             borderRadius: 6,
                             padding: "5px 7px",
                             cursor: "pointer",
@@ -592,7 +592,7 @@ export default function BusinessOPEXPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
-                      Importo (€) *
+                      Importo (â‚¬) *
                     </label>
                     <input
                       type="number"

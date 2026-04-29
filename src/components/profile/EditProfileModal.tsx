@@ -80,14 +80,14 @@ export function EditProfileModal({ profile, open, onClose, onSaved }: Props) {
         <div
           className="pointer-events-auto w-full max-w-[min(600px,calc(100%-2rem))] max-h-[85vh] overflow-y-auto rounded-2xl"
           style={{
-            background: "var(--modal-bg)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
-            border: "1px solid var(--divider)",
-            boxShadow: "0 24px 80px rgba(0,0,0,0.15)",
+            background: "var(--sosa-bg-3)",
+            border: "1px solid var(--sosa-border)",
+            borderRadius: 0,
           }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 sticky top-0 z-10"
-            style={{ background: "var(--modal-bg)", borderBottom: "1px solid var(--divider)" }}>
+            style={{ background: "var(--sosa-bg-3)", borderBottom: "1px solid var(--sosa-border)" }}>
             <h2 className="text-[18px] font-bold" style={{ color: "var(--text-primary)" }}>Edit Profile</h2>
             <button type="button" onClick={onClose} className="glass-btn p-1.5"><X className="w-4 h-4" /></button>
           </div>

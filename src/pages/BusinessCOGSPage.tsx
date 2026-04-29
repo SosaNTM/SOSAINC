@@ -1,4 +1,4 @@
-// TODO: removed from navigation during audit — routes disabled in App.tsx. Re-enable when business finance module is ready.
+// TODO: removed from navigation during audit â€” routes disabled in App.tsx. Re-enable when business finance module is ready.
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Package, Plus, Pencil, Trash2, X } from "lucide-react";
@@ -12,7 +12,7 @@ import { toast } from "sonner";
 const PIE_COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#e8ff00"];
 
 function formatEUR(v: number): string {
-  return `€${v.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `â‚¬${v.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function categoryLabel(cat: string): string {
@@ -20,15 +20,15 @@ function categoryLabel(cat: string): string {
   return found ? found.label : cat;
 }
 
-// NOTE: Custom tooltip — too specialized for GlassTooltip (uses payload[0].payload.fill for dynamic color)
+// NOTE: Custom tooltip â€” too specialized for GlassTooltip (uses payload[0].payload.fill for dynamic color)
 function DonutTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div
       style={{
         background: "var(--glass-bg-elevated, rgba(30,30,40,0.92))",
-        border: "0.5px solid var(--glass-border)",
-        borderRadius: 10,
+        border: "1px solid var(--sosa-border)",
+        borderRadius: 0,
         padding: "8px 14px",
         backdropFilter: "blur(12px)",
       }}
@@ -145,7 +145,7 @@ export default function BusinessCOGSPage() {
             style={{
               width: 32,
               height: 32,
-              borderRadius: 10,
+              borderRadius: 0,
               background: "rgba(239,68,68,0.12)",
               display: "flex",
               alignItems: "center",
@@ -264,11 +264,11 @@ export default function BusinessCOGSPage() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              {["Data", "Categoria", "Descrizione", "Fornitore", "Importo (€)", "Azioni"].map((h) => (
+              {["Data", "Categoria", "Descrizione", "Fornitore", "Importo (â‚¬)", "Azioni"].map((h) => (
                 <th
                   key={h}
                   style={{
-                    textAlign: h === "Importo (€)" || h === "Azioni" ? "right" : "left",
+                    textAlign: h === "Importo (â‚¬)" || h === "Azioni" ? "right" : "left",
                     fontSize: 11,
                     fontWeight: 700,
                     color: "var(--text-quaternary)",
@@ -300,10 +300,10 @@ export default function BusinessCOGSPage() {
                     {categoryLabel(item.category)}
                   </td>
                   <td style={{ padding: "10px 12px", fontSize: 13, color: "var(--text-secondary)" }}>
-                    {item.description || "—"}
+                    {item.description || "â€”"}
                   </td>
                   <td style={{ padding: "10px 12px", fontSize: 13, color: "var(--text-secondary)" }}>
-                    {item.vendor || "—"}
+                    {item.vendor || "â€”"}
                   </td>
                   <td
                     style={{
@@ -323,8 +323,8 @@ export default function BusinessCOGSPage() {
                         type="button"
                         onClick={() => openEdit(item)}
                         style={{
-                          background: "var(--glass-bg)",
-                          border: "0.5px solid var(--glass-border)",
+                          background: "var(--sosa-bg-2)",
+                          border: "1px solid var(--sosa-border)",
                           borderRadius: 6,
                           padding: "5px 7px",
                           cursor: "pointer",
@@ -354,8 +354,8 @@ export default function BusinessCOGSPage() {
                           type="button"
                           onClick={() => setDeleteId(item.id)}
                           style={{
-                            background: "var(--glass-bg)",
-                            border: "0.5px solid var(--glass-border)",
+                            background: "var(--sosa-bg-2)",
+                            border: "1px solid var(--sosa-border)",
                             borderRadius: 6,
                             padding: "5px 7px",
                             cursor: "pointer",
@@ -458,7 +458,7 @@ export default function BusinessCOGSPage() {
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>
-                    Importo (€) *
+                    Importo (â‚¬) *
                   </label>
                   <input
                     type="number"
