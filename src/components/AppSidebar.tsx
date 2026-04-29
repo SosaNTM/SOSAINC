@@ -279,10 +279,10 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
         </button>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 flex flex-col px-3 overflow-y-auto gap-0.5" style={{ paddingBottom: 8 }}>
+      {/* Navigation — scrollable middle section */}
+      <nav className="flex-1 flex flex-col px-3 overflow-y-auto" style={{ paddingTop: 6, paddingBottom: 6, gap: 2 }}>
 
-        {/* Home / Profile */}
+        {/* Profile */}
         {topItems.map((item) => {
           const isActive = location.pathname === `${prefix}${item.path}`;
           return (
@@ -292,14 +292,13 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
               onClick={onMobileClose}
               className="flex items-center gap-2.5 transition-all duration-200"
               style={{
-                padding: "12px 16px",
+                padding: "11px 16px",
                 borderRadius: 0,
                 fontSize: 14,
                 fontWeight: isActive ? 600 : 500,
                 color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
                 background: isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent",
                 borderLeft: isActive ? `3px solid ${portal?.accent || '#00D4FF'}` : "3px solid transparent",
-                margin: "1px 0",
               }}
               onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
               onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent"; }}
@@ -316,10 +315,9 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
           );
         })}
 
-        {/* Divider */}
-        <div style={{ height: 1, background: "var(--sosa-border)", margin: "6px 4px" }} />
+        <div style={{ height: 1, background: "var(--sosa-border)", margin: "8px 4px" }} />
 
-        {/* Finance Accordion — shows personal items for SOSA, business items for others */}
+        {/* Finance Accordion */}
         {canViewFinance && (
           <AccordionSection
             label="Finance" icon={Wallet}
@@ -340,7 +338,6 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
                     background: isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent",
                     borderLeft: isActive ? `3px solid ${portal?.accent || '#00D4FF'}` : "3px solid transparent",
                     margin: "1px 0",
-                    opacity: 1,
                   }}
                   onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
                   onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent"; }}
@@ -386,9 +383,8 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
           </AccordionSection>
         )}
 
-        {/* Divider + Workspace */}
-        <div style={{ height: 1, background: "var(--sosa-border)", margin: "6px 4px" }} />
-        <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-quaternary)", padding: "4px 12px 6px" }}>
+        <div style={{ height: 1, background: "var(--sosa-border)", margin: "8px 4px" }} />
+        <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-quaternary)", padding: "2px 12px 6px" }}>
           Workspace
         </p>
 
@@ -406,20 +402,18 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
                 key={item.path} to={`${prefix}${item.path}`} onClick={onMobileClose}
                 className="flex items-center gap-2.5 transition-all duration-200"
                 style={{
-                  padding: "12px 16px", borderRadius: 0, fontSize: 14,
+                  padding: "11px 16px", borderRadius: 0, fontSize: 14,
                   fontWeight: isActive ? 600 : 500,
                   color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
                   background: isActive ? "var(--portal-accent-dim)" : "transparent",
                   borderLeft: isActive ? "3px solid var(--portal-accent)" : "3px solid transparent",
-                  margin: "1px 0",
                 }}
                 onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
                 onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent"; }}
               >
                 <div className="flex items-center justify-center shrink-0" style={{
-                  width: 28, height: 28, borderRadius: 7,
-                  background: isActive ? (portal?.accent || "#4A9EFF") : "var(--glass-bg)",
-                  transition: "background 0.2s",
+                  width: 28, height: 28, borderRadius: 0,
+                  background: isActive ? (portal?.accent || "#4A9EFF") : "var(--sosa-bg-3)",
                 }}>
                   <item.icon style={{ width: 14, height: 14, strokeWidth: 1.8, color: isActive ? "#000000" : "var(--sosa-white-40)" }} />
                 </div>
@@ -427,72 +421,69 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
               </NavLink>
             );
           })}
-
-        {/* Spacer */}
-        <div style={{ flex: 1, minHeight: 12 }} />
-
-        {/* Bottom pinned: Admin + Settings */}
-        <>
-            <div style={{ height: 1, background: "var(--sosa-border)", margin: "4px 4px 6px" }} />
-            {canAccessAdmin && (!portal || portal.id === "sosa") && (() => {
-              const isActive = location.pathname === `${prefix}${adminItem.path}`;
-              return (
-                <NavLink
-                  to={`${prefix}${adminItem.path}`} onClick={onMobileClose}
-                  className="flex items-center gap-2.5 transition-all duration-200"
-                  style={{
-                    padding: "12px 16px", borderRadius: 0, fontSize: 14,
-                    fontWeight: isActive ? 600 : 500,
-                    color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
-                    background: isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent",
-                    borderLeft: isActive ? `3px solid ${portal?.accent || '#00D4FF'}` : "3px solid transparent",
-                    margin: "1px 0",
-                  }}
-                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
-                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent"; }}
-                >
-                  <div className="flex items-center justify-center shrink-0" style={{
-                    width: 28, height: 28, borderRadius: 7,
-                    background: isActive ? (portal?.accent || "#4A9EFF") : "var(--glass-bg)",
-                  }}>
-                    <adminItem.icon style={{ width: 14, height: 14, strokeWidth: 1.8, color: isActive ? "#000000" : "var(--sosa-white-40)" }} />
-                  </div>
-                  <span>{adminItem.title}</span>
-                </NavLink>
-              );
-            })()}
-            {(user?.role === "owner" || user?.role === "admin") && (() => {
-              const isActive = location.pathname.includes(`${prefix}${settingsItem.path}`);
-              return (
-                <NavLink
-                  to={`${prefix}${settingsItem.path}`} onClick={onMobileClose}
-                  className="flex items-center gap-2.5 transition-all duration-200"
-                  style={{
-                    padding: "12px 16px", borderRadius: 0, fontSize: 14,
-                    fontWeight: isActive ? 600 : 500,
-                    color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
-                    background: isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent",
-                    borderLeft: isActive ? `3px solid ${portal?.accent || '#00D4FF'}` : "3px solid transparent",
-                    margin: "1px 0",
-                  }}
-                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
-                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
-                >
-                  <div className="flex items-center justify-center shrink-0" style={{
-                    width: 28, height: 28, borderRadius: 7,
-                    background: isActive ? (portal?.accent || "#4A9EFF") : "var(--glass-bg)",
-                  }}>
-                    <settingsItem.icon style={{ width: 14, height: 14, strokeWidth: 1.8, color: isActive ? "#000000" : "var(--sosa-white-40)" }} />
-                  </div>
-                  <span>{settingsItem.title}</span>
-                </NavLink>
-              );
-            })()}
-        </>
       </nav>
 
-      {/* User card */}
-      <SidebarProfileWidget collapsed={collapsed} onMobileClose={onMobileClose} />
+      {/* Bottom pinned: Administration + Settings + User card */}
+      <div style={{ borderTop: "1px solid var(--sosa-border)", flexShrink: 0 }}>
+        {/* Administration */}
+        {canAccessAdmin && (!portal || portal.id === "sosa") && (() => {
+          const isActive = location.pathname === `${prefix}${adminItem.path}`;
+          return (
+            <NavLink
+              to={`${prefix}${adminItem.path}`} onClick={onMobileClose}
+              className="flex items-center gap-2.5 transition-all duration-200 px-4"
+              style={{
+                padding: "11px 16px", borderRadius: 0, fontSize: 14,
+                fontWeight: isActive ? 600 : 500,
+                color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
+                background: isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent",
+                borderLeft: isActive ? `3px solid ${portal?.accent || '#00D4FF'}` : "3px solid transparent",
+              }}
+              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
+              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent"; }}
+            >
+              <div className="flex items-center justify-center shrink-0" style={{
+                width: 28, height: 28, borderRadius: 0,
+                background: isActive ? (portal?.accent || "#4A9EFF") : "var(--sosa-bg-3)",
+              }}>
+                <adminItem.icon style={{ width: 14, height: 14, strokeWidth: 1.8, color: isActive ? "#000000" : "var(--sosa-white-40)" }} />
+              </div>
+              <span>{adminItem.title}</span>
+            </NavLink>
+          );
+        })()}
+
+        {/* Settings */}
+        {(user?.role === "owner" || user?.role === "admin") && (() => {
+          const isActive = location.pathname.includes(`${prefix}${settingsItem.path}`);
+          return (
+            <NavLink
+              to={`${prefix}${settingsItem.path}`} onClick={onMobileClose}
+              className="flex items-center gap-2.5 transition-all duration-200"
+              style={{
+                padding: "11px 16px", borderRadius: 0, fontSize: 14,
+                fontWeight: isActive ? 600 : 500,
+                color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
+                background: isActive ? (portal ? `${portal.accent}33` : 'rgba(74, 158, 255, 0.20)') : "transparent",
+                borderLeft: isActive ? `3px solid ${portal?.accent || '#00D4FF'}` : "3px solid transparent",
+              }}
+              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
+              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+            >
+              <div className="flex items-center justify-center shrink-0" style={{
+                width: 28, height: 28, borderRadius: 0,
+                background: isActive ? (portal?.accent || "#4A9EFF") : "var(--sosa-bg-3)",
+              }}>
+                <settingsItem.icon style={{ width: 14, height: 14, strokeWidth: 1.8, color: isActive ? "#000000" : "var(--sosa-white-40)" }} />
+              </div>
+              <span>{settingsItem.title}</span>
+            </NavLink>
+          );
+        })()}
+
+        {/* User card */}
+        <SidebarProfileWidget collapsed={collapsed} onMobileClose={onMobileClose} />
+      </div>
     </div>
   );
 
