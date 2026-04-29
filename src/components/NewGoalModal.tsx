@@ -43,15 +43,16 @@ interface FormErrors {
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
-  background: "#f9fafb",
-  border: "1px solid #e5e7eb",
-  borderRadius: 8,
+  background: "var(--sosa-bg-2)",
+  border: "1px solid var(--sosa-border)",
+  borderRadius: 0,
   padding: "10px 12px",
   fontSize: 13.5,
-  color: "#111827",
+  color: "var(--text-primary)",
   outline: "none",
   transition: "border-color 0.15s",
   boxSizing: "border-box",
+  fontFamily: "var(--font-mono)",
 };
 
 const labelStyle: React.CSSProperties = {
@@ -59,7 +60,7 @@ const labelStyle: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 700,
   letterSpacing: "0.08em",
-  color: "#6b7280",
+  color: "var(--text-quaternary)",
   textTransform: "uppercase",
   marginBottom: 6,
 };
@@ -155,17 +156,15 @@ export function NewGoalModal({ open, onClose, onSave, initialData, netWorth }: N
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: "#ffffff",
-          border: "1px solid #e5e7eb",
-          borderRadius: 16,
+          background: "var(--sosa-bg-3)",
+          border: "1px solid var(--sosa-border)",
+          borderRadius: 0,
           padding: "32px",
           width: "100%",
           maxWidth: 520,
           maxHeight: "90vh",
           overflowY: "auto",
-          animation: "slideUp 0.2s ease-out",
           position: "relative",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
         }}
       >
         {/* Header */}
@@ -178,21 +177,21 @@ export function NewGoalModal({ open, onClose, onSave, initialData, netWorth }: N
           </h2>
           <button
             type="button" onClick={onClose}
-            style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: "#f3f4f6", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+            style={{ width: 30, height: 30, borderRadius: 0, border: "1px solid var(--sosa-border)", background: "var(--sosa-bg-2)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
           >
-            <X style={{ width: 14, height: 14, color: "#6b7280" }} />
+            <X style={{ width: 14, height: 14, color: "var(--sosa-white-40)" }} />
           </button>
         </div>
 
         {/* Success overlay */}
         {saved && (
           <div style={{
-            position: "absolute", inset: 0, borderRadius: 16,
-            background: "rgba(255,255,255,0.95)",
+            position: "absolute", inset: 0, borderRadius: 0,
+            background: "var(--sosa-bg-3)",
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
             gap: 10, zIndex: 10,
           }}>
-            <span style={{ fontSize: 36 }}>✅</span>
+            <span style={{ fontSize: 36 }}>✓</span>
             <p style={{ fontSize: 15, fontWeight: 600, color: "#2ECC71" }}>Goal saved!</p>
           </div>
         )}
@@ -202,24 +201,24 @@ export function NewGoalModal({ open, onClose, onSave, initialData, netWorth }: N
 
           {/* Live Net Worth banner */}
           <div style={{
-            background: "#f0fdf4",
-            border: "1px solid #bbf7d0",
-            borderRadius: 10,
+            background: "rgba(22,163,74,0.08)",
+            border: "1px solid rgba(22,163,74,0.2)",
+            borderRadius: 0,
             padding: "12px 16px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
           }}>
             <div>
-              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "#6b7280", textTransform: "uppercase", marginBottom: 2 }}>Your Current Net Worth</p>
-              <p style={{ fontSize: 20, fontWeight: 700, color: "#16a34a", letterSpacing: "-0.5px" }}>
-                €{netWorth.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "var(--text-quaternary)", textTransform: "uppercase", marginBottom: 2 }}>Your Current Net Worth</p>
+              <p style={{ fontSize: 20, fontWeight: 700, color: "#22c55e", letterSpacing: "-0.5px" }}>
+                â‚¬{netWorth.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
               </p>
             </div>
             {target > 0 && (
               <div style={{ textAlign: "right" }}>
-                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "#6b7280", textTransform: "uppercase", marginBottom: 2 }}>Progress Preview</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: previewPct >= 100 ? "#2ECC71" : "#111827" }}>{previewPct}%</p>
+                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "var(--text-quaternary)", textTransform: "uppercase", marginBottom: 2 }}>Progress Preview</p>
+                <p style={{ fontSize: 20, fontWeight: 700, color: previewPct >= 100 ? "#2ECC71" : "var(--text-primary)" }}>{previewPct}%</p>
               </div>
             )}
           </div>
@@ -233,21 +232,21 @@ export function NewGoalModal({ open, onClose, onSave, initialData, netWorth }: N
               onChange={e => set("name", e.target.value)}
               style={{ ...inputStyle, borderColor: errors.name ? "#FF5A5A" : "rgba(255,255,255,0.1)" }}
               onFocus={e => (e.target.style.borderColor = GOLD)}
-              onBlur={e => (e.target.style.borderColor = errors.name ? "#FF5A5A" : "#e5e7eb")}
+              onBlur={e => (e.target.style.borderColor = errors.name ? "#FF5A5A" : "var(--sosa-border)")}
             />
             {errors.name && <p style={errorStyle}>{errors.name}</p>}
           </div>
 
           {/* Target Amount */}
           <div>
-            <label style={labelStyle}>Target Amount € *</label>
+            <label style={labelStyle}>Target Amount â‚¬ *</label>
             <input
               type="number" min="0" max="999999999" step="0.01" placeholder="0.00"
               value={form.target}
               onChange={e => set("target", e.target.value)}
-              style={{ ...inputStyle, borderColor: errors.target ? "#FF5A5A" : "#e5e7eb" }}
+              style={{ ...inputStyle, borderColor: errors.target ? "#FF5A5A" : "var(--sosa-border)" }}
               onFocus={e => (e.target.style.borderColor = GOLD)}
-              onBlur={e => (e.target.style.borderColor = errors.target ? "#FF5A5A" : "#e5e7eb")}
+              onBlur={e => (e.target.style.borderColor = errors.target ? "#FF5A5A" : "var(--sosa-border)")}
             />
             {errors.target && <p style={errorStyle}>{errors.target}</p>}
           </div>
@@ -262,7 +261,7 @@ export function NewGoalModal({ open, onClose, onSave, initialData, netWorth }: N
                 onChange={e => set("deadline", e.target.value)}
                 style={{ ...inputStyle, colorScheme: "light" }}
                 onFocus={e => (e.target.style.borderColor = GOLD)}
-                onBlur={e => (e.target.style.borderColor = "#e5e7eb")}
+                onBlur={e => (e.target.style.borderColor = "var(--sosa-border)")}
               />
             </div>
             <div>
@@ -272,7 +271,7 @@ export function NewGoalModal({ open, onClose, onSave, initialData, netWorth }: N
                 onChange={e => set("category", e.target.value)}
                 style={{ ...inputStyle, cursor: "pointer", colorScheme: "light" }}
                 onFocus={e => (e.target.style.borderColor = GOLD)}
-                onBlur={e => (e.target.style.borderColor = "#e5e7eb")}
+                onBlur={e => (e.target.style.borderColor = "var(--sosa-border)")}
               >
                 {CATEGORIES.map(c => (
                   <option key={c.value} value={c.value}>{c.emoji} {c.value}</option>
@@ -302,10 +301,10 @@ export function NewGoalModal({ open, onClose, onSave, initialData, netWorth }: N
             type="button" onClick={onClose}
             style={{
               padding: "10px 20px", borderRadius: 8, border: "1px solid #e5e7eb",
-              background: "transparent", color: "#6b7280", fontSize: 13,
+              background: "transparent", color: "var(--text-quaternary)", fontSize: 13,
               cursor: "pointer", fontWeight: 500, transition: "all 0.15s",
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = "#f3f4f6")}
+            onMouseEnter={e => (e.currentTarget.style.background = "var(--sosa-bg-2)")}
             onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
           >
             Cancel
