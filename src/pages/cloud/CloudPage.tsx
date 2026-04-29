@@ -1146,7 +1146,7 @@ const CloudPage = () => {
   };
 
   const mockUpload = (names: string[]) => {
-    if (!currentFolderId) return;
+    const targetFolderId = currentFolderId ?? folders[0]?.id ?? null;
     const newFiles: CloudFile[] = names.map((name, i) => {
       const ext = name.split(".").pop()?.toLowerCase() || "";
       let type: CloudFile["type"] = "other";
@@ -1157,7 +1157,7 @@ const CloudPage = () => {
       else if (ext === "zip") type = "zip";
       else if (ext === "pptx") type = "pptx";
       return {
-        id: `cf_${Date.now()}_${i}`, name, folderId: currentFolderId,
+        id: `cf_${Date.now()}_${i}`, name, folderId: targetFolderId,
         size: Math.floor(Math.random() * 5000000) + 100000, type, ownerId: userId,
         modifiedAt: new Date(), createdAt: new Date(), isDeleted: false,
         deletedAt: null, deletedBy: null, originalFolderId: null,
@@ -1167,7 +1167,7 @@ const CloudPage = () => {
     setFiles((prev) => [...newFiles, ...prev]);
     setShowUploadModal(false);
     toast.success(`${names.length} file(s) uploaded`);
-    const folderName = folders.find((f) => f.id === currentFolderId)?.name || "Cloud";
+    const folderName = folders.find((f) => f.id === targetFolderId)?.name || "Root";
     addAuditEntry({
       userId, action: `Uploaded ${names.length} file(s) to "${folderName}"`, category: "cloud",
       details: names.join(", "), icon: "📄",
