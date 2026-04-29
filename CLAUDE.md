@@ -122,3 +122,78 @@ Every Supabase query for portal data must include `.eq("portal_id", currentPorta
 ### localStorage vs Supabase
 
 Most user data lives in Supabase. A small set of UI preferences remain in localStorage: accent color (`STORAGE_ACCENT`), number format (`STORAGE_NUMBER_FORMAT`), theme (`STORAGE_THEME`). All other state that was previously in localStorage has been migrated to Supabase. Do not add new localStorage state for anything that should be portal-scoped or user-profile data.
+
+---
+
+## Design System Brief — SOSA INC UI Unification
+
+> **Status:** Planned. Not yet executed. Read `DESIGN_SYSTEM.md` at repo root before starting.
+> **Branch:** `feat/sosa-design-system` — do NOT commit to `main`.
+
+### Mission
+
+Four portals (KEYLO, REDX, TRUST ME, SOSA). Login + hub already match target aesthetic: brutalist, terminal, neon yellow `#d4ff00`, monospace-heavy, sharp corners, grain texture, corner brackets. Inner portal pages are inconsistent. Goal: make every page match visually and structurally without touching routes, business logic, API calls, state, or auth.
+
+### Execution order
+
+**Step 1 — Tokens & config**
+1. Add CSS variables from `DESIGN_SYSTEM.md §2` to global stylesheet on `:root` + `[data-portal="..."]` blocks.
+2. Extend `tailwind.config.js` per `DESIGN_SYSTEM.md §6` — colors, fonts, tracking, border-radius default `0`.
+3. Load fonts: Inter (display + body), JetBrains Mono (mono) via `<link>` tags or `@font-face`.
+4. Add `data-portal` attribute at layout level so accent flips per portal route.
+
+Commit: `chore(design): add SOSA design tokens and per-portal theming`
+
+**Step 2 — Shared primitives** (create in `components/sosa/`)
+- `<CornerBrackets />` — fixed L-markers, 1px `--sosa-yellow`, ~40px arms
+- `<GrainOverlay />` — fixed full-viewport SVG noise, 4% opacity, pointer-events none
+- `<DiagonalAccent />` — optional 1px yellow diagonal, 12% opacity
+- `<LogoLockup workspace="keylo|redx|trust|sosa" />` — 6×6 yellow square + uppercase mono name
+- `<MonoLabel tone="accent|dim" />` — uppercase, tracking-widest, mono
+- `<StatusDot label="ACTIVE" tone="portal|system" />` — 6px dot + mono label
+- `<HashtagFooter tags={[...]} />` — `#A × #B × #C` mono row
+- `<Button variant="primary|outline" arrow="↗|→" />` — sharp, mono uppercase, arrow suffix
+- `<Input leadingSymbol="→" />` — black bg, mono, yellow glyph, yellow focus border
+- `<Card accent="portal" />` — black bg, top accent bar, brand box icon, mono footer
+
+Rules: accept `className` prop, use CSS variables (no hardcoded hex), zero extra animation.
+
+Commit: `feat(design): add SOSA shared primitives`
+
+**Step 3 — PortalShell** (`components/sosa/PortalShell.tsx`)
+Wrap every authenticated page. Contains: `<GrainOverlay>`, `<CornerBrackets>`, top-left `<LogoLockup>`, `{children}`, bottom-left `<HashtagFooter>`, bottom-right `© year + <StatusDot>`. Sets `data-portal={workspace}` on root.
+
+Commit: `feat(design): add PortalShell layout wrapper`
+
+**Step 4 — Refactor portals** (KEYLO → REDX → TRUST ME → SOSA)
+Per portal: wrap routes in `<PortalShell>`, replace `rounded-xl/2xl/shadow-lg/gradients` with sharp equivalents, swap labels → `<MonoLabel>`, buttons → `<Button>`, badges → `<StatusDot>`, emoji → `→ ↗ ◆ ● ✕ ⌃ ⌄`, cards → `DESIGN_SYSTEM.md §5.1` pattern. Screenshot diff before moving to next portal.
+
+Commit per portal: `refactor(<portal>): apply SOSA design system`
+
+**Step 5 — Audit checklist**
+- [ ] No border-radius > 2px unintentional
+- [ ] No box-shadow on primary surfaces
+- [ ] No gradients except grain
+- [ ] All form labels use `<MonoLabel />`
+- [ ] All primary CTAs: `--sosa-yellow` bg + `↗`
+- [ ] All portal CTAs: `--portal-accent` outline + `→`
+- [ ] Every auth page inside `<PortalShell>`
+- [ ] Per-portal accent flips on navigation
+- [ ] No emoji in UI
+- [ ] `prefers-reduced-motion` respected on grain
+- [ ] No hex scattered in components — tokens only
+- [ ] Mobile: brackets + grain visible, type scales, layouts stack
+
+Commit: `chore(design): audit cleanup pass`
+
+### Hard constraints
+- No new dependencies — Tailwind + React + existing `package.json` only
+- Do not soften aesthetic — no rounding, no gradients, no shadows unless spec says so
+- Visual refactor only — routes, logic, API, state, auth untouched
+- Ask before deviating from `DESIGN_SYSTEM.md`
+
+### Definition of done
+- All routes inside `<PortalShell>`
+- Login/hub and inner pages look like same product
+- Tailwind config + CSS variables only source of truth for colors/fonts/spacing
+- New dev can ship compliant page in <30 min after reading `DESIGN_SYSTEM.md`
