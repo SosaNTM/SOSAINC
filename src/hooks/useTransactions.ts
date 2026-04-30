@@ -9,11 +9,11 @@ import { toast } from "sonner";
 import { supabase as _supabase } from "@/lib/supabase";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase = _supabase as any;
-import { toPortalUUID } from "@/lib/portalUUID";
 import { broadcastFinanceUpdate, subscribeToFinanceUpdates } from "@/lib/financeRealtime";
 import { useAuth } from "@/lib/authContext";
 import { addAuditEntry } from "@/lib/adminStore";
 import { usePortal } from "@/lib/portalContext";
+import { usePortalDB } from "@/lib/portalContextDB";
 import {
   localGetAll, localAdd, localUpdate, localDelete, applyFilters,
 } from "@/lib/personalTransactionStore";
@@ -66,7 +66,8 @@ const PAGE_SIZE = 20;
 export function useTransactions(filters: TransactionFilters = {}): UseTransactionsResult {
   const { user } = useAuth();
   const { portal } = usePortal();
-  const portalId = portal?.id ?? "sosa";
+  const { currentPortalId } = usePortalDB();
+  const portalId = portal?.id ?? "sosa";  // slug — used for localStorage cache key
 
   const [all,       setAll]       = useState<PersonalTransaction[]>(() => { try { return localGetAll(portalId); } catch { return []; } });
   const [isLoading, setIsLoading] = useState(() => { try { return localGetAll(portalId).length === 0; } catch { return true; } });
@@ -80,12 +81,12 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
     if (!user) { setIsLoading(false); return; }
     setError(null);
 
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && currentPortalId) {
       const parsedFilters: TransactionFilters = JSON.parse(filtersKey);
       let q = supabase
         .from("personal_transactions")
         .select("*")
-        .eq("portal_id", toPortalUUID(portalId)) // portal-shared: all members see all data
+        .eq("portal_id", currentPortalId) // portal-shared: all members see all data
         .order("date", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(2000);
@@ -128,7 +129,7 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
     const local = localGetAll(portalId);
     setAll(applyFilters(local, JSON.parse(filtersKey)));
     setIsLoading(false);
-  }, [user, portalId, filtersKey, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user, portalId, currentPortalId, filtersKey, tick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reload when portal changes
   useEffect(() => { setPage(0); }, [portalId]);
@@ -148,10 +149,10 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
   const addTransaction = useCallback(async (data: NewPersonalTransaction): Promise<boolean> => {
     if (!user) return false;
     try {
-      if (isSupabaseConfigured()) {
+      if (isSupabaseConfigured() && currentPortalId) {
         const { error: err } = await supabase
           .from("personal_transactions")
-          .insert({ ...data, user_id: user.id, portal_id: toPortalUUID(portalId) });
+          .insert({ ...data, user_id: user.id, portal_id: currentPortalId });
         if (err) throw err;
       } else {
         localAdd(data, user.id, portalId);
@@ -191,12 +192,12 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
     }
 
     try {
-      if (isSupabaseConfigured()) {
+      if (isSupabaseConfigured() && currentPortalId) {
         const { error: err } = await supabase
           .from("personal_transactions")
           .update(changes)
           .eq("id", id)
-          .eq("portal_id", toPortalUUID(portalId));
+          .eq("portal_id", currentPortalId);
         if (err) throw err;
       } else {
         localUpdate(id, changes, portalId);
@@ -217,12 +218,12 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
   const deleteTransaction = useCallback(async (id: string): Promise<boolean> => {
     if (!user) return false;
     try {
-      if (isSupabaseConfigured()) {
+      if (isSupabaseConfigured() && currentPortalId) {
         const { error: err } = await supabase
           .from("personal_transactions")
           .delete()
           .eq("id", id)
-          .eq("portal_id", toPortalUUID(portalId));
+          .eq("portal_id", currentPortalId);
         if (err) throw err;
       } else {
         localDelete(id, portalId);

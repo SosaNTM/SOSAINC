@@ -8,10 +8,10 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase as _supabase } from "@/lib/supabase";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase = _supabase as any;
-import { toPortalUUID } from "@/lib/portalUUID";
 import { subscribeToFinanceUpdates } from "@/lib/financeRealtime";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
+import { usePortalDB } from "@/lib/portalContextDB";
 import { localGetAll } from "@/lib/personalTransactionStore";
 import type { PersonalTransaction } from "@/types/finance";
 
@@ -65,7 +65,8 @@ function toDashboard(tx: PersonalTransaction): DashboardTransaction {
 export function useDashboardTransactions() {
   const { user } = useAuth();
   const { portal } = usePortal();
-  const portalId = portal?.id ?? "sosa";
+  const { currentPortalId } = usePortalDB();
+  const portalId = portal?.id ?? "sosa";  // slug — used for localStorage cache
 
   const [raw, setRaw] = useState<PersonalTransaction[]>(() => {
     try { return localGetAll(portalId); } catch { return []; }
@@ -75,11 +76,11 @@ export function useDashboardTransactions() {
   const refresh = useCallback(async () => {
     if (!user) { setRaw([]); return; }
 
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && currentPortalId) {
       const { data, error: err } = await supabase
         .from("personal_transactions")
         .select("*")
-        .eq("portal_id", toPortalUUID(portalId))
+        .eq("portal_id", currentPortalId)
         .order("date", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(2000);
@@ -101,7 +102,7 @@ export function useDashboardTransactions() {
     const local = localGetAll(portalId);
     local.sort((a, b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : 0));
     setRaw(local);
-  }, [user, portalId]);
+  }, [user, portalId, currentPortalId]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 

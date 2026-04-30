@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
+import { usePortal } from "@/lib/portalContext";
 import type { GiftCardTransaction } from "../types/giftCards";
 import {
   fetchCardTransactions, addCardTransaction, deleteCardTransaction,
 } from "../services/giftCardService";
 
 export function useGiftCardDetail(cardId: string | null) {
+  const { portal } = usePortal();
+  const portalId = portal?.id ?? "sosa";
   const [transactions, setTransactions] = useState<GiftCardTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -12,7 +15,7 @@ export function useGiftCardDetail(cardId: string | null) {
     if (!cardId) { setTransactions([]); return; }
     setIsLoading(true);
     try {
-      const data = await fetchCardTransactions(cardId);
+      const data = await fetchCardTransactions(cardId, portalId);
       setTransactions(data);
     } catch (err) {
       // TODO: Replace with structured error logging (Sentry, etc.)
@@ -20,7 +23,7 @@ export function useGiftCardDetail(cardId: string | null) {
     } finally {
       setIsLoading(false);
     }
-  }, [cardId]);
+  }, [cardId, portalId]);
 
   useEffect(() => { loadTransactions(); }, [loadTransactions]);
 
@@ -35,14 +38,14 @@ export function useGiftCardDetail(cardId: string | null) {
       amount,
       description,
       transaction_date: date,
-    });
+    }, portalId);
     await loadTransactions();
-  }, [cardId, loadTransactions]);
+  }, [cardId, loadTransactions, portalId]);
 
   const deleteTransaction = useCallback(async (id: string) => {
-    await deleteCardTransaction(id);
+    await deleteCardTransaction(id, portalId);
     await loadTransactions();
-  }, [loadTransactions]);
+  }, [loadTransactions, portalId]);
 
   return {
     transactions,

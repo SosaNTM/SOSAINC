@@ -9,24 +9,25 @@ import type {
 
 // ── Local Storage Fallback (portal-scoped) ───────────────────────────────────
 
-// Portal-scoped localStorage keys
-let CK = `${STORAGE_GIFT_CARDS_PREFIX}_sosa`;
-let TK = `${STORAGE_GIFT_CARD_TX_PREFIX}_sosa`;
-let currentPortalId = "sosa";
-
-export function setGiftCardPortal(portalId: string): void {
-  CK = `${STORAGE_GIFT_CARDS_PREFIX}_${portalId}`;
-  TK = `${STORAGE_GIFT_CARD_TX_PREFIX}_${portalId}`;
-  currentPortalId = portalId;
-  // Migrate from old global keys on first access per portal
-  if (!localStorage.getItem(CK)) {
+// Build portal-scoped localStorage keys per call. No module-level state
+// to prevent cross-portal contamination on stale closures.
+function getCardsKey(portalId: string): string {
+  const key = `${STORAGE_GIFT_CARDS_PREFIX}_${portalId}`;
+  // First-access migration from old global key (legacy)
+  if (!localStorage.getItem(key)) {
     const legacy = localStorage.getItem(STORAGE_GIFT_CARDS_LEGACY);
-    if (legacy) localStorage.setItem(CK, legacy);
+    if (legacy) localStorage.setItem(key, legacy);
   }
-  if (!localStorage.getItem(TK)) {
+  return key;
+}
+
+function getTxKey(portalId: string): string {
+  const key = `${STORAGE_GIFT_CARD_TX_PREFIX}_${portalId}`;
+  if (!localStorage.getItem(key)) {
     const legacy = localStorage.getItem(STORAGE_GIFT_CARD_TX_LEGACY);
-    if (legacy) localStorage.setItem(TK, legacy);
+    if (legacy) localStorage.setItem(key, legacy);
   }
+  return key;
 }
 
 function isSupabaseConfigured(): boolean {
@@ -113,22 +114,23 @@ export async function fetchBrands(): Promise<GiftCardBrand[]> {
 
 // ── Gift Cards ───────────────────────────────────────────────────────────────
 
-export async function fetchGiftCards(): Promise<GiftCard[]> {
+export async function fetchGiftCards(portalId: string): Promise<GiftCard[]> {
+  const cardsKey = getCardsKey(portalId);
   if (!isSupabaseConfigured()) {
-    return readLocal<GiftCard>(CK);
+    return readLocal<GiftCard>(cardsKey);
   }
 
   try {
     const { data, error } = await supabase
       .from("gift_cards")
       .select("*")
-      .eq("portal_id", toPortalUUID(currentPortalId))
+      .eq("portal_id", toPortalUUID(portalId))
       .order("is_favorite", { ascending: false })
       .order("created_at", { ascending: false });
     if (error) throw error;
     return data || [];
   } catch {
-    return readLocal<GiftCard>(CK);
+    return readLocal<GiftCard>(cardsKey);
   }
 }
 
@@ -143,7 +145,8 @@ export async function createGiftCard(card: {
   purchase_date?: string;
   expiry_date?: string;
   notes?: string;
-}): Promise<GiftCard> {
+}, portalId: string): Promise<GiftCard> {
+  const cardsKey = getCardsKey(portalId);
   if (!isSupabaseConfigured()) {
     const now = new Date().toISOString();
     const isPartial = card.remaining_value < card.initial_value;
@@ -165,16 +168,16 @@ export async function createGiftCard(card: {
       created_at: now,
       updated_at: now,
     };
-    const all = readLocal<GiftCard>(CK);
+    const all = readLocal<GiftCard>(cardsKey);
     all.push(newCard);
-    writeLocal(CK, all);
+    writeLocal(cardsKey, all);
     return newCard;
   }
 
   try {
     const { data, error } = await supabase
       .from("gift_cards")
-      .insert({ ...card, portal_id: toPortalUUID(currentPortalId) })
+      .insert({ ...card, portal_id: toPortalUUID(portalId) })
       .select()
       .single();
     if (error) throw error;
@@ -190,9 +193,9 @@ export async function createGiftCard(card: {
       status: isPartial ? "partially_used" : "active", notes: card.notes ?? null,
       is_favorite: false, created_at: now, updated_at: now,
     };
-    const all = readLocal<GiftCard>(CK);
+    const all = readLocal<GiftCard>(cardsKey);
     all.push(newCard);
-    writeLocal(CK, all);
+    writeLocal(cardsKey, all);
     return newCard;
   }
 }
@@ -200,9 +203,11 @@ export async function createGiftCard(card: {
 export async function updateGiftCard(
   id: string,
   updates: Partial<Pick<GiftCard, "remaining_value" | "card_code" | "pin" | "purchase_date" | "expiry_date" | "notes" | "status" | "is_favorite">>,
+  portalId: string,
 ): Promise<GiftCard> {
+  const cardsKey = getCardsKey(portalId);
   if (!isSupabaseConfigured()) {
-    const all = readLocal<GiftCard>(CK);
+    const all = readLocal<GiftCard>(cardsKey);
     const idx = all.findIndex((c) => c.id === id);
     if (idx === -1) throw new Error("Gift card not found");
     const card = { ...all[idx], ...updates, updated_at: new Date().toISOString() };
@@ -218,7 +223,7 @@ export async function updateGiftCard(
       }
     }
     all[idx] = card;
-    writeLocal(CK, all);
+    writeLocal(cardsKey, all);
     return card;
   }
 
@@ -227,13 +232,13 @@ export async function updateGiftCard(
       .from("gift_cards")
       .update(updates)
       .eq("id", id)
-      .eq("portal_id", toPortalUUID(currentPortalId))
+      .eq("portal_id", toPortalUUID(portalId))
       .select()
       .single();
     if (error) throw error;
     return data;
   } catch {
-    const all = readLocal<GiftCard>(CK);
+    const all = readLocal<GiftCard>(cardsKey);
     const idx = all.findIndex((c) => c.id === id);
     if (idx === -1) throw new Error("Gift card not found");
     const card = { ...all[idx], ...updates, updated_at: new Date().toISOString() };
@@ -243,35 +248,41 @@ export async function updateGiftCard(
       else { card.status = "active"; }
     }
     all[idx] = card;
-    writeLocal(CK, all);
+    writeLocal(cardsKey, all);
     return card;
   }
 }
 
-export async function deleteGiftCard(id: string): Promise<void> {
+export async function deleteGiftCard(id: string, portalId: string): Promise<void> {
+  const cardsKey = getCardsKey(portalId);
+  const txKey    = getTxKey(portalId);
   if (!isSupabaseConfigured()) {
-    writeLocal(CK, readLocal<GiftCard>(CK).filter((c) => c.id !== id));
-    // Also remove associated transactions
-    writeLocal(TK, readLocal<GiftCardTransaction>(TK).filter((t) => t.gift_card_id !== id));
+    writeLocal(cardsKey, readLocal<GiftCard>(cardsKey).filter((c) => c.id !== id));
+    writeLocal(txKey,    readLocal<GiftCardTransaction>(txKey).filter((t) => t.gift_card_id !== id));
     return;
   }
 
   try {
-    const { error } = await supabase.from("gift_cards").delete().eq("id", id).eq("portal_id", toPortalUUID(currentPortalId));
+    const { error } = await supabase
+      .from("gift_cards")
+      .delete()
+      .eq("id", id)
+      .eq("portal_id", toPortalUUID(portalId));
     if (error) throw error;
   } catch {
-    writeLocal(CK, readLocal<GiftCard>(CK).filter((c) => c.id !== id));
-    writeLocal(TK, readLocal<GiftCardTransaction>(TK).filter((t) => t.gift_card_id !== id));
+    writeLocal(cardsKey, readLocal<GiftCard>(cardsKey).filter((c) => c.id !== id));
+    writeLocal(txKey,    readLocal<GiftCardTransaction>(txKey).filter((t) => t.gift_card_id !== id));
   }
 }
 
-export async function toggleFavorite(id: string, isFavorite: boolean): Promise<void> {
+export async function toggleFavorite(id: string, isFavorite: boolean, portalId: string): Promise<void> {
+  const cardsKey = getCardsKey(portalId);
   if (!isSupabaseConfigured()) {
-    const all = readLocal<GiftCard>(CK);
+    const all = readLocal<GiftCard>(cardsKey);
     const idx = all.findIndex((c) => c.id === id);
     if (idx !== -1) {
       all[idx] = { ...all[idx], is_favorite: isFavorite, updated_at: new Date().toISOString() };
-      writeLocal(CK, all);
+      writeLocal(cardsKey, all);
     }
     return;
   }
@@ -281,23 +292,24 @@ export async function toggleFavorite(id: string, isFavorite: boolean): Promise<v
       .from("gift_cards")
       .update({ is_favorite: isFavorite })
       .eq("id", id)
-      .eq("portal_id", toPortalUUID(currentPortalId));
+      .eq("portal_id", toPortalUUID(portalId));
     if (error) throw error;
   } catch {
-    const all = readLocal<GiftCard>(CK);
+    const all = readLocal<GiftCard>(cardsKey);
     const idx = all.findIndex((c) => c.id === id);
     if (idx !== -1) {
       all[idx] = { ...all[idx], is_favorite: isFavorite, updated_at: new Date().toISOString() };
-      writeLocal(CK, all);
+      writeLocal(cardsKey, all);
     }
   }
 }
 
 // ── Gift Card Transactions ───────────────────────────────────────────────────
 
-export async function fetchCardTransactions(giftCardId: string): Promise<GiftCardTransaction[]> {
+export async function fetchCardTransactions(giftCardId: string, portalId: string): Promise<GiftCardTransaction[]> {
+  const txKey = getTxKey(portalId);
   if (!isSupabaseConfigured()) {
-    return readLocal<GiftCardTransaction>(TK)
+    return readLocal<GiftCardTransaction>(txKey)
       .filter((t) => t.gift_card_id === giftCardId)
       .sort((a, b) => b.transaction_date.localeCompare(a.transaction_date));
   }
@@ -307,12 +319,12 @@ export async function fetchCardTransactions(giftCardId: string): Promise<GiftCar
       .from("gift_card_transactions")
       .select("*")
       .eq("gift_card_id", giftCardId)
-      .eq("portal_id", toPortalUUID(currentPortalId))
+      .eq("portal_id", toPortalUUID(portalId))
       .order("transaction_date", { ascending: false });
     if (error) throw error;
     return data || [];
   } catch {
-    return readLocal<GiftCardTransaction>(TK)
+    return readLocal<GiftCardTransaction>(txKey)
       .filter((t) => t.gift_card_id === giftCardId)
       .sort((a, b) => b.transaction_date.localeCompare(a.transaction_date));
   }
@@ -323,7 +335,9 @@ export async function addCardTransaction(transaction: {
   amount: number;
   description?: string;
   transaction_date?: string;
-}): Promise<GiftCardTransaction> {
+}, portalId: string): Promise<GiftCardTransaction> {
+  const cardsKey = getCardsKey(portalId);
+  const txKey    = getTxKey(portalId);
   if (!isSupabaseConfigured()) {
     const newTx: GiftCardTransaction = {
       id: crypto.randomUUID(),
@@ -334,12 +348,12 @@ export async function addCardTransaction(transaction: {
       transaction_date: transaction.transaction_date ?? new Date().toISOString().slice(0, 10),
       created_at: new Date().toISOString(),
     };
-    const allTx = readLocal<GiftCardTransaction>(TK);
+    const allTx = readLocal<GiftCardTransaction>(txKey);
     allTx.push(newTx);
-    writeLocal(TK, allTx);
+    writeLocal(txKey, allTx);
 
     // Mirror DB trigger: update remaining_value
-    const allCards = readLocal<GiftCard>(CK);
+    const allCards = readLocal<GiftCard>(cardsKey);
     const idx = allCards.findIndex((c) => c.id === transaction.gift_card_id);
     if (idx !== -1) {
       const card = allCards[idx];
@@ -350,7 +364,7 @@ export async function addCardTransaction(transaction: {
         status: newRemaining <= 0 ? "fully_used" : newRemaining < card.initial_value ? "partially_used" : "active",
         updated_at: new Date().toISOString(),
       };
-      writeLocal(CK, allCards);
+      writeLocal(cardsKey, allCards);
     }
 
     return newTx;
@@ -359,7 +373,7 @@ export async function addCardTransaction(transaction: {
   try {
     const { data, error } = await supabase
       .from("gift_card_transactions")
-      .insert({ ...transaction, portal_id: toPortalUUID(currentPortalId) })
+      .insert({ ...transaction, portal_id: toPortalUUID(portalId) })
       .select()
       .single();
     if (error) throw error;
@@ -371,10 +385,10 @@ export async function addCardTransaction(transaction: {
       transaction_date: transaction.transaction_date ?? new Date().toISOString().slice(0, 10),
       created_at: new Date().toISOString(),
     };
-    const allTx = readLocal<GiftCardTransaction>(TK);
+    const allTx = readLocal<GiftCardTransaction>(txKey);
     allTx.push(newTx);
-    writeLocal(TK, allTx);
-    const allCards = readLocal<GiftCard>(CK);
+    writeLocal(txKey, allTx);
+    const allCards = readLocal<GiftCard>(cardsKey);
     const idx = allCards.findIndex((c) => c.id === transaction.gift_card_id);
     if (idx !== -1) {
       const card = allCards[idx];
@@ -382,19 +396,21 @@ export async function addCardTransaction(transaction: {
       allCards[idx] = { ...card, remaining_value: newRemaining,
         status: newRemaining <= 0 ? "fully_used" : newRemaining < card.initial_value ? "partially_used" : "active",
         updated_at: new Date().toISOString() };
-      writeLocal(CK, allCards);
+      writeLocal(cardsKey, allCards);
     }
     return newTx;
   }
 }
 
-export async function deleteCardTransaction(id: string): Promise<void> {
+export async function deleteCardTransaction(id: string, portalId: string): Promise<void> {
+  const cardsKey = getCardsKey(portalId);
+  const txKey    = getTxKey(portalId);
   if (!isSupabaseConfigured()) {
-    const allTx = readLocal<GiftCardTransaction>(TK);
+    const allTx = readLocal<GiftCardTransaction>(txKey);
     const tx = allTx.find((t) => t.id === id);
     if (tx) {
       // Mirror reverse trigger: restore remaining_value
-      const allCards = readLocal<GiftCard>(CK);
+      const allCards = readLocal<GiftCard>(cardsKey);
       const idx = allCards.findIndex((c) => c.id === tx.gift_card_id);
       if (idx !== -1) {
         const card = allCards[idx];
@@ -405,21 +421,25 @@ export async function deleteCardTransaction(id: string): Promise<void> {
           status: newRemaining >= card.initial_value ? "active" : "partially_used",
           updated_at: new Date().toISOString(),
         };
-        writeLocal(CK, allCards);
+        writeLocal(cardsKey, allCards);
       }
     }
-    writeLocal(TK, allTx.filter((t) => t.id !== id));
+    writeLocal(txKey, allTx.filter((t) => t.id !== id));
     return;
   }
 
   try {
-    const { error } = await supabase.from("gift_card_transactions").delete().eq("id", id).eq("portal_id", toPortalUUID(currentPortalId));
+    const { error } = await supabase
+      .from("gift_card_transactions")
+      .delete()
+      .eq("id", id)
+      .eq("portal_id", toPortalUUID(portalId));
     if (error) throw error;
   } catch {
-    const allTx = readLocal<GiftCardTransaction>(TK);
+    const allTx = readLocal<GiftCardTransaction>(txKey);
     const tx = allTx.find((t) => t.id === id);
     if (tx) {
-      const allCards = readLocal<GiftCard>(CK);
+      const allCards = readLocal<GiftCard>(cardsKey);
       const idx = allCards.findIndex((c) => c.id === tx.gift_card_id);
       if (idx !== -1) {
         const card = allCards[idx];
@@ -427,9 +447,9 @@ export async function deleteCardTransaction(id: string): Promise<void> {
         allCards[idx] = { ...card, remaining_value: newRemaining,
           status: newRemaining >= card.initial_value ? "active" : "partially_used",
           updated_at: new Date().toISOString() };
-        writeLocal(CK, allCards);
+        writeLocal(cardsKey, allCards);
       }
     }
-    writeLocal(TK, allTx.filter((t) => t.id !== id));
+    writeLocal(txKey, allTx.filter((t) => t.id !== id));
   }
 }

@@ -7,10 +7,10 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase as _supabase } from "@/lib/supabase";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase = _supabase as any;
-import { toPortalUUID } from "@/lib/portalUUID";
 import { subscribeToFinanceUpdates } from "@/lib/financeRealtime";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
+import { usePortalDB } from "@/lib/portalContextDB";
 import { getAllCategories } from "@/lib/financeCategoryStore";
 import { localGetAll } from "@/lib/personalTransactionStore";
 import type { FinanceSummary, MonthlyBreakdown, CategoryBreakdown } from "@/types/finance";
@@ -81,7 +81,8 @@ export function useFinanceSummary(dateRange: DateRange = currentMonthRange()): {
 } {
   const { user } = useAuth();
   const { portal } = usePortal();
-  const portalId = portal?.id ?? "sosa";
+  const { currentPortalId } = usePortalDB();
+  const portalId = portal?.id ?? "sosa";  // slug — used for localStorage cache
 
   const summarySwrKey = `swr_summary_${portalId}_${dateRange.from}_${dateRange.to}`;
 
@@ -98,11 +99,11 @@ export function useFinanceSummary(dateRange: DateRange = currentMonthRange()): {
     // Try Supabase first, fall back to portal-scoped localStorage
     let rows: { type: string; amount: number; category: string; date: string }[] = [];
 
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && currentPortalId) {
       const { data, error } = await supabase
         .from("personal_transactions")
         .select("type, amount, category, date")
-        .eq("portal_id", toPortalUUID(portalId)) // portal-shared
+        .eq("portal_id", currentPortalId)
         .gte("date", dateRange.from)
         .lte("date", dateRange.to)
         .order("date", { ascending: true });
@@ -166,7 +167,7 @@ export function useFinanceSummary(dateRange: DateRange = currentMonthRange()): {
     setSummary(result);
     try { localStorage.setItem(summarySwrKey, JSON.stringify(result)); } catch { /* quota exceeded */ }
     setIsLoading(false);
-  }, [user, portalId, dateRange.from, dateRange.to, tick, summarySwrKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user, portalId, currentPortalId, dateRange.from, dateRange.to, tick, summarySwrKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { compute(); }, [compute]);
 

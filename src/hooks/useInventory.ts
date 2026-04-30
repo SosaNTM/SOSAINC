@@ -9,9 +9,9 @@ import { toast } from "sonner";
 import { supabase as _supabase } from "@/lib/supabase";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase = _supabase as any;
-import { toPortalUUID } from "@/lib/portalUUID";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
+import { usePortalDB } from "@/lib/portalContextDB";
 import { STORAGE_INVENTORY_PREFIX } from "@/constants/storageKeys";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -152,7 +152,8 @@ function localDelete(id: string, portalId: string): void {
 export function useInventory(): UseInventoryResult {
   const { user } = useAuth();
   const { portal } = usePortal();
-  const portalId = portal?.id ?? "sosa";
+  const { currentPortalId } = usePortalDB();
+  const portalId = portal?.id ?? "sosa";  // slug — used for localStorage cache
 
   const [all, setAll] = useState<InventoryItem[]>(() => localGetAll(portalId));
   const [isLoading, setIsLoading] = useState(() => localGetAll(portalId).length === 0);
@@ -163,11 +164,11 @@ export function useInventory(): UseInventoryResult {
     if (!user) { setIsLoading(false); return; }
     setError(null);
 
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && currentPortalId) {
       const { data, error: err } = await supabase
         .from("inventory_items")
         .select("*")
-        .eq("portal_id", toPortalUUID(portalId))
+        .eq("portal_id", currentPortalId)
         .order("created_at", { ascending: false });
 
       if (!err && data) {
@@ -180,7 +181,7 @@ export function useInventory(): UseInventoryResult {
     // Fallback: portal-scoped localStorage
     setAll(localGetAll(portalId));
     setIsLoading(false);
-  }, [user, portalId, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user, portalId, currentPortalId, tick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // On portal change: load that portal's cache immediately
   useEffect(() => { const c = localGetAll(portalId); setAll(c); setIsLoading(c.length === 0); }, [portalId]);
@@ -204,10 +205,10 @@ export function useInventory(): UseInventoryResult {
     async (data: NewInventoryItem): Promise<boolean> => {
       if (!user) return false;
       try {
-        if (isSupabaseConfigured()) {
+        if (isSupabaseConfigured() && currentPortalId) {
           const { error: err } = await supabase
             .from("inventory_items")
-            .insert({ ...data, portal_id: toPortalUUID(portalId) });
+            .insert({ ...data, portal_id: currentPortalId });
           if (err) throw err;
         } else {
           localAdd(data, portalId);
@@ -227,19 +228,19 @@ export function useInventory(): UseInventoryResult {
         }
       }
     },
-    [user, portalId]
+    [user, portalId, currentPortalId]
   );
 
   const updateItem = useCallback(
     async (id: string, changes: Partial<NewInventoryItem>): Promise<boolean> => {
       if (!user) return false;
       try {
-        if (isSupabaseConfigured()) {
+        if (isSupabaseConfigured() && currentPortalId) {
           const { error: err } = await supabase
             .from("inventory_items")
             .update(changes)
             .eq("id", id)
-            .eq("portal_id", toPortalUUID(portalId));
+            .eq("portal_id", currentPortalId);
           if (err) throw err;
         } else {
           localUpdate(id, changes, portalId);
@@ -254,19 +255,19 @@ export function useInventory(): UseInventoryResult {
         return true;
       }
     },
-    [user, portalId]
+    [user, portalId, currentPortalId]
   );
 
   const deleteItem = useCallback(
     async (id: string): Promise<boolean> => {
       if (!user) return false;
       try {
-        if (isSupabaseConfigured()) {
+        if (isSupabaseConfigured() && currentPortalId) {
           const { error: err } = await supabase
             .from("inventory_items")
             .delete()
             .eq("id", id)
-            .eq("portal_id", toPortalUUID(portalId));
+            .eq("portal_id", currentPortalId);
           if (err) throw err;
         } else {
           localDelete(id, portalId);
@@ -281,7 +282,7 @@ export function useInventory(): UseInventoryResult {
         return true;
       }
     },
-    [user, portalId]
+    [user, portalId, currentPortalId]
   );
 
   const refetch = useCallback(() => setTick((t) => t + 1), []);
