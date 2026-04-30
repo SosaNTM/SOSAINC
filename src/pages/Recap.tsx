@@ -574,26 +574,33 @@ export default function Recap() {
     return Math.round((to.getTime() - from.getTime()) / 86_400_000) + 1;
   }, [range]);
 
+  // True only when allTransactions actually returned daily data
+  const hasDailyData = useMemo(() => dailyData.some(d => d.income > 0 || d.expenses > 0), [dailyData]);
+
   const trendData = useMemo(() => {
-    if (rangeDays <= 31) {
+    // Daily mode — only if allTransactions is populated
+    if (rangeDays <= 31 && hasDailyData) {
       return dailyData
         .filter(d => d.income > 0 || d.expenses > 0)
         .map(d => ({
           name:         new Date(d.date + "T00:00:00").toLocaleDateString("it-IT", { day: "2-digit", month: "short" }),
+          dateKey:      d.date,
           income:       Math.round(d.income),
           expenses:     Math.round(d.expenses),
           fmt_income:   formatCurrency(d.income),
           fmt_expenses: formatCurrency(d.expenses),
         }));
     }
+    // Monthly fallback — always available via useFinanceSummary regardless of allTransactions state
     return summary.monthlyBreakdown.map(m => ({
       name:         m.label,
+      dateKey:      m.month,
       income:       Math.round(m.income),
       expenses:     Math.round(m.expenses),
       fmt_income:   formatCurrency(m.income),
       fmt_expenses: formatCurrency(m.expenses),
     }));
-  }, [rangeDays, dailyData, summary.monthlyBreakdown, formatCurrency]);
+  }, [rangeDays, hasDailyData, dailyData, summary.monthlyBreakdown, formatCurrency]);
 
   // ── Top 5 lists ─────────────────────────────────────────────────────────────
   const top5Expense: TopItem[] = useMemo(() =>
@@ -834,6 +841,13 @@ export default function Recap() {
               setActiveCatFilter(name);
               setActiveIncomeFilter(null);
               setTablePage(0);
+              if (name) {
+                const top6 = summary.categoryBreakdown.slice(0, 6).map(c => c.category);
+                const txs = name === "Altro"
+                  ? allTransactions.filter(t => t.type === "expense" && !top6.includes(t.category))
+                  : allTransactions.filter(t => t.type === "expense" && t.category === name);
+                openDrill(`Spese — ${name}`, txs, txs.reduce((s, t) => s + t.amount, 0));
+              }
             }}
           />
         </motion.div>
@@ -849,6 +863,13 @@ export default function Recap() {
               setActiveIncomeFilter(name);
               setActiveCatFilter(null);
               setTablePage(0);
+              if (name) {
+                const top6 = incomeBreakdown.slice(0, 6).map(c => c.category);
+                const txs = name === "Altro"
+                  ? allTransactions.filter(t => t.type === "income" && !top6.includes(t.category))
+                  : allTransactions.filter(t => t.type === "income" && t.category === name);
+                openDrill(`Entrate — ${name}`, txs, txs.reduce((s, t) => s + t.amount, 0));
+              }
             }}
           />
         </motion.div>
@@ -858,7 +879,7 @@ export default function Recap() {
       <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.11 }} style={{ marginBottom: 14 }}>
         <LiquidGlassCard accentColor={accentColor} hover={false}>
           <p style={{ fontSize: 10, fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)", margin: "0 0 12px" }}>
-            Trend — Entrate vs Uscite {rangeDays <= 31 ? "(giornaliero)" : "(mensile)"}
+            Trend — Entrate vs Uscite {rangeDays <= 31 && hasDailyData ? "(giornaliero)" : "(mensile)"}
           </p>
           {loading ? <Skel h={220} r={10} /> : trendData.length === 0 ? (
             <div style={{ height: 220, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -867,7 +888,15 @@ export default function Recap() {
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={trendData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
-                onClick={d => { if (d?.activeLabel) { setActivePeriodFilter(null); setTablePage(0); } }}
+                onClick={d => {
+                  const pt = d?.activePayload?.[0]?.payload;
+                  if (!pt?.dateKey) return;
+                  const txs = allTransactions.filter(t => t.date === pt.dateKey || t.date.startsWith(pt.dateKey));
+                  if (txs.length === 0) return;
+                  const total = txs.reduce((s, t) => s + t.amount, 0);
+                  openDrill(`Periodo — ${pt.name}`, txs, total);
+                  setTablePage(0);
+                }}
               >
                 <defs>
                   <linearGradient id="grad-income" x1="0" y1="0" x2="0" y2="1">
@@ -907,7 +936,16 @@ export default function Recap() {
           ) : (
             <ResponsiveContainer width="100%" height={180}>
               <AreaChart data={cashflowData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
-                onClick={d => { if (d?.activePayload?.[0]?.payload?.date) { setActiveDateFilter(d.activePayload[0].payload.date); setTablePage(0); } }}
+                onClick={d => {
+                  const date = d?.activePayload?.[0]?.payload?.date;
+                  if (!date) return;
+                  const txs = allTransactions.filter(t => t.date === date);
+                  if (txs.length === 0) return;
+                  const label = new Date(date + "T00:00:00").toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" });
+                  openDrill(`Transazioni — ${label}`, txs, txs.reduce((s, t) => s + t.amount, 0));
+                  setActiveDateFilter(date);
+                  setTablePage(0);
+                }}
               >
                 <defs>
                   {/* Bicolor gradient: green above 0 midpoint, red below */}
@@ -994,7 +1032,14 @@ export default function Recap() {
               data={heatmapData}
               range={range}
               formatAmount={formatCurrency}
-              onDayClick={date => { setActiveDateFilter(date); setTablePage(0); }}
+              onDayClick={date => {
+                setActiveDateFilter(date);
+                setTablePage(0);
+                const txs = allTransactions.filter(t => t.date === date && t.type === "expense");
+                if (txs.length === 0) return;
+                const label = new Date(date + "T00:00:00").toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" });
+                openDrill(`Spese — ${label}`, txs, txs.reduce((s, t) => s + t.amount, 0));
+              }}
             />
           )}
         </LiquidGlassCard>
@@ -1189,6 +1234,7 @@ export default function Recap() {
         transactions={drillData?.transactions ?? []}
         isLoading={false}
         formatAmount={formatCurrency}
+        range={range}
       />
 
       {/* ── Edit modal ───────────────────────────────────────────────────────── */}

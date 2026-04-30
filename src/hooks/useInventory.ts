@@ -6,7 +6,10 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
-import { dynamicSupabase as supabase } from "@/lib/portalDb";
+import { supabase as _supabase } from "@/lib/supabase";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase = _supabase as any;
+import { toPortalUUID } from "@/lib/portalUUID";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
 import { STORAGE_INVENTORY_PREFIX } from "@/constants/storageKeys";
@@ -164,7 +167,7 @@ export function useInventory(): UseInventoryResult {
       const { data, error: err } = await supabase
         .from("inventory_items")
         .select("*")
-        .eq("portal_id", portalId)
+        .eq("portal_id", toPortalUUID(portalId))
         .order("created_at", { ascending: false });
 
       if (!err && data) {
@@ -204,7 +207,7 @@ export function useInventory(): UseInventoryResult {
         if (isSupabaseConfigured()) {
           const { error: err } = await supabase
             .from("inventory_items")
-            .insert({ ...data, portal_id: portalId });
+            .insert({ ...data, portal_id: toPortalUUID(portalId) });
           if (err) throw err;
         } else {
           localAdd(data, portalId);
@@ -236,7 +239,7 @@ export function useInventory(): UseInventoryResult {
             .from("inventory_items")
             .update(changes)
             .eq("id", id)
-            .eq("portal_id", portalId);
+            .eq("portal_id", toPortalUUID(portalId));
           if (err) throw err;
         } else {
           localUpdate(id, changes, portalId);
@@ -263,7 +266,7 @@ export function useInventory(): UseInventoryResult {
             .from("inventory_items")
             .delete()
             .eq("id", id)
-            .eq("portal_id", portalId);
+            .eq("portal_id", toPortalUUID(portalId));
           if (err) throw err;
         } else {
           localDelete(id, portalId);

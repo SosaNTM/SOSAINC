@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, Info } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/hooks/use-toast";
+import { usePortalDB } from "@/lib/portalContextDB";
 import type { SocialPlatformDB, SocialConnection } from "@/types/database";
 
 // Platform brand colors for glows
@@ -21,6 +22,7 @@ interface ConnectAccountModalProps {
 }
 
 export function ConnectAccountModal({ platform, onClose, onConnected }: ConnectAccountModalProps) {
+  const { currentPortalId } = usePortalDB();
   const [handle, setHandle] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -40,10 +42,17 @@ export function ConnectAccountModal({ platform, onClose, onConnected }: ConnectA
       return;
     }
 
+    if (!currentPortalId) {
+      toast({ title: "No portal selected", description: "Cannot connect account without an active portal." });
+      setSaving(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("social_connections")
       .insert({
         user_id: user.id,
+        portal_id: currentPortalId,
         platform,
         account_handle: handle.trim().startsWith("@") ? handle.trim() : `@${handle.trim()}`,
         account_name: displayName.trim(),

@@ -153,12 +153,12 @@ const TasksPage = () => {
       const toRemove = new Set<string>();
       const collect = (iid: string) => { toRemove.add(iid); updated.filter(i => i.parentId === iid).forEach(i => collect(i.id)); };
       collect(id);
-      if (syncReady) toRemove.forEach(rid => deleteTask(rid));
+      if (syncReady) toRemove.forEach(rid => deleteTask(rid, portalId));
       if (issue) addAuditEntry({ userId: user?.id ?? "unknown", action: `Deleted issue "${issue.title}"`, category: "tasks", details: `Issue ${issue.id} and ${toRemove.size - 1} sub-issue(s) removed`, icon: "🗑️" });
       return updated.filter(i => !toRemove.has(i.id));
     });
     setSelectedIssueId(null);
-  }, [syncReady, user]);
+  }, [syncReady, user, portalId]);
 
   const createIssue = useCallback((data: Omit<Issue, "id" | "createdAt" | "updatedAt" | "comments" | "subIssueIds">) => {
     const prefix = data.projectId ? projects.find(p => p.id === data.projectId)?.name.substring(0, 3).toUpperCase() || "ISS" : "ISS";

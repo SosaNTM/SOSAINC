@@ -129,20 +129,14 @@ export async function updateHolding(
 
   if (!isSupabaseConfigured()) throw new Error("Holding not found");
 
-  // Holding is in Supabase — update without relying on .single() return
+  // Holding is in Supabase — update with portal_id filter to enforce isolation.
+  // No fallback without portal_id: if RLS rejects the update, surface the error.
   const { error } = await supabase
     .from("crypto_holdings")
     .update({ ...updates, updated_at: now })
     .eq("id", id)
     .eq("portal_id", toPortalUUID(portalId));
-  if (error) {
-    // Try without portal_id filter (covers RLS edge cases)
-    const { error: err2 } = await supabase
-      .from("crypto_holdings")
-      .update({ ...updates, updated_at: now })
-      .eq("id", id);
-    if (err2) throw err2;
-  }
+  if (error) throw error;
 
   // Return an optimistic object — caller re-fetches via refetch() immediately after
   return { id, user_id: "", coin_id: "", symbol: "", name: "", quantity: updates.quantity ?? 0, avg_buy_price_eur: updates.avg_buy_price_eur ?? null, notes: updates.notes ?? null, created_at: now, updated_at: now };

@@ -1,6 +1,7 @@
 import { supabase as _supabase } from "@/lib/supabase";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase = _supabase as any;
+import { toPortalUUID } from "@/lib/portalUUID";
 import { localAdd, localGetAll } from "@/lib/personalTransactionStore";
 import { broadcastFinanceUpdate } from "@/lib/financeRealtime";
 import {
@@ -102,7 +103,7 @@ export async function processSubscription(
       await supabase.from("subscription_transactions").insert({
         subscription_id: current.id,
         user_id: userId,
-        portal_id: portalId,
+        portal_id: toPortalUUID(portalId),
         amount: current.amount,
         billing_date: billingDateStr,
         status: "completed",
@@ -136,7 +137,8 @@ export async function processSubscription(
           next_billing_date: current.next_billing_date,
           updated_at: current.updated_at,
         })
-        .eq("id", current.id);
+        .eq("id", current.id)
+        .eq("portal_id", toPortalUUID(portalId));
     } catch (e) {
       console.warn("[subscriptionProcessor] Failed to update subscription next_billing_date in Supabase:", e);
     }

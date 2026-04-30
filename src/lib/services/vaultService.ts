@@ -109,7 +109,8 @@ export async function recordVaultAccess(id: string, portalId: string): Promise<v
     const { error } = await supabase
       .from("vault_items")
       .update({ last_accessed_at: new Date().toISOString() })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("portal_id", toPortalUUID(portalId));
     if (!error) await logVaultAccess(id, "accessed", portalId);
   } catch {
     // non-critical — never throw

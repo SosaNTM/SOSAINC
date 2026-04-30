@@ -116,29 +116,25 @@ function projectToRow(project: Project, userId: string, portalId?: string) {
 
 // ── Load ─────────────────────────────────────────────────────────────────────
 
-export async function loadTasksFromSupabase(portalId?: string): Promise<Issue[]> {
-  let query = supabase
+export async function loadTasksFromSupabase(portalId: string): Promise<Issue[]> {
+  const { data, error } = await supabase
     .from("tasks")
     .select("*")
+    .eq("portal_id", toPortalUUID(portalId))
     .order("created_at", { ascending: false });
 
-  if (portalId) query = query.eq("portal_id", toPortalUUID(portalId));
-
-  const { data, error } = await query;
   if (error || !data) return [];
   const rows = data as TaskRow[];
   return rows.map(r => taskRowToIssue(r, rows));
 }
 
-export async function loadProjectsFromSupabase(portalId?: string): Promise<Project[]> {
-  let query = supabase
+export async function loadProjectsFromSupabase(portalId: string): Promise<Project[]> {
+  const { data, error } = await supabase
     .from("projects")
     .select("*")
+    .eq("portal_id", toPortalUUID(portalId))
     .order("created_at", { ascending: true });
 
-  if (portalId) query = query.eq("portal_id", toPortalUUID(portalId));
-
-  const { data, error } = await query;
   if (error || !data) return [];
   return (data as ProjectRow[]).map(projectRowToProject);
 }
@@ -155,9 +151,13 @@ export async function upsertTask(issue: Issue, userId: string, portalId?: string
   }
 }
 
-export async function deleteTask(id: string): Promise<void> {
+export async function deleteTask(id: string, portalId: string): Promise<void> {
   try {
-    const { error } = await supabase.from("tasks").delete().eq("id", id);
+    const { error } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("id", id)
+      .eq("portal_id", toPortalUUID(portalId));
     // TODO: Replace with structured error logging (Sentry, etc.)
     if (error) console.warn("Failed to delete task from Supabase:", error.message);
   } catch {

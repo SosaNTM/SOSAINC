@@ -10,6 +10,7 @@
  */
 
 import { supabase } from "@/lib/supabase";
+import { toPortalUUID } from "@/lib/portalUUID";
 
 const BUCKET = "vault-files";
 const LS_KEY = (portalId: string) => `SOSA INC_vault_files_${portalId}`;
@@ -56,7 +57,7 @@ export async function fetchVaultFiles(portalId: string): Promise<VaultFile[]> {
     const { data, error } = await supabase
       .from("vault_files")
       .select("*")
-      .eq("portal_id", portalId)
+      .eq("portal_id", toPortalUUID(portalId))
       .order("created_at", { ascending: false });
     if (error) throw error;
     const rows = (data ?? []) as VaultFile[];
@@ -91,7 +92,7 @@ export async function uploadVaultFile(
     const { data, error: dbErr } = await supabase
       .from("vault_files")
       .insert({
-        portal_id: portalId,
+        portal_id: toPortalUUID(portalId),
         uploaded_by: userId,
         file_name: file.name,
         file_path: storagePath,
@@ -154,7 +155,11 @@ export async function deleteVaultFile(vaultFile: VaultFile): Promise<void> {
   if (!vaultFile.file_path.startsWith("local:")) {
     await supabase.storage.from(BUCKET).remove([vaultFile.file_path]);
   }
-  await supabase.from("vault_files").delete().eq("id", vaultFile.id);
+  await supabase
+    .from("vault_files")
+    .delete()
+    .eq("id", vaultFile.id)
+    .eq("portal_id", toPortalUUID(vaultFile.portal_id));
 }
 
 // ── Inventory attachments (reuses same storage bucket logic) ──────────────────
@@ -192,7 +197,7 @@ export async function fetchItemAttachments(
       .from("inventory_attachments")
       .select("*")
       .eq("item_id", itemId)
-      .eq("portal_id", portalId)
+      .eq("portal_id", toPortalUUID(portalId))
       .order("created_at", { ascending: false });
     if (error) throw error;
     return (data ?? []) as InventoryAttachment[];
@@ -222,7 +227,7 @@ export async function uploadInventoryAttachment(
       .from("inventory_attachments")
       .insert({
         item_id: itemId,
-        portal_id: portalId,
+        portal_id: toPortalUUID(portalId),
         uploaded_by: userId,
         file_name: file.name,
         file_path: storagePath,
@@ -279,7 +284,11 @@ export async function deleteInventoryAttachment(att: InventoryAttachment): Promi
   if (!att.file_path.startsWith("local:")) {
     await supabase.storage.from(INV_BUCKET).remove([att.file_path]);
   }
-  await supabase.from("inventory_attachments").delete().eq("id", att.id);
+  await supabase
+    .from("inventory_attachments")
+    .delete()
+    .eq("id", att.id)
+    .eq("portal_id", toPortalUUID(att.portal_id));
 }
 
 // ── Shared: file type helpers ─────────────────────────────────────────────────

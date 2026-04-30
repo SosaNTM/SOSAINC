@@ -6,7 +6,9 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
-import { dynamicSupabase as supabase } from "@/lib/portalDb";
+import { supabase as _supabase } from "@/lib/supabase";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase = _supabase as any;
 import { toPortalUUID } from "@/lib/portalUUID";
 import { broadcastFinanceUpdate, subscribeToFinanceUpdates } from "@/lib/financeRealtime";
 import { useAuth } from "@/lib/authContext";

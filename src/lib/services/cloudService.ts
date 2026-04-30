@@ -121,7 +121,7 @@ export async function createFileRecord(
   }
 }
 
-export async function softDeleteFile(id: string, userId: string): Promise<boolean> {
+export async function softDeleteFile(id: string, userId: string, portalId: string): Promise<boolean> {
   try {
     const { error } = await supabase
       .from("cloud_files")
@@ -131,19 +131,21 @@ export async function softDeleteFile(id: string, userId: string): Promise<boolea
         deleted_by: userId,
         permanent_delete_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("portal_id", toPortalUUID(portalId));
     return !error;
   } catch {
     return false;
   }
 }
 
-export async function restoreFile(id: string): Promise<boolean> {
+export async function restoreFile(id: string, portalId: string): Promise<boolean> {
   try {
     const { error } = await supabase
       .from("cloud_files")
       .update({ is_deleted: false, deleted_at: null, deleted_by: null, permanent_delete_at: null })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("portal_id", toPortalUUID(portalId));
     return !error;
   } catch {
     return false;

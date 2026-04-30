@@ -94,11 +94,13 @@ export async function upsertTask(
   }
 }
 
-export async function deleteTask(id: string, portalId?: string): Promise<boolean> {
+export async function deleteTask(id: string, portalId: string): Promise<boolean> {
   try {
-    let q = supabase.from("tasks").delete().eq("id", id);
-    if (portalId) q = q.eq("portal_id", toPortalUUID(portalId));
-    const { error } = await q;
+    const { error } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("id", id)
+      .eq("portal_id", toPortalUUID(portalId));
     return !error;
   } catch {
     return false;

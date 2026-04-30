@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { CheckCircle2, Plus, Trash2, RefreshCw, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/hooks/use-toast";
+import { usePortalDB } from "@/lib/portalContextDB";
 import type { SocialConnection, SocialPlatformDB } from "@/types/database";
 import { ConnectAccountModal } from "./ConnectAccountModal";
 
@@ -74,6 +75,7 @@ interface SocialConnectionsProps {
 }
 
 export function SocialConnections({ onConnectionsChange }: SocialConnectionsProps) {
+  const { currentPortalId } = usePortalDB();
   const [connections, setConnections] = useState<SocialConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [connectPlatform, setConnectPlatform] = useState<SocialPlatformDB | null>(null);
@@ -89,11 +91,13 @@ export function SocialConnections({ onConnectionsChange }: SocialConnectionsProp
     const { data: { user } } = await supabase.auth.getUser();
     setIsAuthed(!!user);
     if (!user) { setLoading(false); return; }
+    if (!currentPortalId) { setLoading(false); return; }
 
     const { data, error } = await supabase
       .from("social_connections")
       .select("*")
       .eq("user_id", user.id)
+      .eq("portal_id", currentPortalId)
       .order("connected_at", { ascending: false });
 
     if (error) {
@@ -103,16 +107,21 @@ export function SocialConnections({ onConnectionsChange }: SocialConnectionsProp
     }
     setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [currentPortalId]);
 
   useEffect(() => { fetchConnections(); }, [fetchConnections]);
 
   async function handleDisconnect(conn: SocialConnection) {
+    if (!currentPortalId) return;
     // Optimistic UI — remove immediately
     updateConnections(connections.filter((c) => c.id !== conn.id));
     setPendingDisconnect(null);
 
-    const { error } = await supabase.from("social_connections").delete().eq("id", conn.id);
+    const { error } = await supabase
+      .from("social_connections")
+      .delete()
+      .eq("id", conn.id)
+      .eq("portal_id", currentPortalId);
     if (error) {
       // Roll back
       updateConnections([conn, ...connections]);
