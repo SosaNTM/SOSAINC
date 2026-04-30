@@ -188,7 +188,7 @@ export default function AlertRulesPage() {
   ];
 
   return (
-    <div style={{ maxWidth: 860 }}>
+    <div style={{ maxWidth: "100%" }}>
       <SettingsPageHeader
         icon={AlertTriangle}
         title="Regole di Avviso"

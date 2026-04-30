@@ -29,6 +29,7 @@ export function SettingsModal({
           style={{
             position: "fixed", inset: 0, zIndex: 100,
             display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 16,
           }}
         >
           {/* Overlay */}
@@ -38,10 +39,7 @@ export function SettingsModal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             onClick={onClose}
-            style={{
-              position: "absolute", inset: 0,
-              background: "rgba(0,0,0,0.7)",
-            }}
+            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.75)" }}
           />
 
           {/* Content */}
@@ -52,19 +50,21 @@ export function SettingsModal({
             transition={{ duration: 0.2 }}
             style={{
               position: "relative", zIndex: 1,
-              background: "var(--sosa-bg-3)",
-              border: "1px solid var(--sosa-border)",
-              borderRadius: 0,
+              background: "var(--glass-bg-elevated)",
+              border: "1px solid var(--glass-border)",
+              borderRadius: 16,
               width: "90%",
               maxWidth: SIZE_MAP[size],
-              maxHeight: "85vh",
+              maxHeight: "88vh",
               display: "flex", flexDirection: "column",
+              boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
             }}
           >
             {/* Header */}
             <div style={{
-              padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-              borderBottom: "1px solid var(--divider)",
+              padding: "20px 24px",
+              display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+              borderBottom: "1px solid var(--glass-border)",
             }}>
               <div>
                 <h2 style={{
@@ -81,33 +81,46 @@ export function SettingsModal({
               <button
                 onClick={onClose}
                 style={{
-                  background: "none", border: "none", cursor: "pointer", padding: 4,
-                  color: "var(--text-tertiary)", borderRadius: "var(--radius-sm)",
+                  width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                  background: "var(--glass-bg)",
+                  border: "1px solid var(--glass-border)",
+                  cursor: "pointer", padding: 0,
+                  color: "var(--text-tertiary)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
                 }}
               >
-                <X style={{ width: 18, height: 18 }} />
+                <X style={{ width: 15, height: 15 }} />
               </button>
             </div>
 
             {/* Body */}
-            <div style={{ padding: "20px 24px", overflowY: "auto", flex: 1 }}>
+            <div
+              className="settings-modal-body"
+              style={{ padding: "20px 24px", overflowY: "auto", flex: 1 }}
+            >
               {children}
             </div>
 
             {/* Footer */}
             <div style={{
               padding: "16px 24px",
-              borderTop: "1px solid var(--divider)",
-              display: "flex", justifyContent: "flex-end", gap: 12,
+              borderTop: "1px solid var(--glass-border)",
+              display: "flex", justifyContent: "flex-end", gap: 10,
             }}>
               <button
                 onClick={onClose}
                 style={{
-                  background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)",
-                  borderRadius: "var(--radius-md)", padding: "8px 16px",
-                  fontSize: 13, fontWeight: 500, color: "var(--text-secondary)",
+                  height: 38, padding: "0 18px",
+                  background: "var(--glass-bg)",
+                  border: "1px solid var(--glass-border)",
+                  borderRadius: 10,
+                  fontSize: 13, fontWeight: 500,
+                  color: "var(--text-secondary)",
                   cursor: "pointer", fontFamily: "var(--font-body)",
+                  transition: "background 0.15s",
                 }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--glass-bg-hover)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "var(--glass-bg)")}
               >
                 Annulla
               </button>
@@ -116,8 +129,9 @@ export function SettingsModal({
                 disabled={isLoading}
                 className="btn-primary"
                 style={{
+                  height: 38, padding: "0 20px",
                   display: "flex", alignItems: "center", gap: 6,
-                  fontSize: 13, padding: "8px 20px",
+                  fontSize: 13, borderRadius: 10,
                   opacity: isLoading ? 0.6 : 1,
                 }}
               >
@@ -126,6 +140,15 @@ export function SettingsModal({
               </button>
             </div>
           </motion.div>
+
+          <style>{`
+            .settings-modal-body .glass-input {
+              border-radius: 10px !important;
+            }
+            .settings-modal-body select.glass-input {
+              border-radius: 10px !important;
+            }
+          `}</style>
         </div>
       )}
     </AnimatePresence>

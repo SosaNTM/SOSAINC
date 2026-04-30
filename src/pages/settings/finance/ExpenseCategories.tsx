@@ -1,8 +1,5 @@
 import { useState } from "react";
-import {
-  TrendingDown, ShoppingBag, Briefcase, Percent, RotateCcw, TrendingUp,
-  MoreHorizontal, DollarSign, Gift, Star, Zap, Package, Award, Plus,
-} from "lucide-react";
+import { TrendingDown, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useExpenseCategories } from "../../../hooks/settings";
 import type { ExpenseCategory } from "../../../types/settings";
@@ -13,15 +10,11 @@ import {
 } from "@/components/settings";
 
 const ICON_OPTIONS = [
-  "ShoppingBag", "Briefcase", "Percent", "RotateCcw", "TrendingUp", "MoreHorizontal",
-  "DollarSign", "Gift", "Star", "Zap", "Package", "Award",
-] as const;
-type IconName = typeof ICON_OPTIONS[number];
-
-const ICON_MAP: Record<IconName, React.ElementType> = {
-  ShoppingBag, Briefcase, Percent, RotateCcw, TrendingUp, MoreHorizontal,
-  DollarSign, Gift, Star, Zap, Package, Award,
-};
+  "🛍️","🍔","🚗","🏠","💊","✈️","🎓","💡","🔑","🎯",
+  "🎬","🎵","🏋️","☁️","🤖","💼","🚀","📱","📺","🎮",
+  "⚡","🔥","💎","🌟","🎁","🏆","📊","🔔","🛡️","🌐",
+  "📋","💰","📈","🧠","🎧","📦","🎨","🔒","🏅","💳",
+];
 
 interface FormState {
   name: string;
@@ -33,7 +26,7 @@ interface FormState {
 }
 
 const emptyForm = (): FormState => ({
-  name: "", icon: "Package", color: "#f59e0b", description: "",
+  name: "", icon: "🛍️", color: "#f59e0b", description: "",
   monthlyBudget: 0, alertThreshold: 80,
 });
 
@@ -66,7 +59,7 @@ export default function ExpenseCategoriesPage() {
     setEditingId(cat.id);
     setForm({
       name: cat.name,
-      icon: cat.icon,
+      icon: cat.icon || "🛍️",
       color: cat.color,
       description: cat.description ?? "",
       monthlyBudget: cat.monthly_budget ?? 0,
@@ -82,25 +75,19 @@ export default function ExpenseCategoriesPage() {
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setSaving(true);
     const payload = {
-      name: form.name,
-      icon: form.icon,
-      color: form.color,
+      name: form.name, icon: form.icon, color: form.color,
       description: form.description,
       monthly_budget: form.monthlyBudget,
       alert_threshold: form.alertThreshold,
     };
     if (editingId) {
       const { error } = await update(editingId, payload);
-      if (error) { toast.error(error); }
-      else { toast.success("Categoria aggiornata"); }
+      if (error) toast.error(error);
+      else toast.success("Categoria aggiornata");
     } else {
-      const { error } = await create({
-        ...payload,
-        is_active: true,
-        sort_order: categories.length,
-      });
-      if (error) { toast.error(error); }
-      else { toast.success("Categoria creata"); }
+      const { error } = await create({ ...payload, is_active: true, sort_order: categories.length });
+      if (error) toast.error(error);
+      else toast.success("Categoria creata");
     }
     setSaving(false);
     setModalOpen(false);
@@ -110,8 +97,8 @@ export default function ExpenseCategoriesPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     const { error } = await remove(deleteTarget.id);
-    if (error) { toast.error(error); }
-    else { toast.success("Categoria eliminata"); }
+    if (error) toast.error(error);
+    else toast.success("Categoria eliminata");
     setDeleting(false);
     setDeleteTarget(null);
   }
@@ -122,26 +109,17 @@ export default function ExpenseCategoriesPage() {
       label: "Colore",
       width: "60px",
       render: (item: ExpenseCategory) => (
-        <div style={{
-          width: 12, height: 12, borderRadius: "50%",
-          background: item.color,
-        }} />
+        <div style={{ width: 12, height: 12, borderRadius: "50%", background: item.color }} />
       ),
-    },
-    {
-      key: "icon",
-      label: "Icona",
-      width: "60px",
-      render: (item: ExpenseCategory) => {
-        const Icon = (ICON_MAP[item.icon as IconName] ?? MoreHorizontal) as React.ElementType;
-        return <Icon style={{ width: 16, height: 16, color: item.color }} />;
-      },
     },
     {
       key: "name",
       label: "Nome",
       render: (item: ExpenseCategory) => (
-        <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{item.name}</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 16 }}>{item.icon || "🛍️"}</span>
+          <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{item.name}</span>
+        </span>
       ),
     },
     {
@@ -167,7 +145,7 @@ export default function ExpenseCategoriesPage() {
   ];
 
   return (
-    <div style={{ maxWidth: 860 }}>
+    <div style={{ maxWidth: "100%" }}>
       <SettingsPageHeader
         icon={TrendingDown}
         title="Categorie Uscite"
@@ -205,15 +183,39 @@ export default function ExpenseCategoriesPage() {
         </SettingsFormField>
 
         <SettingsFormField label="Icona">
-          <select
-            className="glass-input"
-            value={form.icon}
-            onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))}
-          >
-            {ICON_OPTIONS.map((ic) => (
-              <option key={ic} value={ic}>{ic}</option>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(10, 1fr)",
+            gap: 6,
+            padding: "10px",
+            background: "var(--glass-bg, rgba(255,255,255,0.03))",
+            border: "1px solid var(--glass-border, rgba(255,255,255,0.08))",
+            borderRadius: 10,
+          }}>
+            {ICON_OPTIONS.map((em) => (
+              <button
+                key={em}
+                type="button"
+                onClick={() => setForm((f) => ({ ...f, icon: em }))}
+                style={{
+                  width: 34, height: 34, borderRadius: 8,
+                  border: form.icon === em
+                    ? "2px solid var(--accent-primary, #3b82f6)"
+                    : "2px solid transparent",
+                  background: form.icon === em
+                    ? "var(--accent-primary-soft, rgba(59,130,246,0.15))"
+                    : "transparent",
+                  cursor: "pointer", fontSize: 18,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "background 0.1s, border-color 0.1s",
+                }}
+                onMouseEnter={(e) => { if (form.icon !== em) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                onMouseLeave={(e) => { if (form.icon !== em) e.currentTarget.style.background = "transparent"; }}
+              >
+                {em}
+              </button>
             ))}
-          </select>
+          </div>
         </SettingsFormField>
 
         <SettingsFormField label="Colore">

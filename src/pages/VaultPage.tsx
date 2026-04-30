@@ -609,15 +609,35 @@ const VaultPage = () => {
 
   const portalId = portal?.id ?? "sosa";
 
-  const [items, setItems] = useState<VaultItem[]>([]);
+  const [items, setItems] = useState<VaultItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_VAULT_ITEMS);
+      if (saved) {
+        const parsed = JSON.parse(saved) as any[];
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id) {
+          return parsed.map((v) => ({ ...v, createdAt: v.createdAt ? new Date(v.createdAt) : new Date(), expiresAt: v.expiresAt ? new Date(v.expiresAt) : null }));
+        }
+      }
+    } catch { /* ignore */ }
+    return [];
+  });
   const [category, setCategory] = useState<Category>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showNewModal, setShowNewModal] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_VAULT_ITEMS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return !(Array.isArray(parsed) && parsed.length > 0 && parsed[0]?.id);
+      }
+    } catch { /* ignore */ }
+    return true;
+  });
 
   // Load items from service (Supabase + localStorage fallback), keyed to active portal
   useEffect(() => {
-    setIsLoading(true);
+    if (items.length === 0) setIsLoading(true);
     fetchVaultItems(portalId)
       .then((dbItems) => {
         if (dbItems.length > 0) {
@@ -761,7 +781,7 @@ const VaultPage = () => {
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: "var(--text-quaternary)" }} />
-            <input className="glass-input" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search vault..." style={{ fontSize: 12, padding: "6px 10px 6px 28px", borderRadius: 8, width: 180 }} />
+            <input className="glass-input" autoComplete="off" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search vault..." style={{ fontSize: 12, padding: "6px 10px 6px 28px", borderRadius: 8, width: 180 }} />
           </div>
           <button type="button" onClick={() => setShowNewModal(true)} className="glass-btn-primary flex items-center gap-1.5" style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8 }}>
             <Plus className="w-4 h-4" /> New Item
@@ -837,9 +857,9 @@ const VaultPage = () => {
 
             {/* Locked folder teaser in "All" view */}
             {category === "all" && (
-              <div className="mt-6" style={{ borderTop: "2px dashed var(--accent-color, var(--glass-border))", paddingTop: 20 }}>
+              <div className="mt-6" style={{ borderTop: "2px dashed var(--sosa-yellow)", paddingTop: 20 }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <Lock className="w-4 h-4" style={{ color: "var(--accent-color)" }} />
+                  <Lock className="w-4 h-4" style={{ color: "var(--sosa-yellow)" }} />
                   <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-secondary)" }}>LOCKED FOLDER</span>
                   <span style={{ fontSize: 11, color: "var(--text-quaternary)", padding: "2px 8px", borderRadius: 99, background: "var(--glass-bg)" }}>
                     ({items.filter((i) => i.isLocked).length})
@@ -850,7 +870,7 @@ const VaultPage = () => {
                 ) : (
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <span className="flex items-center gap-1.5" style={{ fontSize: 12, color: "var(--accent-color)", fontWeight: 600 }}>
+                      <span className="flex items-center gap-1.5" style={{ fontSize: 12, color: "var(--sosa-yellow)", fontWeight: 600 }}>
                         <Unlock className="w-3.5 h-3.5" /> Unlocked
                       </span>
                       <button type="button" onClick={lockFolder} className="glass-btn flex items-center gap-1" style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6 }}>
@@ -877,7 +897,7 @@ const VaultPage = () => {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <span className="flex items-center gap-2" style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>
-                    <Unlock className="w-4 h-4" style={{ color: "var(--accent-color)" }} /> Locked Folder (Unlocked)
+                    <Unlock className="w-4 h-4" style={{ color: "var(--sosa-yellow)" }} /> Locked Folder (Unlocked)
                   </span>
                   <button type="button" onClick={lockFolder} className="glass-btn flex items-center gap-1.5" style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8 }}>
                     <Lock className="w-3.5 h-3.5" /> Lock
@@ -906,8 +926,8 @@ function LockedUI({ lockPassword, setLockPassword, lockError, unlock, rememberSe
 }) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-12"
-      style={{ background: "var(--glass-bg)", border: "2px dashed var(--accent-color, var(--glass-border))", borderRadius: 14, padding: "40px 24px" }}>
-      <Lock className="w-10 h-10" style={{ color: "var(--accent-color)" }} />
+      style={{ background: "var(--sosa-bg-2)", border: "2px dashed var(--sosa-yellow)", borderRadius: 0, padding: "40px 24px" }}>
+      <Lock className="w-10 h-10" style={{ color: "var(--sosa-yellow)" }} />
       <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>Locked Folder</h3>
       <p style={{ fontSize: 13, color: "var(--text-tertiary)", textAlign: "center", maxWidth: 300 }}>
         This folder is protected by a password. Enter the password to view its contents.
@@ -915,14 +935,15 @@ function LockedUI({ lockPassword, setLockPassword, lockError, unlock, rememberSe
       <div className="flex gap-2 w-full max-w-[300px]">
         <input
           type="password"
+          autoComplete="new-password"
           className="glass-input flex-1"
           value={lockPassword}
           onChange={(e) => setLockPassword(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") unlock(); }}
           placeholder="Enter password"
-          style={{ fontSize: 13, padding: "8px 12px" }}
+          style={{ fontSize: 13, padding: "8px 12px", borderRadius: 0 }}
         />
-        <button type="button" onClick={unlock} className="glass-btn-primary flex items-center gap-1" style={{ fontSize: 13, padding: "8px 14px", borderRadius: 8 }}>
+        <button type="button" onClick={unlock} style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, padding: "8px 14px", background: "var(--sosa-yellow)", color: "#000", border: "none", borderRadius: 0, cursor: "pointer", letterSpacing: "0.04em" }}>
           <Unlock className="w-3.5 h-3.5" /> Unlock
         </button>
       </div>

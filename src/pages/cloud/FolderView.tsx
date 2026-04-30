@@ -377,7 +377,7 @@ export default function FolderView(props: FolderViewProps) {
   /* ── File Row (List) ── */
   const renderFileRow = (file: CloudFile) => {
     const icon = getFileTypeIcon(file.type);
-    const owner = getUserById(file.ownerId);
+    const ownerName = file.ownerName || getUserById(file.ownerId)?.displayName || null;
     return (
       <tr
         key={file.id}
@@ -414,7 +414,7 @@ export default function FolderView(props: FolderViewProps) {
           {formatDistanceToNow(file.modifiedAt, { addSuffix: true })}
         </td>
         <td className="p-2.5 text-xs text-muted-foreground">
-          {owner?.displayName || "\u2014"}
+          {ownerName || "\u2014"}
         </td>
         <td className="p-2.5">
           <ActionMenu

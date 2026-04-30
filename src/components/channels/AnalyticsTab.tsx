@@ -181,7 +181,7 @@ export function AnalyticsTab() {
       }}>
         <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>Profitability Matrix</h3>
         <p style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: -10, marginBottom: 16 }}>
-          X = Revenue volume Â· Y = Net margin % Â· Bubble size = Orders
+          X = Revenue volume · Y = Net margin % · Bubble size = Orders
         </p>
         <ResponsiveContainer width="100%" height={300}>
           <ScatterChart>

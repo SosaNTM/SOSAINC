@@ -151,14 +151,13 @@ export function useInventory(): UseInventoryResult {
   const { portal } = usePortal();
   const portalId = portal?.id ?? "sosa";
 
-  const [all, setAll] = useState<InventoryItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [all, setAll] = useState<InventoryItem[]>(() => localGetAll(portalId));
+  const [isLoading, setIsLoading] = useState(() => localGetAll(portalId).length === 0);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
   const load = useCallback(async () => {
     if (!user) { setIsLoading(false); return; }
-    setIsLoading(true);
     setError(null);
 
     if (isSupabaseConfigured()) {
@@ -180,8 +179,8 @@ export function useInventory(): UseInventoryResult {
     setIsLoading(false);
   }, [user, portalId, tick]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Reset and reload when portal changes
-  useEffect(() => { setAll([]); }, [portalId]);
+  // On portal change: load that portal's cache immediately
+  useEffect(() => { const c = localGetAll(portalId); setAll(c); setIsLoading(c.length === 0); }, [portalId]);
   useEffect(() => { load(); }, [load]);
 
   // Derived stats

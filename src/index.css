@@ -254,9 +254,9 @@
     --border-sidebar: rgba(0, 0, 0, 0.06);
 
     /* ═══ DESIGN SYSTEM — Accent Primary (Light) ═══ */
-    --accent-primary: #0e74b2;
-    --accent-primary-soft: rgba(14, 116, 178, 0.10);
-    --accent-primary-glow: rgba(14, 116, 178, 0.15);
+    --accent-primary: var(--accent-color, #0e74b2);
+    --accent-primary-soft: var(--accent-dim, rgba(14, 116, 178, 0.10));
+    --accent-primary-glow: var(--accent-glow, rgba(14, 116, 178, 0.15));
 
     /* ═══ DESIGN SYSTEM — Shadows (Light) ═══ */
     --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
@@ -460,9 +460,9 @@
     --border-sidebar: rgba(255, 255, 255, 0.06);
 
     /* ═══ DESIGN SYSTEM — Accent Primary (Dark) ═══ */
-    --accent-primary: #38bdf8;
-    --accent-primary-soft: rgba(56, 189, 248, 0.15);
-    --accent-primary-glow: rgba(56, 189, 248, 0.25);
+    --accent-primary: var(--accent-color, #38bdf8);
+    --accent-primary-soft: var(--accent-dim, rgba(56, 189, 248, 0.15));
+    --accent-primary-glow: var(--accent-glow, rgba(56, 189, 248, 0.25));
 
     /* ═══ DESIGN SYSTEM — Shadows (Dark) ═══ */
     --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.15);

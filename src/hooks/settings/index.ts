@@ -38,17 +38,47 @@ export const useDepartments = () => usePortalData<Department>("departments", { o
 // Notifications
 export const useAlertRules = () => usePortalData<AlertRule>("alert_rules", { orderBy: "created_at" });
 
+function singletonSwrKey(table: string, portalId: string) {
+  return `swr_single_${table}_${portalId}`;
+}
+
+function readSingletonCache<T>(table: string, portalId: string): T | null {
+  try {
+    const raw = localStorage.getItem(singletonSwrKey(table, portalId));
+    if (raw) return JSON.parse(raw) as T;
+  } catch { /* ignore */ }
+  return null;
+}
+
+function writeSingletonCache<T>(table: string, portalId: string, row: T) {
+  try { localStorage.setItem(singletonSwrKey(table, portalId), JSON.stringify(row)); } catch { /* quota exceeded */ }
+}
+
 // Singleton hooks (one row per portal)
 function useSingleton<T>(tableName: string) {
   const { currentPortalId } = usePortalDB();
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  const [data, setData] = useState<T | null>(() => {
+    if (!currentPortalId) return null;
+    return readSingletonCache<T>(tableName, currentPortalId);
+  });
+
+  const [loading, setLoading] = useState(() => {
+    if (!currentPortalId) return true;
+    return readSingletonCache(tableName, currentPortalId) === null;
+  });
 
   const fetchData = useCallback(async () => {
     if (!currentPortalId) { setLoading(false); return; }
+
+    // Show cache immediately, fetch fresh in background
+    const cached = readSingletonCache<T>(tableName, currentPortalId);
+    if (cached !== null) { setData(cached); setLoading(false); }
+
     const { data: row } = await supabase
       .from(tableName).select("*").eq("portal_id", currentPortalId).single();
     setData(row as T | null);
+    if (row) writeSingletonCache(tableName, currentPortalId, row as T);
     setLoading(false);
   }, [currentPortalId, tableName]);
 
@@ -59,7 +89,10 @@ function useSingleton<T>(tableName: string) {
       .from(tableName)
       .upsert({ ...payload, portal_id: currentPortalId }, { onConflict: "portal_id" })
       .select().single();
-    if (!error) setData(row as T);
+    if (!error && row) {
+      setData(row as T);
+      if (currentPortalId) writeSingletonCache(tableName, currentPortalId, row as T);
+    }
     return { data: row as T | null, error: error?.message ?? null };
   }, [currentPortalId, tableName]);
 

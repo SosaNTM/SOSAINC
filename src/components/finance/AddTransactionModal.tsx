@@ -1,33 +1,20 @@
-// ── AddTransactionModal ────────────────────────────────────────────────────────
-// Dark luxury modal for adding personal finance transactions.
-// All labels in English. Uses useCategories() as single source of truth.
-
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Euro, Calendar, ChevronDown, Repeat, Check, Tag as TagIcon } from "lucide-react";
+import { X, Euro, Calendar, ChevronDown, Check, Tag as TagIcon, Loader2 } from "lucide-react";
 import { PAYMENT_METHOD_LABELS } from "@/types/finance";
 import type { NewPersonalTransaction, PersonalTransaction } from "@/types/finance";
-import { useCategories } from "@/hooks/useCategories";
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
+import { useIncomeCategories, useExpenseCategories } from "@/hooks/settings";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-const FIELD: React.CSSProperties = {
-  background: "#f9fafb",
-  border: "1px solid #e5e7eb",
-  borderRadius: 10,
-  color: "#111827",
-  fontSize: 13,
-  outline: "none",
-  width: "100%",
-  boxSizing: "border-box",
-};
-
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <p style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 6 }}>
+    <p style={{
+      fontSize: 10, fontWeight: 600, color: "var(--text-tertiary)",
+      letterSpacing: "0.08em", textTransform: "uppercase",
+      marginBottom: 6, fontFamily: "var(--font-mono)",
+    }}>
       {children}
     </p>
   );
@@ -35,10 +22,8 @@ function Label({ children }: { children: React.ReactNode }) {
 
 function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null;
-  return <p style={{ fontSize: 11, color: "#e54d4d", marginTop: 4 }}>{msg}</p>;
+  return <p style={{ fontSize: 11, color: "var(--color-error)", marginTop: 4 }}>{msg}</p>;
 }
-
-// ── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
   open:         boolean;
@@ -48,29 +33,27 @@ interface Props {
   title?:       string;
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
-
 export function AddTransactionModal({ open, onClose, onSave, initialData, title }: Props) {
-  const { activeExpenseCategories, activeIncomeCategories } = useCategories();
+  const { data: allIncomeCategories } = useIncomeCategories();
+  const { data: allExpenseCategories } = useExpenseCategories();
+  const activeIncomeCategories = allIncomeCategories.filter((c) => c.is_active);
+  const activeExpenseCategories = allExpenseCategories.filter((c) => c.is_active);
 
-  const [type,        setType]        = useState<"income" | "expense" | "transfer">("expense");
-  const [amount,      setAmount]      = useState("");
-  const [category,    setCategory]    = useState("");
-  const [subcategory, setSubcategory] = useState("");
-  const [description, setDescription] = useState("");
-  const [date,        setDate]        = useState(today);
-  const [payMethod,   setPayMethod]   = useState<NewPersonalTransaction["payment_method"]>("card");
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [recurInterval, setRecurInterval] = useState<"weekly" | "monthly" | "yearly">("monthly");
-  const [tagsInput,   setTagsInput]   = useState("");
-  const [tags,        setTags]        = useState<string[]>([]);
-  const [errors,      setErrors]      = useState<Record<string, string>>({});
-  const [saving,      setSaving]      = useState(false);
+  const [type,          setType]          = useState<"income" | "expense" | "transfer">("expense");
+  const [amount,        setAmount]        = useState("");
+  const [category,      setCategory]      = useState("");
+  const [subcategory,   setSubcategory]   = useState("");
+  const [description,   setDescription]   = useState("");
+  const [date,          setDate]          = useState(today);
+  const [payMethod,     setPayMethod]     = useState<NewPersonalTransaction["payment_method"]>("card");
+  const [tagsInput,     setTagsInput]     = useState("");
+  const [tags,          setTags]          = useState<string[]>([]);
+  const [errors,        setErrors]        = useState<Record<string, string>>({});
+  const [saving,        setSaving]        = useState(false);
   const tagRef = useRef<HTMLInputElement>(null);
 
   const catList = type === "income" ? activeIncomeCategories : activeExpenseCategories;
 
-  // Reset form on open — pre-fill when editing
   useEffect(() => {
     if (open) {
       if (initialData) {
@@ -81,20 +64,15 @@ export function AddTransactionModal({ open, onClose, onSave, initialData, title 
         setDescription(initialData.description ?? "");
         setDate(initialData.date);
         setPayMethod(initialData.payment_method ?? "card");
-        setIsRecurring(initialData.is_recurring ?? false);
-        setRecurInterval(initialData.recurring_interval ?? "monthly");
         setTags(initialData.tags ?? []);
       } else {
         setType("expense"); setAmount(""); setCategory(""); setSubcategory("");
-        setDescription(""); setDate(today()); setPayMethod("card");
-        setIsRecurring(false); setRecurInterval("monthly");
-        setTags([]);
+        setDescription(""); setDate(today()); setPayMethod("card"); setTags([]);
       }
       setTagsInput(""); setErrors({});
     }
   }, [open, initialData]);
 
-  // Close on Escape
   useEffect(() => {
     if (!open) return;
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -102,7 +80,6 @@ export function AddTransactionModal({ open, onClose, onSave, initialData, title 
     return () => document.removeEventListener("keydown", h);
   }, [open, onClose]);
 
-  // Clear category when type changes
   useEffect(() => { setCategory(""); }, [type]);
 
   function addTag(e: React.KeyboardEvent) {
@@ -119,9 +96,9 @@ export function AddTransactionModal({ open, onClose, onSave, initialData, title 
   function validate() {
     const e: Record<string, string> = {};
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0)
-      e.amount = "Enter a valid amount greater than 0";
-    if (!category) e.category = "Select a category";
-    if (!date) e.date = "Enter a valid date";
+      e.amount = "Inserisci un importo valido";
+    if (!category) e.category = "Seleziona una categoria";
+    if (!date) e.date = "Inserisci una data valida";
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -130,7 +107,7 @@ export function AddTransactionModal({ open, onClose, onSave, initialData, title 
     if (!validate()) return;
     setSaving(true);
     const ok = await onSave({
-      user_id:            "",   // filled by hook
+      user_id:            "",
       type,
       amount:             Math.abs(Number(amount)),
       currency:           "EUR",
@@ -139,8 +116,7 @@ export function AddTransactionModal({ open, onClose, onSave, initialData, title 
       description:        description || category,
       date,
       payment_method:     payMethod,
-      is_recurring:       isRecurring,
-      recurring_interval: isRecurring ? recurInterval : undefined,
+      is_recurring:       false,
       tags:               tags.length > 0 ? tags : undefined,
     });
     setSaving(false);
@@ -149,6 +125,24 @@ export function AddTransactionModal({ open, onClose, onSave, initialData, title 
 
   if (!open) return null;
 
+  const inputStyle: React.CSSProperties = {
+    width: "100%", boxSizing: "border-box",
+    background: "var(--glass-bg, rgba(255,255,255,0.04))",
+    border: "1px solid var(--glass-border)",
+    borderRadius: 10,
+    color: "var(--text-primary)",
+    fontSize: 13,
+    fontFamily: "var(--font-body)",
+    outline: "none",
+    transition: "border-color 0.15s, box-shadow 0.15s",
+  };
+
+  const TYPE_COLORS = {
+    expense:  { active: "#ef4444", label: "Uscita" },
+    income:   { active: "#22c55e", label: "Entrata" },
+    transfer: { active: "var(--accent-primary)", label: "Trasferimento" },
+  };
+
   const modal = (
     <AnimatePresence>
       {open && (
@@ -156,12 +150,14 @@ export function AddTransactionModal({ open, onClose, onSave, initialData, title 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px 16px" }}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "20px 16px",
+          }}
         >
-          {/* Backdrop */}
-          <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.75)" }} />
+          <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.78)" }} />
 
-          {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -169,222 +165,234 @@ export function AddTransactionModal({ open, onClose, onSave, initialData, title 
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             style={{
               position: "relative",
-              width: "100%",
-              maxWidth: 560,
-              maxHeight: "90vh",
-              overflowY: "auto",
-              background: "#ffffff",
-              border: "1px solid #e5e7eb",
+              width: "100%", maxWidth: 560,
+              maxHeight: "90vh", overflowY: "auto",
+              background: "var(--glass-bg-elevated)",
+              backdropFilter: "var(--glass-blur-heavy)",
+              WebkitBackdropFilter: "var(--glass-blur-heavy)",
+              border: "1px solid var(--glass-border)",
               borderRadius: 18,
               padding: "24px 24px 20px",
+              boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
             }}
           >
             {/* Header */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", margin: 0 }}>{title ?? "Add Transaction"}</h2>
-              <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 9, background: "#f3f4f6", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#6b7280" }}>
+              <h2 style={{ fontSize: 17, fontWeight: 600, color: "var(--text-primary)", margin: 0, fontFamily: "var(--font-body)" }}>
+                {title ?? "Aggiungi Transazione"}
+              </h2>
+              <button onClick={onClose} style={{
+                width: 30, height: 30, borderRadius: 8,
+                background: "var(--glass-bg)",
+                border: "1px solid var(--glass-border)",
+                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                color: "var(--text-secondary)", transition: "background 0.15s",
+              }}>
                 <X style={{ width: 14, height: 14 }} />
               </button>
             </div>
 
-            {/* ── Type ──────────────────────────────────────────────── */}
+            {/* Type */}
             <div style={{ marginBottom: 16 }}>
-              <Label>Type</Label>
+              <Label>Tipo</Label>
               <div style={{ display: "flex", gap: 6 }}>
                 {(["expense", "income", "transfer"] as const).map((t) => {
-                  const labels = { expense: "Expense", income: "Income", transfer: "Transfer" };
-                  const colors = { expense: "#ef4444", income: "#4ade80", transfer: "#e8ff00" };
-                  const active = type === t;
+                  const { active: color, label } = TYPE_COLORS[t];
+                  const isActive = type === t;
                   return (
-                    <button key={t} onClick={() => setType(t)}
-                      style={{
-                        flex: 1, padding: "8px 4px", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                        background: active ? `${colors[t]}15` : "#f3f4f6",
-                        border: active ? `1px solid ${colors[t]}55` : "1px solid #e5e7eb",
-                        color: active ? colors[t] : "#6b7280",
-                        transition: "all 0.15s",
-                      }}>
-                      {labels[t]}
+                    <button key={t} onClick={() => setType(t)} style={{
+                      flex: 1, padding: "8px 4px", borderRadius: 10,
+                      fontSize: 12, fontWeight: 600, cursor: "pointer",
+                      fontFamily: "var(--font-body)",
+                      background: isActive ? `${color}18` : "var(--glass-bg)",
+                      border: isActive ? `1px solid ${color}55` : "1px solid var(--glass-border)",
+                      color: isActive ? color : "var(--text-secondary)",
+                      transition: "all 0.15s",
+                    }}>
+                      {label}
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* ── Title ─────────────────────────────────────────────── */}
+            {/* Title */}
             <div style={{ marginBottom: 16 }}>
-              <Label>Title</Label>
+              <Label>Titolo</Label>
               <input
                 autoFocus
                 value={subcategory} onChange={(e) => setSubcategory(e.target.value)}
-                placeholder={type === "expense" ? "e.g. Groceries, Netflix, Rent…" : "e.g. Client payment, Invoice #42…"}
-                style={{ ...FIELD, padding: "10px 14px" }}
+                placeholder={type === "expense" ? "es. Spesa, Netflix, Affitto…" : "es. Pagamento cliente, Fattura #42…"}
+                style={{ ...inputStyle, padding: "10px 14px" }}
                 autoComplete="off"
               />
             </div>
 
-            {/* ── Amount ────────────────────────────────────────────── */}
+            {/* Amount */}
             <div style={{ marginBottom: 16 }}>
-              <Label>Amount</Label>
+              <Label>Importo</Label>
               <div style={{ position: "relative" }}>
-                <Euro style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, color: "#e8ff00" }} />
+                <Euro style={{
+                  position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
+                  width: 15, height: 15, color: "var(--accent-primary)", pointerEvents: "none",
+                }} />
                 <input
                   type="number" min="0" step="0.01"
                   value={amount} onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.00"
-                  style={{ ...FIELD, padding: "12px 14px 12px 36px", fontSize: 18, fontWeight: 700, letterSpacing: "-0.5px" }}
+                  style={{ ...inputStyle, padding: "12px 14px 12px 36px", fontSize: 20, fontWeight: 700, letterSpacing: "-0.5px" }}
                 />
               </div>
               <FieldError msg={errors.amount} />
             </div>
 
-            {/* ── Category ──────────────────────────────────────────── */}
+            {/* Category */}
             <div style={{ marginBottom: 16 }}>
-              <Label>Category</Label>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 6 }}>
-                {catList.map((cat) => {
-                  const active = category === cat.name;
-                  return (
-                    <button key={cat.id} onClick={() => setCategory(cat.name)}
-                      style={{
-                        padding: "7px 10px", borderRadius: 9, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                        display: "flex", alignItems: "center", gap: 6,
-                        background: active ? `${cat.color}15` : "#f3f4f6",
-                        border: active ? `1px solid ${cat.color}55` : "1px solid #e5e7eb",
-                        color: active ? cat.color : "#6b7280",
-                        transition: "all 0.15s",
-                      }}>
-                      <span style={{ fontSize: 14 }}>{cat.icon}</span>
-                      {cat.name}
-                    </button>
-                  );
-                })}
+              <Label>Categoria</Label>
+              <div style={{ position: "relative" }}>
+                {category && (() => {
+                  const sel = catList.find((c) => c.name === category);
+                  return sel ? (
+                    <span style={{
+                      position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
+                      fontSize: 16, pointerEvents: "none", zIndex: 1,
+                    }}>{sel.icon}</span>
+                  ) : null;
+                })()}
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  style={{
+                    ...inputStyle,
+                    padding: category ? "10px 36px 10px 36px" : "10px 36px 10px 14px",
+                    appearance: "none", cursor: "pointer",
+                  }}
+                >
+                  <option value="">Seleziona categoria...</option>
+                  {catList.map((cat) => (
+                    <option key={cat.id} value={cat.name}>
+                      {cat.icon} {cat.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown style={{
+                  position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+                  width: 14, height: 14, color: "var(--text-tertiary)", pointerEvents: "none",
+                }} />
               </div>
               <FieldError msg={errors.category} />
             </div>
 
-            {/* ── Description ──────────────────────────────────────── */}
+            {/* Description */}
             <div style={{ marginBottom: 16 }}>
-              <Label>Description <span style={{ fontWeight: 400, color: "#666" }}>(optional)</span></Label>
+              <Label>Descrizione <span style={{ fontWeight: 400, opacity: 0.6 }}>(opzionale)</span></Label>
               <div style={{ position: "relative" }}>
                 <textarea
                   value={description} onChange={(e) => setDescription(e.target.value.slice(0, 200))}
-                  placeholder="Free note about the transaction..."
+                  placeholder="Nota libera sulla transazione..."
                   rows={2}
-                  style={{ ...FIELD, padding: "10px 14px", resize: "none" }}
+                  style={{ ...inputStyle, padding: "10px 14px", resize: "none" }}
                 />
-                <span style={{ position: "absolute", bottom: 8, right: 10, fontSize: 10, color: "#666" }}>
+                <span style={{ position: "absolute", bottom: 8, right: 10, fontSize: 10, color: "var(--text-quaternary)", fontFamily: "var(--font-mono)" }}>
                   {description.length}/200
                 </span>
               </div>
             </div>
 
-            {/* ── Date + Method ────────────────────────────────────── */}
+            {/* Date + Method */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
               <div>
-                <Label>Date</Label>
+                <Label>Data</Label>
                 <div style={{ position: "relative" }}>
-                  <Calendar style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: "#9ca3af", pointerEvents: "none" }} />
+                  <Calendar style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: "var(--text-tertiary)", pointerEvents: "none" }} />
                   <input
                     type="date"
                     value={date} onChange={(e) => setDate(e.target.value)}
-                    style={{ ...FIELD, padding: "10px 10px 10px 32px" }}
+                    style={{ ...inputStyle, padding: "10px 10px 10px 32px" }}
                   />
                 </div>
                 <FieldError msg={errors.date} />
               </div>
               <div>
-                <Label>Payment Method</Label>
+                <Label>Metodo di Pagamento</Label>
                 <div style={{ position: "relative" }}>
                   <select value={payMethod} onChange={(e) => setPayMethod(e.target.value as any)}
-                    style={{ ...FIELD, padding: "10px 32px 10px 12px", appearance: "none", cursor: "pointer" }}>
+                    style={{ ...inputStyle, padding: "10px 32px 10px 12px", appearance: "none", cursor: "pointer" }}>
                     {Object.entries(PAYMENT_METHOD_LABELS).map(([v, l]) => (
                       <option key={v} value={v}>{l}</option>
                     ))}
                   </select>
-                  <ChevronDown style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: "#9ca3af", pointerEvents: "none" }} />
+                  <ChevronDown style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", width: 14, height: 14, color: "var(--text-tertiary)", pointerEvents: "none" }} />
                 </div>
               </div>
             </div>
 
-            {/* ── Recurring ────────────────────────────────────────── */}
-            <div style={{ marginBottom: 16, padding: "12px 14px", background: "#f9fafb", borderRadius: 10, border: "1px solid #e5e7eb" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Repeat style={{ width: 14, height: 14, color: "#6b7280" }} />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>Recurring</span>
-                </div>
-                <button onClick={() => setIsRecurring(!isRecurring)}
-                  style={{
-                    width: 40, height: 22, borderRadius: 99, cursor: "pointer", border: "none",
-                    background: isRecurring ? "#e8ff00" : "#d1d5db",
-                    position: "relative", transition: "background 0.2s",
-                  }}>
-                  <div style={{
-                    position: "absolute", top: 3, left: isRecurring ? 20 : 3,
-                    width: 16, height: 16, borderRadius: "50%", background: "#fff",
-                    transition: "left 0.2s",
-                  }} />
-                </button>
-              </div>
-              {isRecurring && (
-                <div style={{ marginTop: 10, display: "flex", gap: 6 }}>
-                  {(["weekly", "monthly", "yearly"] as const).map((iv) => {
-                    const labels = { weekly: "Weekly", monthly: "Monthly", yearly: "Yearly" };
-                    const active = recurInterval === iv;
-                    return (
-                      <button key={iv} onClick={() => setRecurInterval(iv)}
-                        style={{
-                          flex: 1, padding: "6px 4px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer",
-                          background: active ? "#e8ff0018" : "#ffffff",
-                          border: active ? "1px solid #e8ff0055" : "1px solid #e5e7eb",
-                          color: active ? "#b8cc00" : "#6b7280", transition: "all 0.15s",
-                        }}>
-                        {labels[iv]}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
 
-            {/* ── Tags ─────────────────────────────────────────────── */}
+            {/* Tags */}
             <div style={{ marginBottom: 20 }}>
-              <Label>Tags <span style={{ fontWeight: 400, color: "#666" }}>(press Enter to add)</span></Label>
-              <div style={{ ...FIELD, padding: "8px 10px", display: "flex", flexWrap: "wrap", gap: 6, minHeight: 42, cursor: "text" }}
-                onClick={() => tagRef.current?.focus()}>
+              <Label>Tag <span style={{ fontWeight: 400, opacity: 0.6 }}>(premi Invio per aggiungere)</span></Label>
+              <div
+                style={{
+                  ...inputStyle, padding: "8px 10px",
+                  display: "flex", flexWrap: "wrap", gap: 6, minHeight: 42, cursor: "text",
+                }}
+                onClick={() => tagRef.current?.focus()}
+              >
                 {tags.map((t) => (
-                  <span key={t} style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 8px 2px 6px", borderRadius: 99, background: "#e8ff0022", border: "1px solid #e8ff0044", color: "#e8ff00", fontSize: 11, fontWeight: 600 }}>
+                  <span key={t} style={{
+                    display: "flex", alignItems: "center", gap: 4,
+                    padding: "2px 8px 2px 6px", borderRadius: 99,
+                    background: "var(--accent-primary-soft)",
+                    border: "1px solid var(--accent-primary)",
+                    color: "var(--accent-primary)", fontSize: 11, fontWeight: 600,
+                  }}>
                     <TagIcon style={{ width: 10, height: 10 }} />
                     {t}
-                    <button onClick={() => removeTag(t)} style={{ background: "none", border: "none", cursor: "pointer", color: "#e8ff00", padding: 0, lineHeight: 1, marginLeft: 2 }}>x</button>
+                    <button onClick={() => removeTag(t)} style={{
+                      background: "none", border: "none", cursor: "pointer",
+                      color: "var(--accent-primary)", padding: 0, lineHeight: 1, marginLeft: 2,
+                    }}>×</button>
                   </span>
                 ))}
                 <input
                   ref={tagRef}
                   value={tagsInput} onChange={(e) => setTagsInput(e.target.value)}
                   onKeyDown={addTag}
-                  placeholder={tags.length === 0 ? "e.g. vacation, work..." : ""}
-                  style={{ border: "none", outline: "none", background: "transparent", color: "#111827", fontSize: 12, minWidth: 80, flex: 1 }}
+                  placeholder={tags.length === 0 ? "es. vacanza, lavoro..." : ""}
+                  style={{
+                    border: "none", outline: "none", background: "transparent",
+                    color: "var(--text-primary)", fontSize: 12,
+                    fontFamily: "var(--font-body)", minWidth: 80, flex: 1,
+                  }}
                 />
               </div>
             </div>
 
-            {/* ── Buttons ──────────────────────────────────────────── */}
+            {/* Buttons */}
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={onClose}
-                style={{ flex: 1, padding: "11px 0", borderRadius: 10, background: "#f3f4f6", border: "1px solid #e5e7eb", color: "#6b7280", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                Cancel
+              <button onClick={onClose} style={{
+                flex: 1, padding: "11px 0", borderRadius: 10,
+                background: "var(--glass-bg)",
+                border: "1px solid var(--glass-border)",
+                color: "var(--text-secondary)", fontSize: 13, fontWeight: 500,
+                cursor: "pointer", fontFamily: "var(--font-body)",
+                transition: "background 0.15s",
+              }}>
+                Annulla
               </button>
-              <button onClick={handleSave} disabled={saving}
-                style={{
-                  flex: 2, padding: "11px 0", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: saving ? "default" : "pointer",
-                  background: saving ? "#e5e7eb" : "#ffffff",
-                  border: "1px solid #e5e7eb", color: "#111827",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                  opacity: saving ? 0.7 : 1, transition: "opacity 0.15s",
-                }}>
-                {saving ? "Saving..." : <><Check style={{ width: 14, height: 14 }} />Save</>}
+              <button onClick={handleSave} disabled={saving} style={{
+                flex: 2, padding: "11px 0", borderRadius: 10,
+                fontSize: 13, fontWeight: 600, cursor: saving ? "default" : "pointer",
+                background: "var(--accent-primary)",
+                border: "none", color: "#000",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                opacity: saving ? 0.7 : 1, transition: "opacity 0.15s",
+                fontFamily: "var(--font-body)",
+              }}>
+                {saving
+                  ? <Loader2 style={{ width: 14, height: 14, animation: "spin 1s linear infinite" }} />
+                  : <><Check style={{ width: 14, height: 14 }} />Salva</>
+                }
               </button>
             </div>
           </motion.div>

@@ -36,11 +36,16 @@ export function useFinancialGoals() {
   const { portal } = usePortal();
   const portalId = portal?.id ?? "sosa";
 
-  const [goals, setGoals] = useState<DashboardGoal[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [goals, setGoals] = useState<DashboardGoal[]>(() => {
+    try {
+      const raw = localStorage.getItem(`finance_goals_${portalId}`);
+      if (raw) return (JSON.parse(raw) as ReturnType<typeof JSON.parse>[]).map(dbGoalToDisplay);
+    } catch { /* ignore */ }
+    return [];
+  });
+  const [isLoading, setIsLoading] = useState(() => !localStorage.getItem(`finance_goals_${portalId}`));
 
   const refresh = useCallback(async () => {
-    setIsLoading(true);
     try {
       const data = await fetchGoals(portalId);
       setGoals(data.map(dbGoalToDisplay));

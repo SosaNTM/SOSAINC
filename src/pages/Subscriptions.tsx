@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { STORAGE_SUBSCRIPTIONS_PREFIX, STORAGE_SUBSCRIPTIONS_LEGACY } from "@/constants/storageKeys";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Pause, Play, Zap, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
@@ -91,6 +92,7 @@ export default function Subscriptions() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSub, setEditingSub] = useState<Subscription | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<{ id: string; msg: string }[]>([]);
 
@@ -107,7 +109,7 @@ export default function Subscriptions() {
   // Close context menu on outside click
   useEffect(() => {
     if (!openMenuId) return;
-    const handler = () => setOpenMenuId(null);
+    const handler = () => { setOpenMenuId(null); setMenuPos(null); };
     document.addEventListener("click", handler);
     return () => document.removeEventListener("click", handler);
   }, [openMenuId]);
@@ -158,6 +160,7 @@ export default function Subscriptions() {
     setEditingSub(sub);
     setIsModalOpen(true);
     setOpenMenuId(null);
+    setMenuPos(null);
   }
 
   function closeModal() {
@@ -255,6 +258,7 @@ export default function Subscriptions() {
     const sub = subs.find(s => s.id === id);
     setSubs((prev) => prev.map((s) => (s.id === id ? { ...s, is_active: !s.is_active } : s)));
     setOpenMenuId(null);
+    setMenuPos(null);
     if (user && sub) addAuditEntry({ userId: user.id, action: `${sub.is_active ? "Paused" : "Resumed"} subscription "${sub.name}"`, category: "finance", details: "", icon: sub.is_active ? "⏸️" : "▶️", portalId });
   }
 
@@ -267,6 +271,7 @@ export default function Subscriptions() {
     );
     setDeleteConfirmId(null);
     setOpenMenuId(null);
+    setMenuPos(null);
     if (user && sub) addAuditEntry({ userId: user.id, action: `Deleted subscription "${sub.name}"`, category: "finance", details: "", icon: "🗑️", portalId });
   }
 
@@ -426,40 +431,19 @@ export default function Subscriptions() {
                               </button>
                             </div>
                           ) : (
-                            <div style={{ position: "relative" }}>
-                              <button type="button"
-                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(isMenu ? null : sub.id); }}
-                                style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: "rgba(255,255,255,0.05)", color: "var(--text-quaternary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                <MoreHorizontal style={{ width: 13, height: 13 }} />
-                              </button>
-                              {isMenu && (
-                                <div onClick={(e) => e.stopPropagation()}
-                                  style={{ position: "absolute", right: 0, top: 34, zIndex: 50, background: "var(--glass-bg, rgba(20,20,20,0.97))", border: "0.5px solid var(--glass-border)", borderRadius: 10, padding: 4, minWidth: 150, boxShadow: "0 8px 32px rgba(0,0,0,0.35)" }}>
-                                  <button type="button" onClick={() => openEdit(sub)}
-                                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 7, border: "none", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", fontSize: 12, textAlign: "left" }}
-                                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
-                                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-                                    <Pencil style={{ width: 12, height: 12 }} /> Edit
-                                  </button>
-                                  <button type="button" onClick={() => togglePause(sub.id)}
-                                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 7, border: "none", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", fontSize: 12, textAlign: "left" }}
-                                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
-                                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-                                    {sub.is_active
-                                      ? <><Pause style={{ width: 12, height: 12 }} /> Pause</>
-                                      : <><Play  style={{ width: 12, height: 12 }} /> Resume</>
-                                    }
-                                  </button>
-                                  <div style={{ height: "0.5px", background: "var(--glass-border)", margin: "3px 8px" }} />
-                                  <button type="button" onClick={() => { setDeleteConfirmId(sub.id); setOpenMenuId(null); }}
-                                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 7, border: "none", background: "transparent", color: "#FF5A5A", cursor: "pointer", fontSize: 12, textAlign: "left" }}
-                                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,90,90,0.08)")}
-                                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-                                    <Trash2 style={{ width: 12, height: 12 }} /> Delete
-                                  </button>
-                                </div>
-                              )}
-                            </div>
+                            <button type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isMenu) { setOpenMenuId(null); setMenuPos(null); }
+                                else {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  setOpenMenuId(sub.id);
+                                  setMenuPos({ x: rect.right, y: rect.bottom + 4 });
+                                }
+                              }}
+                              style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: "rgba(255,255,255,0.05)", color: "var(--text-quaternary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <MoreHorizontal style={{ width: 13, height: 13 }} />
+                            </button>
                           )}
                         </div>
                       </div>
@@ -552,6 +536,53 @@ export default function Subscriptions() {
             : undefined
         }
       />
+
+      {/* ── Portaled context menu (escapes overflow:hidden on LiquidGlassCard) ── */}
+      {openMenuId && menuPos && (() => {
+        const sub = subs.find(s => s.id === openMenuId);
+        if (!sub) return null;
+        return createPortal(
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "fixed",
+              right: window.innerWidth - menuPos.x,
+              top: menuPos.y,
+              zIndex: 9998,
+              background: "var(--glass-bg-elevated, rgba(20,20,20,0.97))",
+              border: "0.5px solid var(--glass-border)",
+              borderRadius: 10,
+              padding: 4,
+              minWidth: 150,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+            }}
+          >
+            <button type="button" onClick={() => openEdit(sub)}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 7, border: "none", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", fontSize: 12, textAlign: "left" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+              <Pencil style={{ width: 12, height: 12 }} /> Edit
+            </button>
+            <button type="button" onClick={() => togglePause(sub.id)}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 7, border: "none", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", fontSize: 12, textAlign: "left" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+              {sub.is_active
+                ? <><Pause style={{ width: 12, height: 12 }} /> Pause</>
+                : <><Play  style={{ width: 12, height: 12 }} /> Resume</>
+              }
+            </button>
+            <div style={{ height: "0.5px", background: "var(--glass-border)", margin: "3px 8px" }} />
+            <button type="button" onClick={() => { setDeleteConfirmId(sub.id); setOpenMenuId(null); setMenuPos(null); }}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 7, border: "none", background: "transparent", color: "#FF5A5A", cursor: "pointer", fontSize: 12, textAlign: "left" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,90,90,0.08)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+              <Trash2 style={{ width: 12, height: 12 }} /> Delete
+            </button>
+          </div>,
+          document.body,
+        );
+      })()}
     </div>
     </ModuleErrorBoundary>
   );

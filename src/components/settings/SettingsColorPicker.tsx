@@ -26,7 +26,7 @@ export function SettingsColorPicker({ value, onChange }: SettingsColorPickerProp
               background: color, border: "none", cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
               boxShadow: value === color
-                ? `0 0 0 2px var(--bg-app, #fff), 0 0 0 4px ${color}`
+                ? `0 0 0 2px var(--glass-bg-elevated, #111), 0 0 0 4px ${color}`
                 : "none",
               transition: "box-shadow 0.15s",
             }}

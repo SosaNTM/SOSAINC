@@ -261,7 +261,7 @@ export default function TransactionCategories() {
   /* ── Render ───────────────────────────────────────────────────── */
 
   return (
-    <div style={{ maxWidth: 860 }}>
+    <div style={{ maxWidth: "100%" }}>
       <SettingsPageHeader
         icon={Tags}
         title="Categorie Transazioni"

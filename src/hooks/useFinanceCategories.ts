@@ -57,12 +57,14 @@ function getDefaultCategories(portalId: string): FinanceCategory[] {
 export function useFinanceCategories() {
   const { portal } = usePortal();
   const portalId = portal?.id ?? "sosa";
-  const [categories, setCategories] = useState<FinanceCategory[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<FinanceCategory[]>(() => {
+    try { const s = localStorage.getItem(storageKey(portalId)); if (s) return JSON.parse(s); } catch { /* ignore */ }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => !localStorage.getItem(storageKey(portalId)));
 
   // Fetch
   const fetchCategories = useCallback(async () => {
-    setLoading(true);
     if (isSupabaseConfigured()) {
       const { data } = await supabase
         .from("finance_transaction_categories")

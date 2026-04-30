@@ -28,6 +28,7 @@ import {
   Swords,
   Zap,
   PieChart,
+  BarChart2,
   Bitcoin,
   Gift,
   Package,
@@ -93,6 +94,7 @@ function AccordionSection({ label, icon: Icon, isActive, isOpen, onToggle, porta
 // Personal finance items (shared across ALL portals)
 const personalFinanceSubItems = [
   { title: "Dashboard",     path: "/dashboard",     icon: PieChart                       },
+  { title: "Recap",         path: "/recap",         icon: BarChart2                      },
   { title: "Transactions",  path: "/transactions",  icon: ArrowLeftRight                 },
   { title: "Budget",        path: "/costs",         icon: Wallet                         },
   { title: "Subscriptions", path: "/channels",      icon: Zap                            },
@@ -536,7 +538,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
                 <VerticalDockIcon>
                   <item.icon style={{
                     width: "100%", height: "100%", strokeWidth: 1.6,
-                    color: isActive ? "var(--portal-accent)" : "var(--sosa-white-40)",
+                    color: isActive ? "var(--portal-accent)" : "var(--sosa-yellow)",
                   }} />
                 </VerticalDockIcon>
               </VerticalDockItem>
@@ -551,12 +553,12 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
         onClick={() => { navigate(`${prefix}/settings`); onMobileClose(); }}
         title="Settings"
         style={{
-          width: 36, height: 36, borderRadius: 0, border: "1px solid var(--sosa-border)", cursor: "pointer",
-          background: "transparent", display: "flex", alignItems: "center", justifyContent: "center",
+          width: 40, height: 36, cursor: "pointer",
+          background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center",
           marginBottom: 4,
         }}
       >
-        <Settings style={{ width: 16, height: 16, color: "var(--text-quaternary)", strokeWidth: 1.6 }} />
+        <Settings style={{ width: 16, height: 16, color: "var(--sosa-yellow)", strokeWidth: 1.6 }} />
       </button>
 
       {/* Profile at bottom */}
@@ -615,7 +617,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
               onClick={() => { navigate(prefixedPath); onMobileClose(); }}
               className="flex flex-col items-center justify-center gap-0.5"
               style={{
-                color: isActive ? "var(--portal-accent)" : "var(--sosa-white-40)",
+                color: isActive ? "var(--portal-accent)" : "var(--sosa-yellow)",
                 minWidth: 44,
                 minHeight: 44,
               }}

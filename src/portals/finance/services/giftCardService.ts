@@ -53,9 +53,13 @@ function writeLocal<T>(key: string, data: T[]): void {
 const F = (domain: string) => `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
 
 const LOCAL_BRANDS: GiftCardBrand[] = [
+  // Popular payments / prepaid
+  { brand_key: "paysafecard", name: "Paysafecard", logo_url: F("paysafecard.com"), color: "#00A2E0", category: "other", default_currency: "EUR", has_expiry: true, is_popular: true },
+  { brand_key: "paypal", name: "PayPal", logo_url: F("paypal.com"), color: "#003087", category: "other", default_currency: "EUR", has_expiry: false, is_popular: true },
   // Shopping
   { brand_key: "amazon", name: "Amazon", logo_url: F("amazon.com"), color: "#FF9900", category: "shopping", default_currency: "EUR", has_expiry: false, is_popular: true },
   { brand_key: "amazon_us", name: "Amazon US", logo_url: F("amazon.com"), color: "#FF9900", category: "shopping", default_currency: "USD", has_expiry: false, is_popular: true },
+  { brand_key: "ebay", name: "eBay", logo_url: F("ebay.com"), color: "#E53238", category: "shopping", default_currency: "EUR", has_expiry: false, is_popular: false },
   { brand_key: "zalando", name: "Zalando", logo_url: F("zalando.com"), color: "#FF6900", category: "shopping", default_currency: "EUR", has_expiry: false, is_popular: true },
   { brand_key: "ikea", name: "IKEA", logo_url: F("ikea.com"), color: "#0058A3", category: "shopping", default_currency: "EUR", has_expiry: true, is_popular: true },
   { brand_key: "hm", name: "H&M", logo_url: F("hm.com"), color: "#E50010", category: "shopping", default_currency: "EUR", has_expiry: true, is_popular: true },
@@ -101,7 +105,7 @@ export async function fetchBrands(): Promise<GiftCardBrand[]> {
       .order("is_popular", { ascending: false })
       .order("name", { ascending: true });
     if (error) throw error;
-    return data || [];
+    return (data && data.length > 0) ? data : LOCAL_BRANDS;
   } catch {
     return LOCAL_BRANDS;
   }

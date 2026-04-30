@@ -98,7 +98,7 @@ export default function FilePreviewDrawer({
   const icon = getFileTypeIcon(file.type);
   const typeLabel = getFileTypeLabel(file.type);
   const folderPath = file.folderId !== "trash" ? getFolderPath(file.folderId, folders) : file.originalFolderPath || "Unknown";
-  const uploadedByUser = getUserById(file.uploadedBy || file.ownerId);
+  const uploadedByName = file.ownerName || getUserById(file.uploadedBy || file.ownerId)?.displayName || null;
   const modifiedByUser = file.lastModifiedBy ? getUserById(file.lastModifiedBy) : null;
 
   const saveTitle = () => {
@@ -407,9 +407,9 @@ export default function FilePreviewDrawer({
                 value={
                   <span className="flex items-center gap-1.5">
                     <span className="w-4 h-4 rounded-full bg-primary/15 text-primary text-[8px] font-bold flex items-center justify-center shrink-0">
-                      {uploadedByUser?.displayName?.charAt(0) || "?"}
+                      {uploadedByName?.charAt(0) || "?"}
                     </span>
-                    {uploadedByUser?.displayName || "Unknown"}
+                    {uploadedByName || "Unknown"}
                   </span>
                 }
               />

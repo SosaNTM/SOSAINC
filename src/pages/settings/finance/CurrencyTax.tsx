@@ -3,6 +3,7 @@ import { Coins, Plus, Star } from "lucide-react";
 import { toast } from "sonner";
 import { useCurrencySettings, useTaxRates } from "../../../hooks/settings";
 import type { TaxRate } from "../../../types/settings";
+import { useNumberFormat } from "@/lib/numberFormat";
 import {
   SettingsPageHeader, SettingsCard, SettingsFormField,
   SettingsTable, SettingsModal, SettingsDeleteConfirm,
@@ -29,25 +30,33 @@ const emptyTaxForm = (): TaxFormState => ({
 });
 
 export default function CurrencyTaxPage() {
+  const { setCurrency } = useNumberFormat();
+
   // Currency singleton
   const { data: currencyData, loading: currencyLoading, upsert: upsertCurrency } = useCurrencySettings();
 
   const [mainCurrency, setMainCurrency] = useState<MainCurrency>("EUR");
   const [savingCurrency, setSavingCurrency] = useState(false);
 
-  // Sync from loaded data
+  // Sync from loaded data + push into app context
   useEffect(() => {
     if (!currencyData) return;
-    setMainCurrency((currencyData.primary_currency as MainCurrency) ?? "EUR");
-  }, [currencyData]);
+    const c = (currencyData.primary_currency as MainCurrency) ?? "EUR";
+    setMainCurrency(c);
+    setCurrency(c);
+  }, [currencyData, setCurrency]);
 
   async function saveCurrencySettings() {
     setSavingCurrency(true);
     const { error } = await upsertCurrency({
       primary_currency: mainCurrency,
     });
-    if (error) { toast.error(error); }
-    else { toast.success("Impostazioni valuta salvate"); }
+    if (error) {
+      toast.error(error);
+    } else {
+      setCurrency(mainCurrency);
+      toast.success("Impostazioni valuta salvate");
+    }
     setSavingCurrency(false);
   }
 
@@ -160,7 +169,7 @@ export default function CurrencyTaxPage() {
   ];
 
   return (
-    <div style={{ maxWidth: 860 }}>
+    <div style={{ maxWidth: "100%" }}>
       <SettingsPageHeader
         icon={Coins}
         title="Valuta e Tasse"

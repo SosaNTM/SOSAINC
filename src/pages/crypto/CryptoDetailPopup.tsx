@@ -6,8 +6,9 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "rec
 import type { EnrichedHolding } from "@/portals/finance/types/crypto";
 import { fetchCoinHistory } from "@/portals/finance/services/cryptoService";
 import { formatEUR } from "@/portals/finance/utils/currency";
-import { localAdd } from "@/lib/personalTransactionStore";
 import { broadcastFinanceUpdate } from "@/lib/financeRealtime";
+import { useTransactions } from "@/hooks/useTransactions";
+import { toast } from "sonner";
 import { addAuditEntry } from "@/lib/adminStore";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
@@ -75,6 +76,7 @@ export function CryptoDetailPopup({ holding, onClose, onUpdateQuantity }: Props)
   const { user } = useAuth();
   const { portal } = usePortal();
   const portalId = portal?.id ?? "sosa";
+  const { addTransaction } = useTransactions();
 
   const [days, setDays] = useState(30);
   const [chartData, setChartData] = useState<{ date: string; price: number }[]>([]);
@@ -139,7 +141,6 @@ export function CryptoDetailPopup({ holding, onClose, onUpdateQuantity }: Props)
       const txDate = new Date().toISOString().slice(0, 10);
       const txTitle = actionTitle.trim() || (actionMode === "buy" ? `Acquisto ${holding.symbol}` : `Vendita ${holding.symbol}`);
 
-      // Save to crypto tx history
       saveTx({
         id: crypto.randomUUID(),
         coin_id: holding.coin_id,
@@ -149,7 +150,6 @@ export function CryptoDetailPopup({ holding, onClose, onUpdateQuantity }: Props)
         date: txDate,
       }, portalId);
 
-      // Audit log entry
       const eurValue = qty * holding.currentPrice;
       if (user) {
         addAuditEntry({
@@ -161,8 +161,7 @@ export function CryptoDetailPopup({ holding, onClose, onUpdateQuantity }: Props)
           portalId,
         });
 
-        // Also create a personal transaction so it shows on the Transactions page
-        localAdd({
+        await addTransaction({
           user_id: user.id,
           type: actionMode === "buy" ? "expense" : "income",
           amount: Math.round(eurValue * 100) / 100,
@@ -173,7 +172,7 @@ export function CryptoDetailPopup({ holding, onClose, onUpdateQuantity }: Props)
           payment_method: "crypto",
           is_recurring: false,
           tags: ["crypto", holding.symbol],
-        }, user.id, portalId);
+        });
         broadcastFinanceUpdate("transaction_added");
       }
 
@@ -181,6 +180,11 @@ export function CryptoDetailPopup({ holding, onClose, onUpdateQuantity }: Props)
       setActionMode(null);
       setActionQty("");
       setActionTitle("");
+      toast.success(actionMode === "buy"
+        ? `Aggiunto ${qty.toFixed(qty < 1 ? 8 : 4)} ${holding.symbol}`
+        : `Rimosso ${qty.toFixed(qty < 1 ? 8 : 4)} ${holding.symbol}`);
+    } catch (err) {
+      toast.error(`Errore: ${(err as Error).message || "impossibile aggiornare"}`);
     } finally {
       setSaving(false);
     }

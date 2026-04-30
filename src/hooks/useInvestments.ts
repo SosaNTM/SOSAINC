@@ -41,11 +41,10 @@ export function useInvestments() {
   const portalId = portal?.id ?? "sosa";
 
   const [investments, setInvestments] = useState<Investment[]>(() => loadInvestments(portalId));
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => loadInvestments(portalId).length === 0);
 
   // Initial load from Supabase; fall back to localStorage cache
   useEffect(() => {
-    setIsLoading(true);
     fetchInvestments(portalId).then((dbInvs) => {
       if (dbInvs.length > 0) {
         const mapped = dbInvs.map(dbToInvestment);

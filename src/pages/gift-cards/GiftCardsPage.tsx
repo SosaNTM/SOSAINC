@@ -14,6 +14,7 @@ import { GiftCardCodePopup } from "./GiftCardCodePopup";
 import { addAuditEntry } from "@/lib/adminStore";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
+import { useTransactions } from "@/hooks/useTransactions";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 const FILTER_LABELS: { value: GiftCardFilter; label: string }[] = [
@@ -60,6 +61,7 @@ export default function GiftCardsPage() {
   const [expiryBannerDismissed, setExpiryBannerDismissed] = useState(false);
 
   const { transactions, addTransaction, deleteTransaction, refetch: refetchTx } = useGiftCardDetail(detailCard?.id ?? null);
+  const { addTransaction: addMainTransaction } = useTransactions();
 
   // ISSUE-29: sync detailCard with fresh card data after any cards reload (e.g. after favorite toggle)
   useEffect(() => {
@@ -107,6 +109,22 @@ export default function GiftCardsPage() {
       newRemaining < detailCard.initial_value ? "partially_used" : "active"
     ) as EnrichedGiftCard["status"];
     await addTransaction(amount, description, date);
+    // Mirror to main transactions so the spend appears in Transactions page
+    if (user) {
+      const txDate = date ?? new Date().toISOString().slice(0, 10);
+      await addMainTransaction({
+        user_id: user.id,
+        type: "expense",
+        amount,
+        currency: detailCard.currency ?? "EUR",
+        category: "Gift Card",
+        description: description || `${detailCard.brand} gift card`,
+        date: txDate,
+        payment_method: "other",
+        is_recurring: false,
+        tags: ["gift-card"],
+      });
+    }
     // Explicitly update card balance + status (mirrors DB trigger for Supabase mode)
     await updateCard(detailCard.id, { remaining_value: newRemaining, status: newStatus });
     await refetch();

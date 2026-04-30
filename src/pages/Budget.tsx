@@ -34,7 +34,7 @@ const MONTH_NAMES = [
   "July","August","September","October","November","December",
 ];
 
-const fmtEurTooltip = (v: number) => `â‚¬${Number(v).toLocaleString("en-US")}`;
+const fmtEurTooltip = (v: number) => `€${Number(v).toLocaleString("en-US")}`;
 
 // â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -66,9 +66,9 @@ export default function Budget() {
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       >
         {[
-          { label: "Total Budget",  value: `â‚¬${totalBudget.toLocaleString("en-US")}`,  color: "#4A9EFF" },
-          { label: "Total Spent",  value: `â‚¬${totalSpent.toLocaleString("en-US")}`,    color: totalSpent > totalBudget ? "#FF5A5A" : "#e8ff00" },
-          { label: "Remaining",    value: `â‚¬${Math.abs(remaining).toLocaleString("en-US")}${remaining < 0 ? " -" : ""}`, color: remaining < 0 ? "#FF5A5A" : "#2ECC71" },
+          { label: "Total Budget",  value: `€${totalBudget.toLocaleString("en-US")}`,  color: "#4A9EFF" },
+          { label: "Total Spent",  value: `€${totalSpent.toLocaleString("en-US")}`,    color: totalSpent > totalBudget ? "#FF5A5A" : "#e8ff00" },
+          { label: "Remaining",    value: `€${Math.abs(remaining).toLocaleString("en-US")}${remaining < 0 ? " -" : ""}`, color: remaining < 0 ? "#FF5A5A" : "#2ECC71" },
         ].map((s) => (
           <div key={s.label} style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: "14px 18px" }}>
             <p style={{ fontSize: 11, color: "var(--text-quaternary)", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" }}>{s.label}</p>
@@ -167,8 +167,8 @@ export default function Budget() {
                       </div>
                       <div className="flex items-center gap-3">
                         <span style={{ fontSize: 12, fontWeight: 700, color: over ? "#FF5A5A" : "var(--text-primary)" }}>
-                          â‚¬{cat.spent.toLocaleString("en-US")}
-                          <span style={{ fontSize: 10, color: "var(--text-quaternary)", fontWeight: 400 }}> / â‚¬{cat.budget.toLocaleString("en-US")}</span>
+                          €{cat.spent.toLocaleString("en-US")}
+                          <span style={{ fontSize: 10, color: "var(--text-quaternary)", fontWeight: 400 }}> / €{cat.budget.toLocaleString("en-US")}</span>
                         </span>
                         <span style={{ fontSize: 11, fontWeight: 700, minWidth: 36, textAlign: "right", color: over ? "#FF5A5A" : cat.color }}>
                           {pct}%
@@ -246,7 +246,7 @@ export default function Budget() {
                             <span style={{ width: 8, height: 8, borderRadius: 2, background: cat.color, display: "inline-block", flexShrink: 0 }} />
                             <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>{cat.name}</span>
                           </div>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>â‚¬{cat.spent.toLocaleString("en-US")}</span>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>€{cat.spent.toLocaleString("en-US")}</span>
                         </div>
                       ))}
                     </div>

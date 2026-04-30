@@ -8,20 +8,34 @@ import {
   deleteHolding as apiDeleteHolding,
 } from "../services/cryptoService";
 
+const cacheKey = (portalId: string) => `swr_crypto_holdings_${portalId}`;
+
+function readCache(portalId: string): CryptoHolding[] | null {
+  try {
+    const raw = localStorage.getItem(cacheKey(portalId));
+    return raw ? (JSON.parse(raw) as CryptoHolding[]) : null;
+  } catch { return null; }
+}
+
+function writeCache(portalId: string, data: CryptoHolding[]): void {
+  try { localStorage.setItem(cacheKey(portalId), JSON.stringify(data)); } catch { }
+}
+
 export function useCryptoHoldings() {
   const { portal } = usePortal();
   const portalId = portal?.id ?? "sosa";
 
-  const [holdings, setHoldings] = useState<CryptoHolding[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [holdings, setHoldings] = useState<CryptoHolding[]>(() => readCache(portalId) ?? []);
+  const [isLoading, setIsLoading] = useState(() => readCache(portalId) === null);
   const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(async () => {
+    if (readCache(portalId) === null) setIsLoading(true);
     try {
-      setIsLoading(true);
       setError(null);
       const data = await fetchHoldings(portalId);
       setHoldings(data);
+      writeCache(portalId, data);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -29,7 +43,7 @@ export function useCryptoHoldings() {
     }
   }, [portalId]);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => { void refetch(); }, [refetch]);
 
   const addHolding = useCallback(
     async (data: {

@@ -1159,6 +1159,7 @@ const CloudPage = () => {
       return {
         id: `cf_${Date.now()}_${i}`, name, folderId: targetFolderId,
         size: Math.floor(Math.random() * 5000000) + 100000, type, ownerId: userId,
+        ownerName: user?.displayName || user?.email || userId,
         modifiedAt: new Date(), createdAt: new Date(), isDeleted: false,
         deletedAt: null, deletedBy: null, originalFolderId: null,
         originalFolderPath: null, permanentDeleteAt: null,

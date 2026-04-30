@@ -212,7 +212,7 @@ export function NewGoalModal({ open, onClose, onSave, initialData, netWorth }: N
             <div>
               <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: "var(--text-quaternary)", textTransform: "uppercase", marginBottom: 2 }}>Your Current Net Worth</p>
               <p style={{ fontSize: 20, fontWeight: 700, color: "#22c55e", letterSpacing: "-0.5px" }}>
-                â‚¬{netWorth.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                €{netWorth.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
               </p>
             </div>
             {target > 0 && (
@@ -239,7 +239,7 @@ export function NewGoalModal({ open, onClose, onSave, initialData, netWorth }: N
 
           {/* Target Amount */}
           <div>
-            <label style={labelStyle}>Target Amount â‚¬ *</label>
+            <label style={labelStyle}>Target Amount € *</label>
             <input
               type="number" min="0" max="999999999" step="0.01" placeholder="0.00"
               value={form.target}
@@ -259,7 +259,7 @@ export function NewGoalModal({ open, onClose, onSave, initialData, netWorth }: N
                 type="date"
                 value={form.deadline}
                 onChange={e => set("deadline", e.target.value)}
-                style={{ ...inputStyle, colorScheme: "light" }}
+                style={{ ...inputStyle, colorScheme: "dark" }}
                 onFocus={e => (e.target.style.borderColor = GOLD)}
                 onBlur={e => (e.target.style.borderColor = "var(--sosa-border)")}
               />
@@ -269,7 +269,7 @@ export function NewGoalModal({ open, onClose, onSave, initialData, netWorth }: N
               <select
                 value={form.category}
                 onChange={e => set("category", e.target.value)}
-                style={{ ...inputStyle, cursor: "pointer", colorScheme: "light" }}
+                style={{ ...inputStyle, cursor: "pointer", colorScheme: "dark" }}
                 onFocus={e => (e.target.style.borderColor = GOLD)}
                 onBlur={e => (e.target.style.borderColor = "var(--sosa-border)")}
               >
@@ -300,7 +300,7 @@ export function NewGoalModal({ open, onClose, onSave, initialData, netWorth }: N
           <button
             type="button" onClick={onClose}
             style={{
-              padding: "10px 20px", borderRadius: 8, border: "1px solid #e5e7eb",
+              padding: "10px 20px", borderRadius: 8, border: "1px solid var(--sosa-border)",
               background: "transparent", color: "var(--text-quaternary)", fontSize: 13,
               cursor: "pointer", fontWeight: 500, transition: "all 0.15s",
             }}

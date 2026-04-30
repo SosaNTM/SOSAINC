@@ -9,23 +9,21 @@ import {
   SettingsColorPicker,
 } from "@/components/settings";
 
-type BillingCycle = "monthly" | "quarterly" | "semiannual" | "annual";
-
-const CYCLE_LABELS: Record<string, string> = {
-  monthly: "Mensile",
-  quarterly: "Trimestrale",
-  semiannual: "Semestrale",
-  annual: "Annuale",
-};
+const ICON_OPTIONS = [
+  "🎬","🎵","☁️","🎨","🤖","🏋️","🔒","🦜","✨","📰",
+  "📺","🎮","🛍️","📱","💼","🏠","🚀","💊","📚","🌐",
+  "🍔","🚗","✈️","🎓","💡","🔑","🎯","💰","🧠","🎧",
+  "📋","⚡","🔥","💎","🌟","🎁","🏆","📊","🔔","🛡️",
+];
 
 interface FormState {
   name: string;
+  icon: string;
   color: string;
-  defaultCycle: BillingCycle;
 }
 
 const emptyForm = (): FormState => ({
-  name: "", color: "#3b82f6", defaultCycle: "monthly",
+  name: "", icon: "📋", color: "#3b82f6",
 });
 
 export default function SubscriptionCategoriesPage() {
@@ -50,11 +48,7 @@ export default function SubscriptionCategoriesPage() {
 
   function openEdit(cat: SubscriptionCategory) {
     setEditingId(cat.id);
-    setForm({
-      name: cat.name,
-      color: cat.color,
-      defaultCycle: cat.billing_cycle as BillingCycle,
-    });
+    setForm({ name: cat.name, icon: cat.icon || "📋", color: cat.color });
     setErrors({});
     setModalOpen(true);
   }
@@ -64,25 +58,21 @@ export default function SubscriptionCategoriesPage() {
     if (!form.name.trim()) errs.name = "Campo obbligatorio";
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setSaving(true);
-    const payload = {
-      name: form.name,
-      color: form.color,
-      billing_cycle: form.defaultCycle,
-    };
+    const payload = { name: form.name.trim(), icon: form.icon, color: form.color };
     if (editingId) {
       const { error } = await update(editingId, payload);
-      if (error) { toast.error(error); }
-      else { toast.success("Categoria aggiornata"); }
+      if (error) toast.error(error);
+      else toast.success("Categoria aggiornata");
     } else {
       const { error } = await create({
         ...payload,
-        icon: "RefreshCw",
+        billing_cycle: "monthly",
         reminder_days: 3,
         is_active: true,
         sort_order: categories.length,
       });
-      if (error) { toast.error(error); }
-      else { toast.success("Categoria creata"); }
+      if (error) toast.error(error);
+      else toast.success("Categoria creata");
     }
     setSaving(false);
     setModalOpen(false);
@@ -92,8 +82,8 @@ export default function SubscriptionCategoriesPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     const { error } = await remove(deleteTarget.id);
-    if (error) { toast.error(error); }
-    else { toast.success("Categoria eliminata"); }
+    if (error) toast.error(error);
+    else toast.success("Categoria eliminata");
     setDeleting(false);
     setDeleteTarget(null);
   }
@@ -103,7 +93,10 @@ export default function SubscriptionCategoriesPage() {
       key: "name",
       label: "Nome",
       render: (item: SubscriptionCategory) => (
-        <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{item.name}</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 16 }}>{item.icon || "📋"}</span>
+          <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{item.name}</span>
+        </span>
       ),
     },
     {
@@ -111,31 +104,13 @@ export default function SubscriptionCategoriesPage() {
       label: "Colore",
       width: "80px",
       render: (item: SubscriptionCategory) => (
-        <div style={{
-          width: 12, height: 12, borderRadius: "50%",
-          background: item.color,
-        }} />
-      ),
-    },
-    {
-      key: "billing_cycle",
-      label: "Ciclo Default",
-      width: "140px",
-      render: (item: SubscriptionCategory) => (
-        <span style={{
-          fontSize: 12, padding: "3px 10px", borderRadius: 9999,
-          background: "var(--accent-primary-soft)",
-          color: "var(--accent-primary)", fontWeight: 500,
-          fontFamily: "var(--font-body)",
-        }}>
-          {CYCLE_LABELS[item.billing_cycle] ?? item.billing_cycle}
-        </span>
+        <div style={{ width: 12, height: 12, borderRadius: "50%", background: item.color }} />
       ),
     },
   ];
 
   return (
-    <div style={{ maxWidth: 860 }}>
+    <div style={{ maxWidth: "100%" }}>
       <SettingsPageHeader
         icon={RefreshCw}
         title="Categorie Abbonamenti"
@@ -172,24 +147,51 @@ export default function SubscriptionCategoriesPage() {
           />
         </SettingsFormField>
 
+        <SettingsFormField label="Icona">
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(10, 1fr)",
+            gap: 6,
+            padding: "10px",
+            background: "var(--glass-bg, rgba(255,255,255,0.03))",
+            border: "1px solid var(--glass-border, rgba(255,255,255,0.08))",
+            borderRadius: 10,
+          }}>
+            {ICON_OPTIONS.map((em) => (
+              <button
+                key={em}
+                type="button"
+                onClick={() => setForm((f) => ({ ...f, icon: em }))}
+                style={{
+                  width: 34, height: 34, borderRadius: 8,
+                  border: form.icon === em
+                    ? "2px solid var(--accent-primary, #3b82f6)"
+                    : "2px solid transparent",
+                  background: form.icon === em
+                    ? "var(--accent-primary-soft, rgba(59,130,246,0.15))"
+                    : "transparent",
+                  cursor: "pointer", fontSize: 18,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "background 0.1s, border-color 0.1s",
+                }}
+                onMouseEnter={(e) => {
+                  if (form.icon !== em) e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+                }}
+                onMouseLeave={(e) => {
+                  if (form.icon !== em) e.currentTarget.style.background = "transparent";
+                }}
+              >
+                {em}
+              </button>
+            ))}
+          </div>
+        </SettingsFormField>
+
         <SettingsFormField label="Colore">
           <SettingsColorPicker
             value={form.color}
             onChange={(color) => setForm((f) => ({ ...f, color }))}
           />
-        </SettingsFormField>
-
-        <SettingsFormField label="Ciclo Default">
-          <select
-            className="glass-input"
-            value={form.defaultCycle}
-            onChange={(e) => setForm((f) => ({ ...f, defaultCycle: e.target.value as BillingCycle }))}
-          >
-            <option value="monthly">Mensile</option>
-            <option value="quarterly">Trimestrale</option>
-            <option value="semiannual">Semestrale</option>
-            <option value="annual">Annuale</option>
-          </select>
         </SettingsFormField>
       </SettingsModal>
 

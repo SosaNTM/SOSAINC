@@ -24,7 +24,7 @@ import { addAuditEntry } from "@/lib/adminStore";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
 import { GlassTooltip } from "@/components/ui/GlassTooltip";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Coins } from "lucide-react";
 
@@ -122,16 +122,10 @@ export default function CryptoPage() {
     addHolding, updateHolding, deleteHolding,
   } = useCryptoPortfolio();
 
-  const { toast } = useToast();
-
-  // Show a destructive toast when crypto prices become stale
+  // Show a toast when crypto prices become stale
   useEffect(() => {
     if (isPriceStale) {
-      toast({
-        title: "Crypto prices may be outdated",
-        description: "Unable to refresh live prices. Values shown may not be current.",
-        variant: "destructive",
-      });
+      toast.error("Prezzi crypto non aggiornati — impossibile contattare CoinGecko.");
     }
   }, [isPriceStale]);
 

@@ -144,7 +144,7 @@ export default function PortalProfile() {
   }
 
   return (
-    <div style={{ maxWidth: 860 }}>
+    <div style={{ width: "100%" }}>
       <SettingsPageHeader
         icon={Building2}
         title="Profilo Portale"
@@ -181,6 +181,16 @@ export default function PortalProfile() {
             />
           </SettingsFormField>
 
+          <SettingsFormField label="Telefono">
+            <input
+              className="glass-input"
+              type="tel"
+              value={form.phone}
+              onChange={(e) => set("phone", e.target.value)}
+              placeholder="+39 02 1234567"
+            />
+          </SettingsFormField>
+
           <div style={{ gridColumn: "1 / -1" }}>
             <SettingsFormField label="Indirizzo">
               <input
@@ -192,16 +202,24 @@ export default function PortalProfile() {
             </SettingsFormField>
           </div>
 
-          <div style={{ gridColumn: "1 / -1" }}>
-            <SettingsFormField label="Indirizzo 2" description="Interno, piano, scala (opzionale)">
-              <input
-                className="glass-input"
-                value={form.address_line2}
-                onChange={(e) => set("address_line2", e.target.value)}
-                placeholder="Es. Interno 3, Piano 2"
-              />
-            </SettingsFormField>
-          </div>
+          <SettingsFormField label="Indirizzo 2" description="Interno, piano, scala (opzionale)">
+            <input
+              className="glass-input"
+              value={form.address_line2}
+              onChange={(e) => set("address_line2", e.target.value)}
+              placeholder="Es. Interno 3, Piano 2"
+            />
+          </SettingsFormField>
+
+          <SettingsFormField label="Sito Web">
+            <input
+              className="glass-input"
+              type="url"
+              value={form.website}
+              onChange={(e) => set("website", e.target.value)}
+              placeholder="https://www.esempio.it"
+            />
+          </SettingsFormField>
 
           <SettingsFormField label="Città">
             <input
@@ -243,28 +261,6 @@ export default function PortalProfile() {
               ))}
             </select>
           </SettingsFormField>
-
-          <SettingsFormField label="Telefono">
-            <input
-              className="glass-input"
-              type="tel"
-              value={form.phone}
-              onChange={(e) => set("phone", e.target.value)}
-              placeholder="+39 02 1234567"
-            />
-          </SettingsFormField>
-
-          <div style={{ gridColumn: "1 / -1" }}>
-            <SettingsFormField label="Sito Web">
-              <input
-                className="glass-input"
-                type="url"
-                value={form.website}
-                onChange={(e) => set("website", e.target.value)}
-                placeholder="https://www.esempio.it"
-              />
-            </SettingsFormField>
-          </div>
         </div>
       </SettingsCard>
 

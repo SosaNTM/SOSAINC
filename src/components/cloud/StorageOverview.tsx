@@ -297,34 +297,39 @@ export default function StorageOverview({
   const drillDownSize = folderDrillDown ? byFolder.find((f) => f.folderId === folderDrillDown)?.size || 0 : 0;
   const activeTypeData = activeType ? donutData.find((d) => d.name === activeType) : null;
 
+  const monoSm = { fontFamily: "var(--font-mono)", fontSize: 10 } as const;
+  const monoXs = { fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase" as const };
+
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflowY: "auto", background: "var(--sosa-bg)" }}>
       {/* ── HEADER ── */}
-      <div className="px-6 pt-6 pb-4 border-b border-border shrink-0">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <HardDrive className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-bold text-foreground">Storage Overview</h2>
+      <div style={{ padding: "20px 24px 14px", borderBottom: "1px solid var(--sosa-border)", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <HardDrive style={{ width: 13, height: 13, color: "var(--sosa-yellow)" }} />
+            <span style={{ ...monoXs, fontWeight: 700, color: "var(--text-primary)" }}>Storage Overview</span>
           </div>
-          <span className="text-sm font-semibold text-muted-foreground">
+          <span style={{ ...monoSm, color: "var(--text-tertiary)" }}>
             {formatFileSize(totalUsed)} / {TOTAL_STORAGE_GB} GB
           </span>
         </div>
-        <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-500 ${barColor}`}
-            style={{ width: `${Math.min(usedPercent, 100)}%` }}
-          />
+        <div style={{ height: 2, background: "var(--sosa-border)", position: "relative" }}>
+          <div style={{
+            position: "absolute", top: 0, left: 0, height: "100%",
+            width: `${Math.min(usedPercent, 100)}%`,
+            background: usedPercent > 85 ? "#ef4444" : usedPercent > 70 ? "#f59e0b" : "var(--sosa-yellow)",
+            transition: "width 0.5s",
+          }} />
         </div>
-        <p className="text-[11px] text-muted-foreground mt-1.5">{usedPercent.toFixed(1)}% used</p>
+        <p style={{ ...monoXs, color: "var(--text-tertiary)", marginTop: 6 }}>{usedPercent.toFixed(1)}% used</p>
       </div>
 
       {/* ── ANALYTICS CARDS ── */}
-      <div className={`grid gap-4 p-6 ${isMobile ? "grid-cols-1" : "grid-cols-2"}`}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, padding: 16 }}>
         {/* Usage by File Type - Donut */}
-        <div className="rounded-xl border border-border bg-card p-5">
-          <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-4">Usage by File Type</h3>
-          <div className="flex flex-col items-center gap-4">
+        <div style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", padding: "16px 16px 12px" }}>
+          <p style={{ ...monoXs, color: "var(--text-tertiary)", fontWeight: 700, marginBottom: 16 }}>Usage by File Type</p>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
             <div className="relative" style={{ width: 180, height: 180 }}>
               <ResponsiveContainer width="100%" height="100%" style={{ outline: "none" }}>
                 <PieChart style={{ outline: "none" }}>
@@ -352,56 +357,44 @@ export default function StorageOverview({
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
-              {/* Click effects overlay */}
               {clickEffect?.active && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  {/* Ripple ring */}
-                  <div
-                    className="absolute rounded-full border-2 animate-[ripple-ring_0.5s_ease-out_forwards]"
-                    style={{ borderColor: clickEffect.color }}
-                  />
-                  {/* Glow flash */}
-                  <div
-                    className="absolute w-24 h-24 rounded-full animate-[glow-flash_0.4s_ease-out_forwards]"
-                    style={{ background: `radial-gradient(circle, ${clickEffect.color}40 0%, transparent 70%)` }}
-                  />
+                  <div className="absolute rounded-full border-2 animate-[ripple-ring_0.5s_ease-out_forwards]" style={{ borderColor: clickEffect.color }} />
+                  <div className="absolute w-24 h-24 animate-[glow-flash_0.4s_ease-out_forwards]" style={{ background: `radial-gradient(circle, ${clickEffect.color}40 0%, transparent 70%)` }} />
                 </div>
               )}
-              {/* Center text */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className={`text-center transition-all duration-200 ${centerBounce ? "animate-[center-bounce_0.35s_cubic-bezier(0.34,1.56,0.64,1)]" : ""}`}>
-                  <div className="text-base font-bold text-foreground">
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
                     {hoveredTypeData ? formatFileSize(hoveredTypeData.value) : activeTypeData ? formatFileSize(activeTypeData.value) : formatFileSize(totalUsed)}
                   </div>
-                  <div className="text-[10px] text-muted-foreground capitalize">
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
                     {hoveredTypeData ? hoveredTypeData.label : activeTypeData ? activeTypeData.label : "Total"}
                   </div>
                 </div>
               </div>
             </div>
             {/* Legend */}
-            <div className="w-full flex flex-col gap-0.5">
+            <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 1 }}>
               {donutData.map((t) => {
-                const isDimmed =
-                  (hoveredType && hoveredType !== t.name && !activeType) ||
-                  (activeType && activeType !== t.name);
+                const isDimmed = (hoveredType && hoveredType !== t.name && !activeType) || (activeType && activeType !== t.name);
                 return (
                   <div
                     key={t.name}
-                    className={`flex items-center gap-2 py-1.5 px-2 rounded-md cursor-pointer transition-all duration-200 ${
-                      activeType === t.name ? "bg-accent/10" : ""
-                    } ${isDimmed ? "opacity-40" : "opacity-100"}`}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8, padding: "6px 8px",
+                      cursor: "pointer", opacity: isDimmed ? 0.35 : 1, transition: "opacity 0.2s",
+                      background: activeType === t.name ? "rgba(255,255,255,0.04)" : "transparent",
+                      borderLeft: activeType === t.name ? `2px solid ${t.color}` : "2px solid transparent",
+                    }}
                     onMouseEnter={() => setHoveredType(t.name)}
                     onMouseLeave={() => setHoveredType(null)}
-                    onClick={() => {
-                      const idx = donutData.findIndex((d) => d.name === t.name);
-                      if (idx >= 0) handleSliceClick(idx);
-                    }}
+                    onClick={() => { const idx = donutData.findIndex((d) => d.name === t.name); if (idx >= 0) handleSliceClick(idx); }}
                   >
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: t.color }} />
-                    <span className="flex-1 text-[13px] text-muted-foreground">{t.icon} {t.label}</span>
-                    <span className="text-[13px] font-semibold text-foreground tabular-nums">{formatFileSize(t.value)}</span>
-                    <span className="text-[13px] text-muted-foreground/60 w-9 text-right tabular-nums">{t.percentage}%</span>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: t.color, flexShrink: 0 }} />
+                    <span style={{ ...monoSm, color: "var(--text-tertiary)", flex: 1 }}>{t.icon} {t.label}</span>
+                    <span style={{ ...monoSm, fontWeight: 700, color: "var(--text-primary)" }}>{formatFileSize(t.value)}</span>
+                    <span style={{ ...monoSm, color: "var(--text-tertiary)", width: 32, textAlign: "right" }}>{t.percentage}%</span>
                   </div>
                 );
               })}
@@ -410,9 +403,12 @@ export default function StorageOverview({
         </div>
 
         {/* Top Folders by Size */}
-        <div className="rounded-xl border border-border bg-card p-5">
-          <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-4">Top Folders by Size</h3>
-          <div className="flex flex-col gap-1">
+        <div style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", padding: "16px 16px 12px" }}>
+          <p style={{ ...monoXs, color: "var(--text-tertiary)", fontWeight: 700, marginBottom: 16 }}>Top Folders by Size</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {byFolder.length === 0 && (
+              <p style={{ ...monoSm, color: "var(--text-tertiary)", textAlign: "center", padding: "24px 0" }}>No folders with files</p>
+            )}
             {byFolder.map((f) => {
               const isActive = folderDrillDown === f.folderId;
               const isDimmed = hoveredFolder && hoveredFolder !== f.folderId && !folderDrillDown;
@@ -422,24 +418,23 @@ export default function StorageOverview({
                   onClick={() => setFolderDrillDown(folderDrillDown === f.folderId ? null : f.folderId)}
                   onMouseEnter={() => setHoveredFolder(f.folderId)}
                   onMouseLeave={() => setHoveredFolder(null)}
-                  className={`p-2 rounded-lg text-left transition-all duration-200 cursor-pointer ${
-                    isActive ? "bg-primary/10 border-l-[3px] border-primary pl-3" : "hover:bg-muted/50"
-                  } ${isDimmed ? "opacity-40" : "opacity-100"}`}
+                  style={{
+                    padding: "8px", textAlign: "left", background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
+                    borderLeft: isActive ? "2px solid var(--sosa-yellow)" : "2px solid transparent",
+                    opacity: isDimmed ? 0.4 : 1, cursor: "pointer", transition: "opacity 0.2s, background 0.15s", border: "none",
+                  }}
                 >
-                  <div className="flex items-center justify-between text-[13px] mb-1">
-                    <span className="flex items-center gap-1.5">
-                      <FolderIcon className="w-3.5 h-3.5 text-primary" />
-                      <span className="text-foreground font-medium">{f.folderName}</span>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <FolderIcon style={{ width: 12, height: 12, color: isActive ? "var(--sosa-yellow)" : "var(--text-tertiary)" }} />
+                      <span style={{ ...monoSm, fontWeight: 600, color: isActive ? "var(--text-primary)" : "var(--text-secondary)" }}>{f.folderName}</span>
                     </span>
-                    <span className="text-muted-foreground tabular-nums">{formatFileSize(f.size)}</span>
+                    <span style={{ ...monoSm, color: "var(--text-tertiary)" }}>{formatFileSize(f.size)}</span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-400 ${isActive ? "bg-primary" : "bg-primary/70"}`}
-                      style={{ width: `${f.percentage}%` }}
-                    />
+                  <div style={{ height: 2, background: "var(--sosa-border)", position: "relative" }}>
+                    <div style={{ position: "absolute", top: 0, left: 0, height: "100%", width: `${f.percentage}%`, background: isActive ? "var(--sosa-yellow)" : "var(--text-tertiary)", transition: "width 0.4s" }} />
                   </div>
-                  <span className="text-[10px] text-muted-foreground/60">{f.percentage}%</span>
+                  <span style={{ ...monoXs, color: "var(--text-tertiary)", marginTop: 4, display: "block" }}>{f.percentage}%</span>
                 </button>
               );
             })}
@@ -449,21 +444,21 @@ export default function StorageOverview({
 
       {/* ── DRILL-DOWN FILTER BADGES ── */}
       {(folderDrillDown || activeType) && (
-        <div className="px-6 pb-2 flex items-center gap-2 flex-wrap">
+        <div style={{ padding: "0 16px 8px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           {folderDrillDown && drillDownFolder && (
-            <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium animate-fade-in">
-              <FolderIcon className="w-3 h-3" />
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, ...monoSm, padding: "3px 10px", background: "rgba(212,255,0,0.08)", color: "var(--sosa-yellow)", border: "1px solid rgba(212,255,0,0.2)" }}>
+              <FolderIcon style={{ width: 11, height: 11 }} />
               {drillDownFolder.name} ({formatFileSize(drillDownSize)})
-              <button type="button" onClick={() => setFolderDrillDown(null)} className="ml-1 hover:text-primary/70">
-                <X className="w-3 h-3" />
+              <button type="button" onClick={() => setFolderDrillDown(null)} style={{ marginLeft: 4, background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0 }}>
+                <X style={{ width: 11, height: 11 }} />
               </button>
             </span>
           )}
           {activeType && activeTypeData && (
-            <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-accent/10 text-accent-foreground font-medium animate-fade-in border border-accent/20">
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, ...monoSm, padding: "3px 10px", background: "rgba(255,255,255,0.05)", color: "var(--text-secondary)", border: "1px solid var(--sosa-border)" }}>
               {activeTypeData.icon} {activeTypeData.label} ({formatFileSize(activeTypeData.value)} · {activeTypeData.count} files)
-              <button type="button" onClick={() => setActiveType(null)} className="ml-1 hover:text-foreground">
-                <X className="w-3 h-3" />
+              <button type="button" onClick={() => setActiveType(null)} style={{ marginLeft: 4, background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0 }}>
+                <X style={{ width: 11, height: 11 }} />
               </button>
             </span>
           )}
@@ -471,21 +466,24 @@ export default function StorageOverview({
       )}
 
       {/* ── LARGEST ITEMS HEADER ── */}
-      <div className="px-6 pt-2 pb-1">
-        <h3 className="text-sm font-bold text-foreground">Largest Items</h3>
+      <div style={{ padding: "4px 16px 2px", borderTop: "1px solid var(--sosa-border)" }}>
+        <p style={{ ...monoXs, color: "var(--text-tertiary)", fontWeight: 700, padding: "8px 0 4px" }}>Largest Items</p>
       </div>
 
       {/* ── FILTER BAR ── */}
-      <div className="flex items-center gap-3 px-6 py-3 flex-wrap">
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", flexWrap: "wrap", borderBottom: "1px solid var(--sosa-border)" }}>
         {/* View toggle */}
-        <div className="flex rounded-lg bg-muted p-0.5">
-          {(["all", "files", "folders"] as ViewFilter[]).map((v) => (
+        <div style={{ display: "flex", border: "1px solid var(--sosa-border)" }}>
+          {(["all", "files", "folders"] as ViewFilter[]).map((v, i) => (
             <button type="button"
               key={v}
               onClick={() => setViewFilter(v)}
-              className={`px-3 py-1 rounded-md text-[12px] font-medium transition-colors capitalize ${
-                viewFilter === v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
-              }`}
+              style={{
+                ...monoSm, fontWeight: 600, textTransform: "capitalize", padding: "4px 10px",
+                background: viewFilter === v ? "var(--sosa-yellow)" : "transparent",
+                color: viewFilter === v ? "#000" : "var(--text-tertiary)",
+                border: "none", borderLeft: i > 0 ? "1px solid var(--sosa-border)" : "none", cursor: "pointer",
+              }}
             >
               {v}
             </button>
@@ -493,11 +491,11 @@ export default function StorageOverview({
         </div>
 
         {/* Type dropdown */}
-        <div className="relative">
+        <div style={{ position: "relative" }}>
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value as FileCategory)}
-            className="text-[12px] pl-2 pr-6 py-1.5 rounded-lg border border-input bg-background appearance-none cursor-pointer"
+            style={{ ...monoSm, padding: "4px 22px 4px 8px", background: "var(--sosa-bg-2)", color: "var(--text-tertiary)", border: "1px solid var(--sosa-border)", borderRadius: 0, appearance: "none", cursor: "pointer" }}
           >
             <option value="all">All Types</option>
             <option value="video">Videos</option>
@@ -507,26 +505,27 @@ export default function StorageOverview({
             <option value="document">Documents</option>
             <option value="other">Other</option>
           </select>
-          <ChevronDown className="w-3 h-3 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" />
+          <ChevronDown style={{ width: 11, height: 11, position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: "var(--text-tertiary)" }} />
         </div>
 
         {/* Search */}
-        <div className="relative flex-1 min-w-[120px] max-w-[220px]">
-          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <div style={{ position: "relative", flex: 1, minWidth: 120, maxWidth: 220 }}>
+          <Search style={{ width: 11, height: 11, position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "var(--text-tertiary)" }} />
           <input
+            autoComplete="off"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search..."
-            className="w-full text-[12px] pl-8 pr-3 py-1.5 rounded-lg border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+            style={{ ...monoSm, width: "100%", padding: "4px 8px 4px 26px", background: "var(--sosa-bg-2)", color: "var(--text-primary)", border: "1px solid var(--sosa-border)", borderRadius: 0, outline: "none" }}
           />
         </div>
 
         {/* Sort */}
-        <div className="relative ml-auto">
+        <div style={{ position: "relative", marginLeft: "auto" }}>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="text-[12px] pl-2 pr-6 py-1.5 rounded-lg border border-input bg-background appearance-none cursor-pointer"
+            style={{ ...monoSm, padding: "4px 22px 4px 8px", background: "var(--sosa-bg-2)", color: "var(--text-tertiary)", border: "1px solid var(--sosa-border)", borderRadius: 0, appearance: "none", cursor: "pointer" }}
           >
             <option value="size_desc">Size ↓</option>
             <option value="size_asc">Size ↑</option>
@@ -534,52 +533,47 @@ export default function StorageOverview({
             <option value="name_desc">Name Z-A</option>
             <option value="date">Last modified</option>
           </select>
-          <ChevronDown className="w-3 h-3 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground" />
+          <ChevronDown style={{ width: 11, height: 11, position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: "var(--text-tertiary)" }} />
         </div>
       </div>
 
       {/* ── ITEMS TABLE ── */}
-      <div className="flex-1 px-6 overflow-x-auto">
+      <div style={{ flex: 1, padding: "0 16px", overflowX: "auto" }}>
         {filteredItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
-            <FolderIcon className="w-10 h-10 opacity-30" />
-            <p className="text-sm">
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: "48px 0" }}>
+            <FolderIcon style={{ width: 32, height: 32, color: "var(--text-tertiary)", opacity: 0.3 }} />
+            <p style={{ ...monoSm, color: "var(--text-tertiary)" }}>
               {activeFiles.length === 0 ? "No files in your Cloud yet" : "No files match your filters"}
             </p>
             {activeFiles.length === 0 && (
               <button type="button"
                 onClick={() => onOpenUpload?.()}
-                className="flex items-center gap-1.5 text-xs px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                style={{ display: "flex", alignItems: "center", gap: 6, ...monoSm, fontWeight: 700, padding: "6px 16px", background: "var(--portal-accent)", color: "#000", border: "none", borderRadius: 0, cursor: "pointer" }}
               >
-                <Upload className="w-3.5 h-3.5" /> Upload Files
+                <Upload style={{ width: 12, height: 12 }} /> Upload ↑
               </button>
             )}
           </div>
         ) : (
-          <table className="w-full min-w-[700px] text-[13px]">
+          <table style={{ width: "100%", minWidth: 700, fontSize: 12, borderCollapse: "collapse" }}>
             <thead>
-              <tr className="border-b border-border">
-                <th className="w-10 p-2.5 text-left">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.size === visibleItems.length && visibleItems.length > 0}
-                    onChange={toggleSelectAll}
-                    className="rounded"
-                  />
+              <tr style={{ borderBottom: "1px solid var(--sosa-border)" }}>
+                <th style={{ width: 32, padding: "8px 10px", textAlign: "left" }}>
+                  <input type="checkbox" checked={selectedIds.size === visibleItems.length && visibleItems.length > 0} onChange={toggleSelectAll} />
                 </th>
-                <th className="w-10 p-2.5" />
-                <th className="p-2.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Name</th>
-                <th className="w-[100px] p-2.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Size</th>
-                <th className="w-[140px] p-2.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Location</th>
-                <th className="w-[110px] p-2.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Modified</th>
-                <th className="w-[90px] p-2.5 text-left text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Owner</th>
-                <th className="w-10 p-2.5" />
+                <th style={{ width: 32, padding: "8px 0" }} />
+                {(["NAME", "SIZE", "LOCATION", "MODIFIED", "OWNER"] as const).map((h, i) => (
+                  <th key={h} style={{ ...monoXs, padding: "8px 10px", textAlign: "left", color: "var(--text-tertiary)", fontWeight: 700, width: i === 0 ? undefined : [100, 140, 110, 90][i - 1] }}>
+                    {h}
+                  </th>
+                ))}
+                <th style={{ width: 32, padding: "8px 10px" }} />
               </tr>
             </thead>
             <tbody>
               {visibleItems.map((file) => {
                 const icon = getFileTypeIcon(file.type);
-                const owner = getUserById(file.ownerId);
+                const ownerName = file.ownerName || getUserById(file.ownerId)?.displayName || null;
                 const folderPath = getFolderPath(file.folderId, folders);
                 const isSelected = selectedIds.has(file.id);
 
@@ -587,46 +581,41 @@ export default function StorageOverview({
                   <tr
                     key={file.id}
                     onClick={() => onPreviewFile(file)}
-                    className={`border-b border-border/50 cursor-pointer transition-colors ${
-                      isSelected ? "bg-primary/5" : "hover:bg-muted/50"
-                    }`}
+                    style={{
+                      borderBottom: "1px solid var(--sosa-border)", cursor: "pointer",
+                      background: isSelected ? "rgba(212,255,0,0.04)" : "transparent",
+                    }}
+                    onMouseEnter={(e) => { if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = "rgba(255,255,255,0.02)"; }}
+                    onMouseLeave={(e) => { if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}
                   >
-                    <td className="p-2.5" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleSelect(file.id)}
-                        className="rounded"
-                      />
+                    <td style={{ padding: "8px 10px" }} onClick={(e) => e.stopPropagation()}>
+                      <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(file.id)} />
                     </td>
-                    <td className="p-2.5">
-                      <span className="text-lg">{icon.emoji}</span>
+                    <td style={{ padding: "8px 0" }}>
+                      <span style={{ fontSize: 16 }}>{icon.emoji}</span>
                     </td>
-                    <td className="p-2.5">
-                      <span className="font-medium text-foreground truncate block max-w-[250px]">{file.name}</span>
+                    <td style={{ padding: "8px 10px" }}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-primary)", display: "block", maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</span>
                     </td>
-                    <td className="p-2.5" title={formatExactBytes(file.size)}>
-                      <span className="font-semibold tabular-nums">{formatFileSize(file.size)}</span>
+                    <td style={{ padding: "8px 10px" }} title={formatExactBytes(file.size)}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: "var(--text-primary)" }}>{formatFileSize(file.size)}</span>
                     </td>
-                    <td className="p-2.5">
+                    <td style={{ padding: "8px 10px" }}>
                       <button type="button"
                         onClick={(e) => { e.stopPropagation(); onNavigateFolder(file.folderId); }}
-                        className="text-[12px] text-muted-foreground hover:text-primary hover:underline truncate block max-w-[130px]"
+                        style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)", background: "none", border: "none", cursor: "pointer", padding: 0, display: "block", maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                       >
                         {folderPath}
                       </button>
                     </td>
-                    <td className="p-2.5 text-muted-foreground text-[12px]" title={format(file.modifiedAt, "PPpp")}>
-                      {formatDistanceToNow(file.modifiedAt, { addSuffix: true })}
+                    <td style={{ padding: "8px 10px" }} title={format(file.modifiedAt, "PPpp")}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>{formatDistanceToNow(file.modifiedAt, { addSuffix: true })}</span>
                     </td>
-                    <td className="p-2.5 text-muted-foreground text-[12px]">
-                      {owner?.displayName || "—"}
+                    <td style={{ padding: "8px 10px" }}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>{ownerName || "—"}</span>
                     </td>
-                    <td className="p-2.5" onClick={(e) => e.stopPropagation()}>
-                      <ActionMenu
-                        trigger={<MoreVertical className="w-4 h-4" />}
-                        items={getRowMenuItems(file)}
-                      />
+                    <td style={{ padding: "8px 10px" }} onClick={(e) => e.stopPropagation()}>
+                      <ActionMenu trigger={<MoreVertical style={{ width: 14, height: 14, color: "var(--text-tertiary)" }} />} items={getRowMenuItems(file)} />
                     </td>
                   </tr>
                 );
@@ -637,10 +626,10 @@ export default function StorageOverview({
 
         {/* Show more */}
         {visibleCount < filteredItems.length && (
-          <div className="flex justify-center py-4">
+          <div style={{ display: "flex", justifyContent: "center", padding: "12px 0" }}>
             <button type="button"
               onClick={() => setVisibleCount((v) => v + 20)}
-              className="text-xs px-4 py-2 rounded-lg border border-border bg-background hover:bg-accent transition-colors"
+              style={{ ...monoSm, padding: "5px 16px", background: "transparent", color: "var(--text-tertiary)", border: "1px solid var(--sosa-border)", borderRadius: 0, cursor: "pointer" }}
             >
               Show more ({filteredItems.length - visibleCount} remaining)
             </button>
@@ -650,22 +639,22 @@ export default function StorageOverview({
 
       {/* ── BULK ACTION BAR ── */}
       {selectedIds.size > 0 && (
-        <div className="sticky bottom-0 border-t border-border bg-card px-6 py-3 flex items-center justify-between z-10 shrink-0">
-          <span className="text-sm text-foreground font-medium">
-            ☑ {selectedIds.size} item{selectedIds.size !== 1 ? "s" : ""} selected ({formatFileSize(selectedTotalSize)})
+        <div style={{ position: "sticky", bottom: 0, borderTop: "1px solid var(--sosa-border)", background: "var(--sosa-bg-2)", padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, zIndex: 10 }}>
+          <span style={{ ...monoSm, color: "var(--text-secondary)", fontWeight: 600 }}>
+            {selectedIds.size} item{selectedIds.size !== 1 ? "s" : ""} selected · {formatFileSize(selectedTotalSize)}
           </span>
-          <div className="flex items-center gap-2">
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button type="button"
-              onClick={() => { toast.info("Download started"); }}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border bg-background hover:bg-accent transition-colors"
+              onClick={() => toast.info("Download started")}
+              style={{ display: "flex", alignItems: "center", gap: 5, ...monoSm, padding: "4px 12px", background: "transparent", color: "var(--text-tertiary)", border: "1px solid var(--sosa-border)", borderRadius: 0, cursor: "pointer" }}
             >
-              <Download className="w-3.5 h-3.5" /> Download
+              <Download style={{ width: 11, height: 11 }} /> Download
             </button>
             <button type="button"
               onClick={() => setShowDeleteConfirm(true)}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors font-medium"
+              style={{ display: "flex", alignItems: "center", gap: 5, ...monoSm, fontWeight: 700, padding: "4px 12px", background: "rgba(239,68,68,0.12)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 0, cursor: "pointer" }}
             >
-              <Trash2 className="w-3.5 h-3.5" /> Delete
+              <Trash2 style={{ width: 11, height: 11 }} /> Delete
             </button>
           </div>
         </div>
@@ -674,41 +663,41 @@ export default function StorageOverview({
       {/* ── DELETE CONFIRMATION MODAL ── */}
       {showDeleteConfirm && (
         <>
-          <div className="fixed inset-0 z-[80] bg-black/50" onClick={() => setShowDeleteConfirm(false)} />
-          <div className="fixed z-[90] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-[460px] max-h-[90vh] overflow-y-auto bg-popover border border-border rounded-2xl p-6 shadow-2xl">
-            <h2 className="text-base font-bold text-foreground mb-3">
+          <div className="fixed inset-0 z-[80] bg-black/70" onClick={() => setShowDeleteConfirm(false)} />
+          <div style={{ position: "fixed", zIndex: 90, top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "min(95vw, 460px)", maxHeight: "90vh", overflowY: "auto", background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", padding: 24 }}>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: "var(--text-primary)", marginBottom: 10 }}>
               Delete {selectedIds.size} item{selectedIds.size !== 1 ? "s" : ""}?
-            </h2>
-            <p className="text-sm text-muted-foreground mb-3">
-              The following items will be moved to Trash (recoverable for 60 days):
             </p>
-            <div className="flex flex-col gap-2 mb-3 max-h-[200px] overflow-y-auto">
+            <p style={{ ...monoSm, color: "var(--text-tertiary)", marginBottom: 12 }}>
+              Items will be moved to Trash (recoverable for 60 days):
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12, maxHeight: 200, overflowY: "auto" }}>
               {selectedFiles.map((f) => {
                 const icon = getFileTypeIcon(f.type);
                 return (
-                  <div key={f.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/30">
-                    <span className="text-lg">{icon.emoji}</span>
-                    <span className="text-sm text-foreground flex-1 truncate">{f.name}</span>
-                    <span className="text-xs text-muted-foreground tabular-nums">{formatFileSize(f.size)}</span>
+                  <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", background: "var(--sosa-bg-3)", border: "1px solid var(--sosa-border)" }}>
+                    <span style={{ fontSize: 14 }}>{icon.emoji}</span>
+                    <span style={{ ...monoSm, color: "var(--text-primary)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span>
+                    <span style={{ ...monoSm, color: "var(--text-tertiary)" }}>{formatFileSize(f.size)}</span>
                   </div>
                 );
               })}
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Total: <strong className="text-foreground">{formatFileSize(selectedTotalSize)}</strong> will be freed
+            <p style={{ ...monoSm, color: "var(--text-tertiary)", marginBottom: 16 }}>
+              Total: <strong style={{ color: "var(--text-primary)" }}>{formatFileSize(selectedTotalSize)}</strong> freed
             </p>
-            <div className="flex gap-2 justify-end">
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button type="button"
                 onClick={() => setShowDeleteConfirm(false)}
-                className="text-sm px-4 py-2 rounded-lg border border-border bg-background hover:bg-accent transition-colors"
+                style={{ ...monoSm, padding: "6px 16px", background: "transparent", color: "var(--text-tertiary)", border: "1px solid var(--sosa-border)", borderRadius: 0, cursor: "pointer" }}
               >
                 Cancel
               </button>
               <button type="button"
                 onClick={handleBulkDelete}
-                className="text-sm px-4 py-2 rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors flex items-center gap-1.5"
+                style={{ display: "flex", alignItems: "center", gap: 5, ...monoSm, fontWeight: 700, padding: "6px 16px", background: "#ef4444", color: "#fff", border: "none", borderRadius: 0, cursor: "pointer" }}
               >
-                <Trash2 className="w-3.5 h-3.5" /> Move to Trash
+                <Trash2 style={{ width: 11, height: 11 }} /> Move to Trash
               </button>
             </div>
           </div>

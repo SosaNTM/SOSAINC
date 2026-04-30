@@ -163,7 +163,7 @@ function CreateLoginModal({ onClose, onCreated }: { onClose: () => void; onCreat
       userId: currentUser?.id ?? "unknown",
       action: `Created login for ${name.trim()}`,
       category: "admin",
-      details: `${email.trim()} â€” role: ${role}, portals: ${portalAccess.join(", ")}`,
+      details: `${email.trim()} — role: ${role}, portals: ${portalAccess.join(", ")}`,
       icon: "ðŸ‘¤",
     });
     onCreated(name.trim());
@@ -179,7 +179,7 @@ function CreateLoginModal({ onClose, onCreated }: { onClose: () => void; onCreat
           <button type="button" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-quaternary)" }}><X className="w-5 h-5" /></button>
         </div>
         <p style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 20 }}>
-          Create a login directly â€” no signup form, no email link. The user can log in immediately.
+          Create a login directly — no signup form, no email link. The user can log in immediately.
         </p>
 
         <div className="flex flex-col gap-4">
@@ -199,9 +199,9 @@ function CreateLoginModal({ onClose, onCreated }: { onClose: () => void; onCreat
           <div className="flex flex-col gap-1.5">
             <label style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)" }}>Role</label>
             <select className="glass-input w-full" value={role} onChange={(e) => setRole(e.target.value as any)} style={{ fontSize: 13, padding: "8px 12px" }}>
-              <option value="member">Member â€” read & contribute</option>
-              <option value="manager">Manager â€” manage team tasks</option>
-              <option value="admin">Admin â€” full access except ownership</option>
+              <option value="member">Member — read & contribute</option>
+              <option value="manager">Manager — manage team tasks</option>
+              <option value="admin">Admin — full access except ownership</option>
             </select>
           </div>
 
@@ -495,15 +495,15 @@ function GoalsModal({ user, onClose }: { user: User; onClose: () => void }) {
 /* â”€â”€ Roles Tab â”€â”€ */
 function RolesTab() {
   const resources = [
-    { name: "Finance", owner: "Full", admin: "Full", manager: "View", member: "â€”" },
+    { name: "Finance", owner: "Full", admin: "Full", manager: "View", member: "—" },
     { name: "Tasks", owner: "Full", admin: "Full", manager: "Team", member: "Own" },
     { name: "Cloud", owner: "Full", admin: "Full", manager: "Write", member: "Read" },
-    { name: "Vault", owner: "Full", admin: "View", manager: "â€”", member: "â€”" },
+    { name: "Vault", owner: "Full", admin: "View", manager: "—", member: "—" },
     { name: "Notes", owner: "All users", admin: "Own only", manager: "Own", member: "Own" },
     { name: "Profiles", owner: "All users", admin: "View all", manager: "Team", member: "Own" },
     { name: "Goals", owner: "Create/Edit", admin: "View", manager: "View", member: "View own" },
-    { name: "Fiscal", owner: "All users", admin: "â€”", manager: "â€”", member: "Own" },
-    { name: "Admin", owner: "Full", admin: "Limited", manager: "â€”", member: "â€”" },
+    { name: "Fiscal", owner: "All users", admin: "—", manager: "—", member: "Own" },
+    { name: "Admin", owner: "Full", admin: "Limited", manager: "—", member: "—" },
   ];
 
   return (
@@ -525,7 +525,7 @@ function RolesTab() {
               <tr key={r.name} style={{ borderBottom: "1px solid var(--sosa-border)" }}>
                 <td style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", padding: "10px 16px" }}>{r.name}</td>
                 {[r.owner, r.admin, r.manager, r.member].map((val, i) => (
-                  <td key={i} style={{ fontSize: 12, color: val === "â€”" ? "var(--text-quaternary)" : val === "Full" ? "#22c55e" : "var(--text-tertiary)", padding: "10px 16px", textAlign: "center", fontWeight: val === "Full" ? 600 : 400 }}>
+                  <td key={i} style={{ fontSize: 12, color: val === "—" ? "var(--text-quaternary)" : val === "Full" ? "#22c55e" : "var(--text-tertiary)", padding: "10px 16px", textAlign: "center", fontWeight: val === "Full" ? 600 : 400 }}>
                     {val}
                   </td>
                 ))}

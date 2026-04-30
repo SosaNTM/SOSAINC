@@ -125,7 +125,7 @@ export default function ContentCategoriesPage() {
   ];
 
   return (
-    <div style={{ maxWidth: 860 }}>
+    <div style={{ maxWidth: "100%" }}>
       <SettingsPageHeader
         icon={Layers}
         title="Categorie Contenuti"

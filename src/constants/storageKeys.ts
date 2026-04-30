@@ -46,6 +46,7 @@ export const STORAGE_CLOUD_UNLOCK_TIMED_PREFIX = "cloud_unlock_timed_";
 export const STORAGE_DASHBOARD_PERIOD = "dashboardPeriod";
 export const STORAGE_DASHBOARD_CUSTOM_RANGE = "dashboardCustomRange";
 export const STORAGE_NUMBER_FORMAT = "numberFormat";
+export const STORAGE_CURRENCY = "primaryCurrency";
 
 // ── Portal ───────────────────────────────────────────────────────────────────
 export const STORAGE_PORTAL_LAST_ACCESSED_PREFIX = "portal_last_accessed_";

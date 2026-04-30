@@ -140,7 +140,7 @@ export default function ProjectStatuses() {
   ];
 
   return (
-    <div style={{ maxWidth: 860 }}>
+    <div style={{ maxWidth: "100%" }}>
       <SettingsPageHeader
         icon={Columns3}
         title="Stati Progetto"

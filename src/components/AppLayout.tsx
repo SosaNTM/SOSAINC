@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
@@ -13,8 +13,14 @@ export function AppLayout() {
   const location = useLocation();
   const workspace = portal?.id ?? "sosa";
   const isCloud = location.pathname.endsWith("/cloud");
+  const mainRef = useRef<HTMLElement>(null);
 
   useKeyboardShortcuts();
+
+  // Reset scroll on route change without remounting the element
+  useEffect(() => {
+    mainRef.current?.scrollTo(0, 0);
+  }, [location.pathname]);
 
   return (
     <PortalShell workspace={workspace} showHeader={false}>
@@ -29,7 +35,7 @@ export function AppLayout() {
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
           <AppHeader onMenuClick={() => setMobileOpen(true)} />
           <main
-            key={location.pathname}
+            ref={mainRef}
             style={{
               flex:      1,
               padding:   "16px 24px 24px",

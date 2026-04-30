@@ -9,12 +9,25 @@ function isSupabaseConfigured(): boolean {
   return !!url && !url.includes("placeholder");
 }
 
+const cacheKey = (portalId: string) => `swr_crypto_prices_${portalId}`;
+
+function readCache(portalId: string): Record<string, CryptoPrice> | null {
+  try {
+    const raw = localStorage.getItem(cacheKey(portalId));
+    return raw ? (JSON.parse(raw) as Record<string, CryptoPrice>) : null;
+  } catch { return null; }
+}
+
+function writeCache(portalId: string, data: Record<string, CryptoPrice>): void {
+  try { localStorage.setItem(cacheKey(portalId), JSON.stringify(data)); } catch { }
+}
+
 export function useCryptoPrices() {
   const { portal } = usePortal();
   const portalId = portal?.id ?? "sosa";
 
-  const [prices, setPrices] = useState<Record<string, CryptoPrice>>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [prices, setPrices] = useState<Record<string, CryptoPrice>>(() => readCache(portalId) ?? {});
+  const [isLoading, setIsLoading] = useState(() => readCache(portalId) === null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -23,15 +36,14 @@ export function useCryptoPrices() {
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadPrices = useCallback(async (isRetry = false) => {
+    if (readCache(portalId) === null) setIsLoading(true);
     try {
-      setIsLoading(true);
       setError(null);
       const data = await fetchAllPrices(portalId);
       const map: Record<string, CryptoPrice> = {};
-      for (const p of data) {
-        map[p.coin_id] = p;
-      }
+      for (const p of data) map[p.coin_id] = p;
       setPrices(map);
+      writeCache(portalId, map);
       setIsStale(false);
       if (data.length > 0) {
         const latest = data.reduce((a, b) =>
@@ -40,32 +52,34 @@ export function useCryptoPrices() {
         setLastUpdated(new Date(latest.last_updated));
       }
     } catch (err) {
-      // TODO: Replace with structured error logging (Sentry, etc.)
       const message = err instanceof Error ? err.message : "Failed to load crypto prices";
       setError(message);
       setIsStale(true);
-      // Retry once after 5 seconds on first failure
       if (!isRetry) {
-        retryTimeoutRef.current = setTimeout(() => { loadPrices(true); }, 5000);
+        retryTimeoutRef.current = setTimeout(() => { void loadPrices(true); }, 5000);
       }
     } finally {
       setIsLoading(false);
     }
   }, [portalId]);
 
-  useEffect(() => { loadPrices(); }, [loadPrices]);
+  useEffect(() => { void loadPrices(); }, [loadPrices]);
 
-  // Cleanup retry timeout on unmount
+  // Auto-refresh prices every 5 minutes
+  useEffect(() => {
+    const interval = setInterval(() => { void loadPrices(); }, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [loadPrices]);
+
   useEffect(() => {
     return () => {
       if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
     };
   }, []);
 
-  // Realtime subscription — only when Supabase is configured
+  // Realtime — update price cache when Supabase pushes a price change
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
-
     try {
       const channel = supabase
         .channel("crypto-prices-live")
@@ -75,52 +89,48 @@ export function useCryptoPrices() {
           (payload) => {
             const updated = payload.new as CryptoPrice;
             if (updated?.coin_id) {
-              setPrices((prev) => ({ ...prev, [updated.coin_id]: updated }));
+              setPrices((prev) => {
+                const next = { ...prev, [updated.coin_id]: updated };
+                writeCache(portalId, next);
+                return next;
+              });
               setLastUpdated(new Date(updated.last_updated));
             }
           },
         )
         .subscribe();
-
       channelRef.current = channel;
     } catch (err) {
-      // TODO: Replace with structured error logging (Sentry, etc.)
       console.error("Failed to subscribe to crypto prices:", err);
     }
-
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
     };
-  }, []);
+  }, [portalId]);
 
   const refreshPrices = useCallback(async () => {
     try {
       setIsRefreshing(true);
       setError(null);
       const freshPrices = await apiRefreshPrices(portalId);
-      // If CoinGecko returned data directly (local mode), use it
       if (freshPrices && freshPrices.length > 0) {
         const map: Record<string, CryptoPrice> = {};
-        for (const p of freshPrices) {
-          map[p.coin_id] = p;
-        }
+        for (const p of freshPrices) map[p.coin_id] = p;
         setPrices(map);
+        writeCache(portalId, map);
         setLastUpdated(new Date());
         setIsStale(false);
       } else {
         await loadPrices();
       }
     } catch (err) {
-      // TODO: Replace with structured error logging (Sentry, etc.)
       const message = err instanceof Error ? err.message : "Failed to refresh crypto prices";
       setError(message);
       setIsStale(true);
     } finally {
       setIsRefreshing(false);
     }
-  }, [loadPrices]);
+  }, [loadPrices, portalId]);
 
   const getPriceForCoin = useCallback(
     (coinId: string): CryptoPrice | null => prices[coinId] ?? null,

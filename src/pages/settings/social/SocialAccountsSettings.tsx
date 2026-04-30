@@ -89,7 +89,7 @@ export default function SocialAccountsSettings() {
   }
 
   return (
-    <div style={{ maxWidth: 860 }}>
+    <div style={{ maxWidth: "100%" }}>
       <SettingsPageHeader
         icon={Share2}
         title="Account Social"

@@ -4,8 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { STORAGE_APP_RESET_VERSION, STORAGE_PROFILE_PREFIX, STORAGE_AUDIT_LOG, STORAGE_THEME, STORAGE_ACCENT, STORAGE_NUMBER_FORMAT } from "@/constants/storageKeys";
-import { Skeleton } from "@/components/ui/skeleton";
+import { STORAGE_APP_RESET_VERSION, STORAGE_PROFILE_PREFIX, STORAGE_AUDIT_LOG, STORAGE_THEME, STORAGE_ACCENT, STORAGE_NUMBER_FORMAT, STORAGE_CURRENCY } from "@/constants/storageKeys";
 import { PortalLayout } from "./components/PortalLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AdminRoute } from "./components/AdminRoute";
@@ -18,56 +17,42 @@ import { PeriodProvider } from "./lib/periodContext";
 import { AccentProvider } from "./lib/accent";
 import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
 
-// ── Non-lazy imports (critical path: login, hub, not-found) ─────────────────
+// ── Eager imports — instant navigation, no per-route chunk delay ────────────
 import LoginPage from "./pages/LoginPage";
 import HubPage from "./pages/HubPage";
 import NotFound from "./pages/NotFound";
+import Dashboard from "./pages/dashboard/Dashboard";
+import Budget from "./pages/Budget";
+import Transactions from "./pages/Transactions";
+import Goals from "./pages/Goals";
+import Invoices from "./pages/Invoices";
+import Subscriptions from "./pages/Subscriptions";
+import Analytics from "./pages/Analytics";
+import CryptoPage from "./pages/crypto/CryptoPage";
+import GiftCardsPage from "./pages/gift-cards/GiftCardsPage";
+import PlaceholderPage from "./pages/PlaceholderPage";
+import Recap from "./pages/Recap";
+import VaultPage from "./pages/VaultPage";
+import CloudPage from "./pages/CloudPage";
+import TasksPage from "./pages/TasksPage";
+import NotesPage from "./pages/NotesPage";
+import InventoryPage from "./pages/InventoryPage";
+import AdministrationPage from "./pages/AdministrationPage";
+import ProfilePage from "./pages/ProfilePage";
+import SocialOverview from "./pages/social/SocialOverview";
+import SocialAccounts from "./pages/social/SocialAccounts";
+import SocialAnalytics from "./pages/social/SocialAnalytics";
+import SocialContent from "./pages/social/SocialContent";
+import SocialAudience from "./pages/social/SocialAudience";
+import SocialCompetitors from "./pages/social/SocialCompetitors";
 
-// ── Lazy-loaded page components ─────────────────────────────────────────────
-const Dashboard = React.lazy(() => import("./pages/dashboard/Dashboard"));
-const Budget = React.lazy(() => import("./pages/Budget"));
-const Transactions = React.lazy(() => import("./pages/Transactions"));
-const Goals = React.lazy(() => import("./pages/Goals"));
-const Invoices = React.lazy(() => import("./pages/Invoices"));
-const Subscriptions = React.lazy(() => import("./pages/Subscriptions"));
-const Analytics = React.lazy(() => import("./pages/Analytics"));
-const CryptoPage = React.lazy(() => import("./pages/crypto/CryptoPage"));
-const GiftCardsPage = React.lazy(() => import("./pages/gift-cards/GiftCardsPage"));
-const PlaceholderPage = React.lazy(() => import("./pages/PlaceholderPage"));
-const VaultPage = React.lazy(() => import("./pages/VaultPage"));
-const CloudPage = React.lazy(() => import("./pages/CloudPage"));
-const TasksPage = React.lazy(() => import("./pages/TasksPage"));
-const NotesPage = React.lazy(() => import("./pages/NotesPage"));
-const InventoryPage = React.lazy(() => import("./pages/InventoryPage"));
-const AdministrationPage = React.lazy(() => import("./pages/AdministrationPage"));
-const ProfilePage = React.lazy(() => import("./pages/ProfilePage"));
+// ── Rarely-used pages stay lazy (auth flows, OAuth) ─────────────────────────
 const ForgotPasswordPage = React.lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = React.lazy(() => import("./pages/ResetPasswordPage"));
-const SocialOverview = React.lazy(() => import("./pages/social/SocialOverview"));
-const SocialAccounts = React.lazy(() => import("./pages/social/SocialAccounts"));
-const SocialAnalytics = React.lazy(() => import("./pages/social/SocialAnalytics"));
-const SocialContent = React.lazy(() => import("./pages/social/SocialContent"));
-const SocialAudience = React.lazy(() => import("./pages/social/SocialAudience"));
-const SocialCompetitors = React.lazy(() => import("./pages/social/SocialCompetitors"));
 const OAuthCallback = React.lazy(() => import("./pages/social/OAuthCallback"));
 
 // Settings routes — lazy-loaded internally via settingsRoutes.tsx
 import { SettingsRoutes } from "./pages/settings/settingsRoutes";
-
-// ── Page loader skeleton ────────────────────────────────────────────────────
-function PageLoader() {
-  return (
-    <div className="p-6 space-y-4 min-h-screen" style={{ background: "#0a0a0a" }}>
-      <Skeleton className="h-8 w-48 mb-6" style={{ background: "rgba(255,255,255,0.06)" }} />
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-28 rounded-xl" style={{ background: "rgba(255,255,255,0.06)" }} />
-        ))}
-      </div>
-      <Skeleton className="h-64 w-full rounded-xl" style={{ background: "rgba(255,255,255,0.06)" }} />
-    </div>
-  );
-}
 
 const queryClient = new QueryClient();
 
@@ -76,7 +61,7 @@ const queryClient = new QueryClient();
 // Safe to increment whenever a clean slate is needed.
 const RESET_VERSION = "portal_shared_v6";
 if (typeof localStorage !== "undefined" && localStorage.getItem(STORAGE_APP_RESET_VERSION) !== RESET_VERSION) {
-  const KEEP_PREFIXES = [STORAGE_PROFILE_PREFIX, STORAGE_AUDIT_LOG, "sb-", STORAGE_APP_RESET_VERSION, STORAGE_THEME, STORAGE_ACCENT, STORAGE_NUMBER_FORMAT, "period_"];
+  const KEEP_PREFIXES = [STORAGE_PROFILE_PREFIX, STORAGE_AUDIT_LOG, "sb-", STORAGE_APP_RESET_VERSION, STORAGE_THEME, STORAGE_ACCENT, STORAGE_NUMBER_FORMAT, STORAGE_CURRENCY, "period_"];
   Object.keys(localStorage).forEach((key) => {
     if (!KEEP_PREFIXES.some((p) => key.startsWith(p))) {
       localStorage.removeItem(key);
@@ -85,45 +70,46 @@ if (typeof localStorage !== "undefined" && localStorage.getItem(STORAGE_APP_RESE
   localStorage.setItem(STORAGE_APP_RESET_VERSION, RESET_VERSION);
 }
 
-/* Helper: wrap a lazy element in Suspense with the page loader */
+/* Helper: wrap a lazy element in Suspense — only for truly lazy-loaded pages */
 function Lazy({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
+  return <Suspense fallback={null}>{children}</Suspense>;
 }
 
 /* Shared portal routes — rendered inside each /:portalId layout */
 function PortalRoutes() {
   return (
     <>
-      <Route path="dashboard" element={<Lazy><Dashboard /></Lazy>} />
-      <Route path="profile" element={<Lazy><ProfilePage /></Lazy>} />
-      <Route path="profile/:userId" element={<Lazy><ProfilePage /></Lazy>} />
+      <Route path="dashboard" element={<Dashboard />} />
+      <Route path="profile" element={<ProfilePage />} />
+      <Route path="profile/:userId" element={<ProfilePage />} />
       <Route path="revenue" element={<Navigate to="dashboard" replace />} />
-      <Route path="costs" element={<Lazy><Budget /></Lazy>} />
-      <Route path="transactions" element={<Lazy><Transactions /></Lazy>} />
-      <Route path="channels" element={<Lazy><Subscriptions /></Lazy>} />
-      <Route path="pl-rules" element={<Lazy><Goals /></Lazy>} />
-      <Route path="crypto" element={<Lazy><CryptoPage /></Lazy>} />
-      <Route path="gift-cards" element={<Lazy><GiftCardsPage /></Lazy>} />
+      <Route path="costs" element={<Budget />} />
+      <Route path="recap" element={<Recap />} />
+      <Route path="transactions" element={<Transactions />} />
+      <Route path="channels" element={<Subscriptions />} />
+      <Route path="pl-rules" element={<Goals />} />
+      <Route path="crypto" element={<CryptoPage />} />
+      <Route path="gift-cards" element={<GiftCardsPage />} />
       {/* Business finance sub-pages removed — classification handled via transactions + dashboard */}
-      <Route path="analytics" element={<Lazy><Analytics /></Lazy>} />
-      <Route path="invoices" element={<Lazy><Invoices /></Lazy>} />
-      <Route path="vault" element={<Lazy><VaultPage /></Lazy>} />
-      <Route path="cloud" element={<Lazy><CloudPage /></Lazy>} />
-      <Route path="tasks" element={<Lazy><TasksPage /></Lazy>} />
-      <Route path="notes" element={<Lazy><NotesPage /></Lazy>} />
-      <Route path="inventory" element={<Lazy><InventoryPage /></Lazy>} />
+      <Route path="analytics" element={<Analytics />} />
+      <Route path="invoices" element={<Invoices />} />
+      <Route path="vault" element={<VaultPage />} />
+      <Route path="cloud" element={<CloudPage />} />
+      <Route path="tasks" element={<TasksPage />} />
+      <Route path="notes" element={<NotesPage />} />
+      <Route path="inventory" element={<InventoryPage />} />
       <Route path="admin" element={<AdminRoute />}>
-        <Route index element={<Lazy><AdministrationPage /></Lazy>} />
+        <Route index element={<AdministrationPage />} />
       </Route>
-      <Route path="reports" element={<Lazy><PlaceholderPage name="Reports" /></Lazy>} />
-      <Route path="forecast" element={<Lazy><PlaceholderPage name="Forecast" /></Lazy>} />
+      <Route path="reports" element={<PlaceholderPage name="Reports" />} />
+      <Route path="forecast" element={<PlaceholderPage name="Forecast" />} />
       <Route path="social" element={<Navigate to="overview" replace />} />
-      <Route path="social/overview" element={<Lazy><SocialOverview /></Lazy>} />
-      <Route path="social/accounts" element={<Lazy><SocialAccounts /></Lazy>} />
-      <Route path="social/analytics" element={<Lazy><SocialAnalytics /></Lazy>} />
-      <Route path="social/content" element={<Lazy><SocialContent /></Lazy>} />
-      <Route path="social/audience" element={<Lazy><SocialAudience /></Lazy>} />
-      <Route path="social/competitors" element={<Lazy><SocialCompetitors /></Lazy>} />
+      <Route path="social/overview" element={<SocialOverview />} />
+      <Route path="social/accounts" element={<SocialAccounts />} />
+      <Route path="social/analytics" element={<SocialAnalytics />} />
+      <Route path="social/content" element={<SocialContent />} />
+      <Route path="social/audience" element={<SocialAudience />} />
+      <Route path="social/competitors" element={<SocialCompetitors />} />
       {SettingsRoutes()}
       {/* Default: redirect to dashboard */}
       <Route index element={<Navigate to="dashboard" replace />} />

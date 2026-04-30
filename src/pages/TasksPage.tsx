@@ -274,7 +274,7 @@ const TasksPage = () => {
   const defaultProjectId = sidebarView !== "all" && sidebarView !== "my_issues" && sidebarView !== "backlog" ? sidebarView : null;
 
   return (
-    <div className="flex h-full" style={{ minHeight: "calc(100vh - 56px)" }}>
+    <div className="flex h-full overflow-hidden">
       {/* Sidebar — inline on lg+, drawer overlay on mobile */}
       {showSidebar && (
         <>
@@ -483,7 +483,7 @@ const TasksPage = () => {
             </div>
           )}
 
-          {filtered.length === 0 && (
+          {filtered.length === 0 && syncReady && (
             <div className="flex flex-col items-center justify-center py-16" style={{ color: "var(--text-quaternary)" }}>
               <p style={{ fontSize: 14 }}>No issues found</p>
               <p style={{ fontSize: 12, marginTop: 4 }}>Press <kbd style={{ padding: "1px 4px", borderRadius: 4, background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", fontSize: 11 }}>C</kbd> to create one</p>

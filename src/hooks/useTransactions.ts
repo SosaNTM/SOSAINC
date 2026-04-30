@@ -46,7 +46,8 @@ function toPersonal(row: any): PersonalTransaction {
 }
 
 export interface UseTransactionsResult {
-  transactions:       PersonalTransaction[];
+  transactions:       PersonalTransaction[];  // current page (PAGE_SIZE=20)
+  allTransactions:    PersonalTransaction[];  // full unfiltered array (up to 2000)
   isLoading:          boolean;
   error:              string | null;
   page:               number;
@@ -65,8 +66,8 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
   const { portal } = usePortal();
   const portalId = portal?.id ?? "sosa";
 
-  const [all,       setAll]       = useState<PersonalTransaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [all,       setAll]       = useState<PersonalTransaction[]>(() => { try { return localGetAll(portalId); } catch { return []; } });
+  const [isLoading, setIsLoading] = useState(() => { try { return localGetAll(portalId).length === 0; } catch { return true; } });
   const [error,     setError]     = useState<string | null>(null);
   const [page,      setPage]      = useState(0);
   const [tick,      setTick]      = useState(0);
@@ -75,7 +76,6 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
 
   const load = useCallback(async () => {
     if (!user) { setIsLoading(false); return; }
-    setIsLoading(true);
     setError(null);
 
     if (isSupabaseConfigured()) {
@@ -240,5 +240,5 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
 
   const refetch = useCallback(() => setTick((t) => t + 1), []);
 
-  return { transactions, isLoading, error, page, hasMore, addTransaction, updateTransaction, deleteTransaction, setPage, refetch };
+  return { transactions, allTransactions: all, isLoading, error, page, hasMore, addTransaction, updateTransaction, deleteTransaction, setPage, refetch };
 }
