@@ -5,8 +5,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
-import { toPortalUUID } from "@/lib/portalUUID";
 import { usePortal } from "@/lib/portalContext";
+import { usePortalDB } from "@/lib/portalContextDB";
 import { localGetAll } from "@/lib/personalTransactionStore";
 import type { FinanceCategory, CostClassification } from "@/types/finance";
 
@@ -56,7 +56,8 @@ function getDefaultCategories(portalId: string): FinanceCategory[] {
 
 export function useFinanceCategories() {
   const { portal } = usePortal();
-  const portalId = portal?.id ?? "sosa";
+  const portalId = portal?.id ?? "sosa";  // slug — used for localStorage cache keys only
+  const { currentPortalId } = usePortalDB();
   const [categories, setCategories] = useState<FinanceCategory[]>(() => {
     try { const s = localStorage.getItem(storageKey(portalId)); if (s) return JSON.parse(s); } catch { /* ignore */ }
     return [];
@@ -65,11 +66,11 @@ export function useFinanceCategories() {
 
   // Fetch
   const fetchCategories = useCallback(async () => {
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && currentPortalId) {
       const { data } = await supabase
         .from("finance_transaction_categories")
         .select("*")
-        .eq("portal_id", toPortalUUID(portalId))
+        .eq("portal_id", currentPortalId)
         .order("type")
         .order("sort_order");
       setCategories((data as FinanceCategory[]) ?? []);
@@ -84,22 +85,22 @@ export function useFinanceCategories() {
       }
     }
     setLoading(false);
-  }, [portalId]);
+  }, [portalId, currentPortalId]);
 
   useEffect(() => { fetchCategories(); }, [fetchCategories]);
 
   // Realtime subscription for live category updates
   useEffect(() => {
-    if (!isSupabaseConfigured()) return;
+    if (!isSupabaseConfigured() || !currentPortalId) return;
     const channel = supabase
-      .channel(`finance-categories-${portalId}`)
+      .channel(`finance-categories-${currentPortalId}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "finance_transaction_categories",
-          filter: `portal_id=eq.${toPortalUUID(portalId)}`,
+          filter: `portal_id=eq.${currentPortalId}`,
         },
         (payload: any) => {
           if (payload.eventType === "INSERT") {
@@ -128,10 +129,10 @@ export function useFinanceCategories() {
   }) => {
     const slug = slugify(input.name);
     const now = new Date().toISOString();
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && currentPortalId) {
       const { data, error } = await supabase
         .from("finance_transaction_categories")
-        .insert({ portal_id: toPortalUUID(portalId), name: input.name, slug, type: input.type, color: input.color ?? "#e8ff00", icon: input.icon ?? "tag", sort_order: categories.length })
+        .insert({ portal_id: currentPortalId, name: input.name, slug, type: input.type, color: input.color ?? "#e8ff00", icon: input.icon ?? "tag", sort_order: categories.length })
         .select().single();
       if (error) return { error: error.message };
       setCategories(prev => [...prev, data as FinanceCategory]);
@@ -148,7 +149,7 @@ export function useFinanceCategories() {
       persistLocal(updated);
       return { data: cat };
     }
-  }, [portalId, categories, persistLocal]);
+  }, [portalId, currentPortalId, categories, persistLocal]);
 
   // Update
   const updateCategory = useCallback(async (id: string, input: Partial<FinanceCategory>) => {
@@ -174,11 +175,11 @@ export function useFinanceCategories() {
     const cat = categories.find(c => c.id === id);
     if (cat) {
       let txCount = 0;
-      if (isSupabaseConfigured()) {
+      if (isSupabaseConfigured() && currentPortalId) {
         const { count, error: countErr } = await supabase
           .from("personal_transactions")
           .select("id", { count: "exact", head: true })
-          .eq("portal_id", toPortalUUID(portalId))
+          .eq("portal_id", currentPortalId)
           .eq("category_id", id);
         if (!countErr && count != null) txCount = count;
       } else {
@@ -197,7 +198,7 @@ export function useFinanceCategories() {
     setCategories(updated);
     persistLocal(updated);
     return {};
-  }, [categories, persistLocal, portalId]);
+  }, [categories, persistLocal, portalId, currentPortalId]);
 
   // Toggle active
   const toggleActive = useCallback(async (id: string) => {
