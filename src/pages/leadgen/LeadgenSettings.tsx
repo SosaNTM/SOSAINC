@@ -141,7 +141,7 @@ export default function LeadgenSettings() {
       {/* Max places */}
       <div style={{ marginBottom: 20 }}>
         <label style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
-          Max luoghi per ricerca: <span style={{ color: "var(--accent-primary)", fontFamily: "var(--font-mono)" }}>{maxPlaces}</span>
+          Max risultati per ricerca: <span style={{ color: "var(--accent-primary)", fontFamily: "var(--font-mono)" }}>{maxPlaces}</span>
         </label>
         <input type="range" min={10} max={200} step={10} value={maxPlaces} onChange={(e) => setMaxPlaces(Number(e.target.value))} style={{ width: "100%" }} />
       </div>
@@ -150,14 +150,14 @@ export default function LeadgenSettings() {
       <div style={{ marginBottom: 32, display: "flex", alignItems: "center", gap: 10 }}>
         <input type="checkbox" id="scrape_contacts" checked={scrapeContacts} onChange={(e) => setScrapeContacts(e.target.checked)} style={{ width: 16, height: 16, cursor: "pointer" }} />
         <label htmlFor="scrape_contacts" style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-secondary)", cursor: "pointer" }}>
-          Estrai email e contatti (costo extra: ~$2 / 1000 luoghi)
+          Estrai email e contatti (costo extra: ~$2 / 1000 risultati)
         </label>
       </div>
 
       {/* Pricing info */}
       <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: "var(--radius-md)", padding: "14px 16px", marginBottom: 32, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-tertiary)", lineHeight: 1.8 }}>
         <strong style={{ color: "var(--text-secondary)", display: "block", marginBottom: 4 }}>Prezzi Apify (piano Free)</strong>
-        Ricerca luoghi: ~$4 / 1000 risultati<br />
+        Ricerca risultati: ~$4 / 1000 risultati<br />
         Estrazione contatti: ~$2 / 1000 risultati<br />
         Il piano Free include $5 di credito mensile.
       </div>
