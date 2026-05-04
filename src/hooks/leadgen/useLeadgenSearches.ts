@@ -94,9 +94,20 @@ export function useLeadgenSearches() {
             created_at: new Date().toISOString(),
           }));
 
-          await supabase
+          const { error: upsertErr } = await supabase
             .from("leadgen_leads")
             .upsert(leadsToInsert, { onConflict: "portal_id,place_id", ignoreDuplicates: true });
+
+          if (upsertErr) {
+            await supabase
+              .from("leadgen_searches")
+              .update({ status: "failed", error_message: `Upsert leads failed: ${upsertErr.message}`, completed_at: new Date().toISOString() })
+              .eq("portal_id", currentPortalId)
+              .eq("id", search.id);
+            broadcastLeadgenUpdate("search_failed", { searchId: search.id });
+            await fetchSearches();
+            continue;
+          }
 
           const withWebsite = leadsToInsert.filter((l) => !!l.website).length;
           const withoutWebsite = leadsToInsert.length - withWebsite;
@@ -112,6 +123,7 @@ export function useLeadgenSearches() {
               excluded_count: excludedCount,
               completed_at: new Date().toISOString(),
             })
+            .eq("portal_id", currentPortalId)
             .eq("id", search.id);
 
           broadcastLeadgenUpdate("search_completed", { searchId: search.id });
@@ -121,6 +133,7 @@ export function useLeadgenSearches() {
           await supabase
             .from("leadgen_searches")
             .update({ status: "failed", error_message: `Apify run ${status}`, completed_at: new Date().toISOString() })
+            .eq("portal_id", currentPortalId)
             .eq("id", search.id);
           broadcastLeadgenUpdate("search_failed", { searchId: search.id });
           await fetchSearches();
