@@ -31,7 +31,7 @@ export function applyBlacklist(
 
   const allCats = [
     item.categoryName,
-    ...((item as ApifyPlaceResult & { categories?: string[] }).categories ?? []),
+    ...(item.categories ?? []),
   ].filter(Boolean) as string[];
 
   if (allCats.some((c) => rules.categories.includes(c))) {

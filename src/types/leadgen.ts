@@ -110,6 +110,7 @@ export interface ApifyPlaceResult {
   phone: string | null;
   website: string | null;
   categoryName: string | null;
+  categories?: string[] | null;
   totalScore: number | null;
   reviewsCount: number | null;
   emails: string[] | null;
