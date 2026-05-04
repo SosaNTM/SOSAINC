@@ -44,7 +44,7 @@ function BlacklistSection({
           type="text"
           value={inputValue}
           onChange={(e) => onInputChange(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onAdd(); } }}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (!adding) onAdd(); } }}
           className="glass-input"
           style={{ flex: 1 }}
           placeholder="Aggiungi regola..."
@@ -130,7 +130,7 @@ export default function LeadgenSettings() {
   useEffect(() => {
     const mr = byType("min_reviews")[0];
     if (mr) setNewRuleInputs((prev) => ({ ...prev, min_reviews: mr.rule_value }));
-  }, [rules, byType]);
+  }, [rules]); // byType is derived from rules — listing both causes double-trigger
 
   const handleSave = async () => {
     setSaving(true);
@@ -173,8 +173,14 @@ export default function LeadgenSettings() {
   const handleMinReviewsSave = async () => {
     const existing = byType("min_reviews")[0];
     const value = newRuleInputs.min_reviews.trim();
-    if (existing) await removeRule(existing.id);
-    if (value && value !== "0") await addRule("min_reviews", value);
+    if (existing) {
+      const { error: removeErr } = await removeRule(existing.id);
+      if (removeErr) { toast.error(removeErr); return; }
+    }
+    if (value && value !== "0") {
+      const { error: addErr } = await addRule("min_reviews", value);
+      if (addErr) { toast.error(addErr); return; }
+    }
     toast.success("Soglia aggiornata");
   };
 
