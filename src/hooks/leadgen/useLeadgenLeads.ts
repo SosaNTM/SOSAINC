@@ -89,16 +89,18 @@ export function useLeadgenLeads(filters: LeadFilters = {}) {
   }, [allLeads, filters]);
 
   const updateLead = useCallback(async (id: string, payload: Partial<LeadgenLead>) => {
+    if (!currentPortalId) return { error: "Nessun portale" };
     const { data: row, error: err } = await supabase
       .from("leadgen_leads")
       .update({ ...payload, updated_at: new Date().toISOString() })
+      .eq("portal_id", currentPortalId)
       .eq("id", id)
       .select()
       .single();
     if (err) return { error: err.message };
     setAllLeads((prev) => prev.map((l) => (l.id === id ? (row as LeadgenLead) : l)));
     return { data: row as LeadgenLead };
-  }, []);
+  }, [currentPortalId]);
 
   const upsertLeads = useCallback(async (rows: Omit<LeadgenLead, "id" | "has_website" | "updated_at">[]) => {
     if (!currentPortalId || !rows.length) return { error: null };
@@ -121,5 +123,9 @@ export function useLeadgenLeads(filters: LeadFilters = {}) {
     [allLeads]
   );
 
-  return { leads, allLeads, loading, error, refetch: fetchLeads, updateLead, upsertLeads, allCategories, allCities };
+  const prependLead = useCallback((lead: LeadgenLead) => {
+    setAllLeads((prev) => [lead, ...prev]);
+  }, []);
+
+  return { leads, allLeads, loading, error, refetch: fetchLeads, updateLead, upsertLeads, prependLead, allCategories, allCities };
 }

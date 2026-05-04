@@ -144,10 +144,13 @@ export function useLeadgenSearches() {
     }
   }, [searches, currentPortalId, fetchSearches]);
 
+  const pollRunningRef = useRef(pollRunning);
+  useEffect(() => { pollRunningRef.current = pollRunning; }, [pollRunning]);
+
   const startPolling = useCallback((apifyToken: string) => {
     if (pollingRef.current) return;
-    pollingRef.current = setInterval(() => pollRunning(apifyToken), POLL_INTERVAL_MS);
-  }, [pollRunning]);
+    pollingRef.current = setInterval(() => pollRunningRef.current(apifyToken), POLL_INTERVAL_MS);
+  }, []);
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
