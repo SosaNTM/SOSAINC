@@ -82,7 +82,7 @@ export default function LeadgenSearchHistory() {
                   rows.push(
                     <tr key={`${s.id}-excl`} style={{ borderBottom: "1px solid var(--glass-border)" }}>
                       <td colSpan={10} style={{ padding: "0 12px 8px", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>
-                        {s.excluded_count} attività escluse dalla blacklist (catene) —{" "}
+                        {s.excluded_count ?? 0} attività escluse dalla blacklist (catene) —{" "}
                         <a href={`/${portal?.id ?? "redx"}/leadgen/settings`} style={{ color: "var(--accent-primary)", textDecoration: "none" }}>
                           Gestisci blacklist
                         </a>
