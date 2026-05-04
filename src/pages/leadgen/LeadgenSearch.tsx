@@ -143,16 +143,16 @@ function CostBadge({ total }: { total: number }) {
   let text: string;
   if (total < 1) {
     color = "var(--color-success)";
-    text = "Coperto dal Free tier ($5/mese)";
+    text = "Free tier";
   } else if (total < 3) {
     color = "var(--color-warning)";
-    text = "Userà parte del Free credit";
+    text = "Parte del free credit";
   } else if (total <= 5) {
     color = "color-mix(in srgb, var(--color-warning) 60%, var(--color-error) 40%)";
-    text = "Userà tutto il Free credit";
+    text = "Tutto il free credit";
   } else {
     color = "var(--color-error)";
-    text = "Supera il Free credit — valuta upgrade a Starter ($49/mese)";
+    text = "Supera il free credit";
   }
   return (
     <span style={{
@@ -339,6 +339,11 @@ export default function LeadgenSearch() {
     }
   };
 
+  const hasNonDefaultSettings = !isPMIDefault
+    || maxPlaces !== (settings?.default_max_places ?? 50)
+    || !scrapeContacts
+    || language !== (settings?.default_language ?? "it");
+
   return (
     <div style={{
       display: "flex",
@@ -357,6 +362,7 @@ export default function LeadgenSearch() {
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 800, color: "var(--text-primary)", marginBottom: 40, textAlign: "center", letterSpacing: "-0.02em" }}>
           Trova nuovi clienti
         </h1>
+
         {/* Token warning */}
         {noToken && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, background: "color-mix(in srgb, var(--color-error) 10%, transparent)", border: "1px solid var(--color-error)", padding: "10px 16px", marginBottom: 24, fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-error)", width: "100%", maxWidth: 700 }}>
@@ -419,7 +425,6 @@ export default function LeadgenSearch() {
                     display: "flex",
                     flexDirection: "column",
                   }}>
-                    {/* Search */}
                     <div style={{ padding: "8px 10px", borderBottom: "1px solid var(--glass-border)", flexShrink: 0 }}>
                       <input
                         type="text"
@@ -442,9 +447,7 @@ export default function LeadgenSearch() {
                       />
                     </div>
 
-                    {/* List */}
                     <div style={{ overflowY: "auto", maxHeight: 320 }}>
-                      {/* Favorites section */}
                       {filteredCountries.top.length > 0 && (
                         <>
                           <div style={{ padding: "6px 14px 4px", display: "flex", alignItems: "center", gap: 5 }}>
@@ -466,7 +469,6 @@ export default function LeadgenSearch() {
                         </>
                       )}
 
-                      {/* Rest */}
                       {filteredCountries.rest.map((c) => (
                         <CountryRow key={c.code} c={c} isFav={false} currentCode={countryCode} onSelect={(code) => { setCountryCode(code); setFlagOpen(false); setCountrySearch(""); }} onToggleFav={toggleFav} />
                       ))}
@@ -481,7 +483,7 @@ export default function LeadgenSearch() {
                 )}
               </div>
 
-              {/* CAP input — flex: 1 now that category input is removed */}
+              {/* CAP input */}
               <input
                 type="text"
                 value={postalCode}
@@ -534,12 +536,12 @@ export default function LeadgenSearch() {
             </div>
           </form>
 
-          {/* Filter button */}
+          {/* Settings + category panel button */}
           <div ref={filterRef} style={{ position: "relative", flexShrink: 0 }}>
             <button
               type="button"
               onClick={() => { setFilterOpen((p) => !p); setFlagOpen(false); setCountrySearch(""); }}
-              title="Filtri avanzati"
+              title="Categorie e impostazioni"
               style={{
                 width: 56,
                 height: 56,
@@ -549,22 +551,26 @@ export default function LeadgenSearch() {
                 justifyContent: "center",
                 gap: 3,
                 background: filterOpen ? "var(--sosa-bg-2)" : "var(--glass-bg)",
-                border: filterOpen ? "1.5px solid var(--accent-primary)" : "1.5px solid var(--glass-border)",
+                border: filterOpen
+                  ? "1.5px solid var(--accent-primary)"
+                  : hasNonDefaultSettings
+                  ? "1.5px solid color-mix(in srgb, var(--accent-primary) 50%, var(--glass-border))"
+                  : "1.5px solid var(--glass-border)",
                 cursor: "pointer",
                 transition: "border-color 0.15s",
                 position: "relative",
               }}
             >
-              <SlidersHorizontal size={16} color={filterOpen ? "var(--accent-primary)" : "var(--text-secondary)"} />
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, fontWeight: 700, color: filterOpen ? "var(--accent-primary)" : "var(--text-tertiary)", letterSpacing: "0.06em" }}>
-                FILTRI
+              <SlidersHorizontal size={16} color={filterOpen ? "var(--accent-primary)" : hasNonDefaultSettings ? "var(--accent-primary)" : "var(--text-secondary)"} />
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, fontWeight: 700, color: filterOpen || hasNonDefaultSettings ? "var(--accent-primary)" : "var(--text-tertiary)", letterSpacing: "0.06em" }}>
+                {categories.length}/{MAX_CATEGORIES}
               </span>
-              {(maxPlaces !== (settings?.default_max_places ?? 50) || !scrapeContacts || language !== (settings?.default_language ?? "it")) && (
+              {hasNonDefaultSettings && (
                 <span style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "var(--accent-primary)" }} />
               )}
             </button>
 
-            {/* Filter panel */}
+            {/* Panel */}
             {filterOpen && (
               <div style={{
                 position: "absolute",
@@ -573,12 +579,133 @@ export default function LeadgenSearch() {
                 zIndex: 200,
                 background: "var(--sosa-bg)",
                 border: "1.5px solid var(--glass-border)",
-                width: 280,
+                width: 380,
+                maxHeight: "80vh",
+                overflowY: "auto",
                 boxShadow: "0 12px 40px rgba(0,0,0,0.7)",
                 padding: "20px",
               }}>
-                <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--text-tertiary)", marginBottom: 18 }}>
-                  Filtri avanzati
+
+                {/* ── Categorie ── */}
+                <div style={{ marginBottom: 18 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--text-tertiary)", margin: 0 }}>
+                      Categorie
+                    </p>
+                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <button
+                        type="button"
+                        onClick={() => setCategories([...PMI_DEFAULT])}
+                        style={{
+                          padding: "3px 10px",
+                          fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700,
+                          letterSpacing: "0.08em", textTransform: "uppercase",
+                          background: isPMIDefault ? "var(--accent-primary)" : "transparent",
+                          border: `1px solid ${isPMIDefault ? "var(--accent-primary)" : "var(--glass-border)"}`,
+                          color: isPMIDefault ? "#000" : "var(--text-tertiary)",
+                          cursor: "pointer",
+                        }}
+                      >
+                        PMI
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCategories([])}
+                        style={{
+                          padding: "3px 10px",
+                          fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700,
+                          letterSpacing: "0.08em", textTransform: "uppercase",
+                          background: "transparent",
+                          border: "1px solid var(--glass-border)",
+                          color: "var(--text-tertiary)",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Reset
+                      </button>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: categories.length >= MAX_CATEGORIES ? "var(--color-error)" : "var(--text-tertiary)" }}>
+                        {categories.length}/{MAX_CATEGORIES}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Chips */}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
+                    {ALL_CHIPS.map((cat) => {
+                      const selected = categories.includes(cat);
+                      const disabled = !selected && categories.length >= MAX_CATEGORIES;
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => toggleCategory(cat)}
+                          disabled={disabled}
+                          style={{
+                            padding: "4px 10px",
+                            fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 600,
+                            letterSpacing: "0.06em",
+                            background: selected ? "var(--accent-primary)" : "transparent",
+                            border: `1px solid ${selected ? "var(--accent-primary)" : "var(--glass-border)"}`,
+                            color: selected ? "#000" : "var(--text-tertiary)",
+                            cursor: disabled ? "not-allowed" : "pointer",
+                            opacity: disabled ? 0.4 : 1,
+                          }}
+                        >
+                          {cat}
+                        </button>
+                      );
+                    })}
+                    {categories.filter((c) => !ALL_CHIPS.includes(c)).map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => removeCategory(cat)}
+                        style={{
+                          padding: "4px 10px",
+                          fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 600,
+                          letterSpacing: "0.06em",
+                          background: "var(--accent-primary)",
+                          border: "1px solid var(--accent-primary)",
+                          color: "#000",
+                          cursor: "pointer",
+                          display: "inline-flex", alignItems: "center", gap: 5,
+                        }}
+                      >
+                        {cat} <XIcon size={9} />
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Custom input */}
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <input
+                      type="text"
+                      value={customCatInput}
+                      onChange={(e) => setCustomCatInput(e.target.value.slice(0, 40))}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomCategory(); } }}
+                      placeholder="Categoria custom..."
+                      autoComplete="off"
+                      name="leadgen-custom-cat"
+                      className="glass-input"
+                      style={{ flex: 1, fontSize: 11 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={addCustomCategory}
+                      disabled={!customCatInput.trim() || categories.length >= MAX_CATEGORIES}
+                      className="btn-glass-ds"
+                      style={{ fontSize: 10, whiteSpace: "nowrap" }}
+                    >
+                      + Aggiungi
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ height: 1, background: "var(--glass-border)", marginBottom: 18 }} />
+
+                {/* ── Impostazioni ── */}
+                <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--text-tertiary)", marginBottom: 16 }}>
+                  Impostazioni
                 </p>
 
                 {/* Max risultati */}
@@ -592,11 +719,7 @@ export default function LeadgenSearch() {
                     </span>
                   </div>
                   <input
-                    type="range"
-                    min={10}
-                    max={100}
-                    step={10}
-                    value={maxPlaces}
+                    type="range" min={10} max={100} step={10} value={maxPlaces}
                     onChange={(e) => setMaxPlaces(Number(e.target.value))}
                     style={{ width: "100%", accentColor: "var(--accent-primary)" }}
                   />
@@ -618,8 +741,7 @@ export default function LeadgenSearch() {
                       </span>
                     </div>
                     <input
-                      type="checkbox"
-                      checked={scrapeContacts}
+                      type="checkbox" checked={scrapeContacts}
                       onChange={(e) => setScrapeContacts(e.target.checked)}
                       style={{ width: 15, height: 15, cursor: "pointer", accentColor: "var(--accent-primary)", flexShrink: 0 }}
                     />
@@ -639,15 +761,11 @@ export default function LeadgenSearch() {
                         onClick={() => setLanguage(l.code)}
                         style={{
                           padding: "4px 10px",
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 10,
-                          fontWeight: 600,
-                          letterSpacing: "0.06em",
+                          fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, letterSpacing: "0.06em",
                           background: language === l.code ? "var(--accent-primary)" : "transparent",
                           color: language === l.code ? "#000" : "var(--text-tertiary)",
                           border: `1px solid ${language === l.code ? "var(--accent-primary)" : "var(--glass-border)"}`,
                           cursor: "pointer",
-                          transition: "all 0.1s",
                         }}
                       >
                         {l.code.toUpperCase()}
@@ -656,195 +774,63 @@ export default function LeadgenSearch() {
                   </div>
                 </div>
 
-                <div style={{ height: 1, background: "var(--glass-border)", marginBottom: 16 }} />
+                <div style={{ height: 1, background: "var(--glass-border)", marginBottom: 18 }} />
 
-                {/* Cost estimate in filter panel */}
-                <div>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 10 }}>
-                    Costo stimato
-                  </span>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {(() => {
-                      const base = categories.length * maxPlaces * 0.004;
-                      const contacts = scrapeContacts ? categories.length * maxPlaces * 0.002 : 0;
-                      const total = base + contacts;
-                      return (
-                        <>
-                          <div style={{ display: "flex", justifyContent: "space-between" }}>
-                            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>Scraping ({categories.length} cat. × {maxPlaces} ris.)</span>
-                            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-secondary)", fontWeight: 600 }}>~${base.toFixed(2)}</span>
-                          </div>
-                          {scrapeContacts && (
-                            <div style={{ display: "flex", justifyContent: "space-between" }}>
-                              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>Estrazione contatti</span>
-                              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-secondary)", fontWeight: 600 }}>~${contacts.toFixed(2)}</span>
-                            </div>
-                          )}
-                          <div style={{ height: 1, background: "var(--glass-border)", margin: "2px 0" }} />
-                          <div style={{ display: "flex", justifyContent: "space-between" }}>
-                            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "var(--text-primary)" }}>Totale</span>
-                            <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: "var(--accent-primary)" }}>~${total.toFixed(2)}</span>
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
-                  <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)", marginTop: 10, lineHeight: 1.6 }}>
-                    Piano Free: $5 credito/mese incluso
+                {/* ── Costo stimato ── */}
+                <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--text-tertiary)", marginBottom: 12 }}>
+                  Costo stimato
+                </p>
+                {categories.length === 0 ? (
+                  <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>
+                    Seleziona almeno una categoria
                   </p>
-                </div>
+                ) : (() => {
+                  const base = categories.length * maxPlaces * 0.004;
+                  const contacts = scrapeContacts ? categories.length * maxPlaces * 0.002 : 0;
+                  const total = base + contacts;
+                  const estDedup = Math.round(categories.length * maxPlaces * 0.7);
+                  return (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>Scraping ({categories.length} cat. × {maxPlaces} ris.)</span>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-secondary)", fontWeight: 600 }}>~${base.toFixed(2)}</span>
+                      </div>
+                      {scrapeContacts && (
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>Estrazione contatti</span>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-secondary)", fontWeight: 600 }}>~${contacts.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div style={{ height: 1, background: "var(--glass-border)", margin: "2px 0" }} />
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "var(--text-primary)" }}>Totale</span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <CostBadge total={total} />
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: "var(--accent-primary)" }}>~${total.toFixed(2)}</span>
+                        </span>
+                      </div>
+                      <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)", marginTop: 4, lineHeight: 1.6 }}>
+                        ≈ {estDedup} attività dopo deduplica · Piano Free: $5/mese incluso
+                      </p>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
         </div>
 
-        {/* Category section */}
-        <div style={{ width: "100%", maxWidth: 700, marginTop: 16 }}>
-          {/* Preset buttons */}
-          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
-            <button
-              type="button"
-              onClick={() => setCategories([...PMI_DEFAULT])}
-              style={{
-                padding: "6px 14px",
-                fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700,
-                letterSpacing: "0.08em", textTransform: "uppercase",
-                background: isPMIDefault ? "var(--accent-primary)" : "transparent",
-                border: `1px solid ${isPMIDefault ? "var(--accent-primary)" : "var(--glass-border)"}`,
-                color: isPMIDefault ? "#000" : "var(--text-tertiary)",
-                cursor: "pointer",
-              }}
-            >
-              PMI Locali (consigliato)
-            </button>
-            <button
-              type="button"
-              onClick={() => setCategories([])}
-              style={{
-                padding: "6px 14px",
-                fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700,
-                letterSpacing: "0.08em", textTransform: "uppercase",
-                background: "transparent",
-                border: "1px solid var(--glass-border)",
-                color: "var(--text-tertiary)",
-                cursor: "pointer",
-              }}
-            >
-              Custom
-            </button>
-            <span style={{ marginLeft: "auto", fontFamily: "var(--font-mono)", fontSize: 11, color: categories.length >= MAX_CATEGORIES ? "var(--color-error)" : "var(--text-tertiary)" }}>
-              {categories.length}/{MAX_CATEGORIES}
-            </span>
-          </div>
-
-          {/* Chip grid — predefined chips */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
-            {ALL_CHIPS.map((cat) => {
-              const selected = categories.includes(cat);
-              const disabled = !selected && categories.length >= MAX_CATEGORIES;
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => toggleCategory(cat)}
-                  disabled={disabled}
-                  style={{
-                    padding: "5px 12px",
-                    fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600,
-                    letterSpacing: "0.06em",
-                    background: selected ? "var(--accent-primary)" : "var(--glass-bg)",
-                    border: `1px solid ${selected ? "var(--accent-primary)" : "var(--glass-border)"}`,
-                    color: selected ? "#000" : "var(--text-tertiary)",
-                    cursor: disabled ? "not-allowed" : "pointer",
-                    opacity: disabled ? 0.4 : 1,
-                    transition: "all 0.1s",
-                  }}
-                >
-                  {cat}
-                </button>
-              );
-            })}
-            {/* Custom chips not in predefined list */}
-            {categories.filter((c) => !ALL_CHIPS.includes(c)).map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => removeCategory(cat)}
-                style={{
-                  padding: "5px 12px",
-                  fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600,
-                  letterSpacing: "0.06em",
-                  background: "var(--accent-primary)",
-                  border: "1px solid var(--accent-primary)",
-                  color: "#000",
-                  cursor: "pointer",
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                }}
-              >
-                {cat} <XIcon size={10} />
-              </button>
-            ))}
-          </div>
-
-          {/* Custom category free-text input */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-            <input
-              type="text"
-              value={customCatInput}
-              onChange={(e) => setCustomCatInput(e.target.value.slice(0, 40))}
-              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomCategory(); } }}
-              placeholder="Aggiungi categoria custom..."
-              autoComplete="off"
-              name="leadgen-custom-cat"
-              className="glass-input"
-              style={{ flex: 1, fontSize: 12 }}
-            />
-            <button
-              type="button"
-              onClick={addCustomCategory}
-              disabled={!customCatInput.trim() || categories.length >= MAX_CATEGORIES}
-              className="btn-glass-ds"
-              style={{ fontSize: 11, whiteSpace: "nowrap" }}
-            >
-              + Aggiungi
-            </button>
-          </div>
-
-          {/* Validation + preview */}
-          {categories.length === 0 && (
-            <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--color-error)", marginBottom: 8 }}>
-              Seleziona almeno una categoria
+        {/* Compact status line */}
+        <div style={{ width: "100%", maxWidth: 700, marginTop: 10, minHeight: 18 }}>
+          {categories.length === 0 ? (
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--color-error)", margin: 0 }}>
+              Nessuna categoria — apri il pannello a destra per selezionare
             </p>
-          )}
-          {categories.length > 0 && postalCode.trim() && (
-            <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)", marginBottom: 8 }}>
-              Cercherò {categories.length} categor{categories.length === 1 ? "ia" : "ie"} in {postalCode.trim()}, {currentCountry.label} → max {maxPlaces} attività per categoria
+          ) : postalCode.trim() ? (
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)", margin: 0 }}>
+              {categories.length} categor{categories.length === 1 ? "ia" : "ie"} · {postalCode.trim()}, {currentCountry.label} · max {maxPlaces} per categoria · ~${calcCost(categories.length, maxPlaces, scrapeContacts).toFixed(2)}
             </p>
-          )}
-
-          {/* Cost box */}
-          {categories.length > 0 && (
-            <div style={{ background: "var(--glass-bg)", border: "1px solid var(--glass-border)", padding: "12px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
-              {(() => {
-                const total = calcCost(categories.length, maxPlaces, scrapeContacts);
-                const estRaw = categories.length * maxPlaces;
-                const estDedup = Math.round(estRaw * 0.7);
-                return (
-                  <>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
-                        Costo stimato: ${total.toFixed(2)}
-                      </span>
-                      <CostBadge total={total} />
-                    </div>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>
-                      Attività massime stimate: {estRaw} (≈ {estDedup} dopo deduplica)
-                    </span>
-                  </>
-                );
-              })()}
-            </div>
-          )}
+          ) : null}
         </div>
 
       </div>
