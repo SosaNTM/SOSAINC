@@ -1,5 +1,5 @@
 const BASE = "https://api.apify.com/v2";
-const ACTOR_ID = "compass~google-maps-scraper";
+const DEFAULT_ACTOR_ID = "nwua9Gu5YrADL7ZDj";
 
 function headers(token: string) {
   return {
@@ -11,6 +11,8 @@ function headers(token: string) {
 async function apifyFetch<T>(token: string, path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { ...init, headers: headers(token) });
   if (!res.ok) {
+    if (res.status === 401) throw new Error("Token Apify non valido — controlla le impostazioni");
+    if (res.status === 403) throw new Error("Token senza i permessi necessari — assicurati di aver cliccato \"Try for free\" sull'actor");
     const text = await res.text().catch(() => res.statusText);
     throw new Error(`Apify ${res.status}: ${text}`);
   }
@@ -23,6 +25,7 @@ export interface StartRunInput {
   language?: string;
   maxCrawledPlacesPerSearch?: number;
   scrapeContacts?: boolean;
+  actorId?: string;
 }
 
 export interface RunStartResult {
@@ -46,18 +49,20 @@ export async function startGoogleMapsRun(
     maxCrawledPlacesPerSearch: input.maxCrawledPlacesPerSearch ?? 50,
     scrapeContacts: input.scrapeContacts ?? true,
   };
+  const actorId = input.actorId || DEFAULT_ACTOR_ID;
   const res = await apifyFetch<{ data: { id: string; defaultDatasetId: string } }>(
     token,
-    `/acts/${ACTOR_ID}/runs`,
+    `/acts/${actorId}/runs?memory=8192`,
     { method: "POST", body: JSON.stringify(body) }
   );
   return { runId: res.data.id, defaultDatasetId: res.data.defaultDatasetId };
 }
 
-export async function getRunStatus(token: string, runId: string): Promise<RunStatusResult> {
+export async function getRunStatus(token: string, runId: string, actorId?: string): Promise<RunStatusResult> {
+  const actor = actorId || DEFAULT_ACTOR_ID;
   const res = await apifyFetch<{
     data: { status: RunStatusResult["status"]; defaultDatasetId: string };
-  }>(token, `/acts/${ACTOR_ID}/runs/${runId}`);
+  }>(token, `/acts/${actor}/runs/${runId}`);
   return { status: res.data.status, defaultDatasetId: res.data.defaultDatasetId };
 }
 
