@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { Eye, EyeOff, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Eye, EyeOff, CheckCircle, XCircle, Loader2, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useLeadgenSettings } from "@/hooks/leadgen/useLeadgenSettings";
 import { testConnection } from "@/lib/apifyClient";
+import { useLeadgenBlacklist } from "@/hooks/leadgen/useLeadgenBlacklist";
+import type { BlacklistRuleType } from "@/types/leadgen";
 
 const COUNTRIES = [
   { code: "IT", label: "IT — Italia" },
@@ -13,10 +15,79 @@ const COUNTRIES = [
   { code: "US", label: "US — Stati Uniti" },
 ];
 
+const blLabelStyle: React.CSSProperties = {
+  fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700,
+  letterSpacing: "0.1em", textTransform: "uppercase",
+  color: "var(--text-secondary)", display: "block", marginBottom: 8,
+};
+
+function BlacklistSection({
+  title, help, rules, inputValue, onInputChange, onAdd, onRemove, adding,
+}: {
+  title: string;
+  help: string;
+  rules: import("@/types/leadgen").LeadgenBlacklist[];
+  inputValue: string;
+  onInputChange: (v: string) => void;
+  onAdd: () => void;
+  onRemove: (id: string) => void;
+  adding: boolean;
+}) {
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <label style={blLabelStyle}>{title}</label>
+      <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)", marginBottom: 10 }}>
+        {help}
+      </p>
+      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => onInputChange(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onAdd(); } }}
+          className="glass-input"
+          style={{ flex: 1 }}
+          placeholder="Aggiungi regola..."
+        />
+        <button
+          type="button"
+          onClick={onAdd}
+          disabled={adding || !inputValue.trim()}
+          className="btn-glass-ds"
+          style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11 }}
+        >
+          {adding ? <Loader2 size={12} style={{ animation: "spin 1s linear infinite" }} /> : <Plus size={12} />}
+          Aggiungi
+        </button>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {rules.map((r) => (
+          <span key={r.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", background: "var(--glass-bg)", border: "1px solid var(--glass-border)", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-secondary)" }}>
+            {r.rule_value}
+            <button
+              type="button"
+              onClick={() => onRemove(r.id)}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)", padding: 0, display: "inline-flex" }}
+            >
+              <Trash2 size={10} />
+            </button>
+          </span>
+        ))}
+        {rules.length === 0 && (
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>
+            Nessuna regola
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function LeadgenSettings() {
   const { data, loading, upsert } = useLeadgenSettings();
 
   const [token, setToken] = useState("");
+  const [actorId, setActorId] = useState("compass~google-maps-scraper");
   const [showToken, setShowToken] = useState(false);
   const [countryCode, setCountryCode] = useState("IT");
   const [language, setLanguage] = useState("it");
@@ -27,9 +98,19 @@ export default function LeadgenSettings() {
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
+  const { rules, loading: blLoading, addRule, removeRule, seedDefaults, byType } = useLeadgenBlacklist();
+  const [newRuleInputs, setNewRuleInputs] = useState<Record<BlacklistRuleType, string>>({
+    title_keyword: "",
+    website_domain: "",
+    category: "",
+    min_reviews: "",
+  });
+  const [addingRule, setAddingRule] = useState<BlacklistRuleType | null>(null);
+
   useEffect(() => {
     if (data && !hydrated) {
       setToken(data.apify_token ?? "");
+      setActorId(data.actor_id ?? "compass~google-maps-scraper");
       setCountryCode(data.default_country_code);
       setLanguage(data.default_language);
       setMaxPlaces(data.default_max_places);
@@ -38,10 +119,24 @@ export default function LeadgenSettings() {
     }
   }, [data, hydrated]);
 
+  // Seed blacklist defaults once on first settings page load when blacklist is empty
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!blLoading && rules.length === 0) {
+      seedDefaults();
+    }
+  }, [blLoading]); // intentionally omitting seedDefaults/rules: runs once after initial load
+
+  useEffect(() => {
+    const mr = byType("min_reviews")[0];
+    if (mr) setNewRuleInputs((prev) => ({ ...prev, min_reviews: mr.rule_value }));
+  }, [rules, byType]);
+
   const handleSave = async () => {
     setSaving(true);
     const { error } = await upsert({
       apify_token: token || null,
+      actor_id: actorId || "compass~google-maps-scraper",
       default_country_code: countryCode,
       default_language: language,
       default_max_places: maxPlaces,
@@ -63,6 +158,24 @@ export default function LeadgenSettings() {
       setTestResult({ ok: false, message: err instanceof Error ? err.message : "Connessione fallita" });
     }
     setTesting(false);
+  };
+
+  const handleAddRule = async (type: BlacklistRuleType) => {
+    const value = newRuleInputs[type].trim();
+    if (!value) return;
+    setAddingRule(type);
+    const { error } = await addRule(type, value);
+    setAddingRule(null);
+    if (error) toast.error(error);
+    else setNewRuleInputs((prev) => ({ ...prev, [type]: "" }));
+  };
+
+  const handleMinReviewsSave = async () => {
+    const existing = byType("min_reviews")[0];
+    const value = newRuleInputs.min_reviews.trim();
+    if (existing) await removeRule(existing.id);
+    if (value && value !== "0") await addRule("min_reviews", value);
+    toast.success("Soglia aggiornata");
   };
 
   if (loading) {
@@ -120,6 +233,24 @@ export default function LeadgenSettings() {
         )}
       </div>
 
+      {/* Actor ID */}
+      <div style={{ marginBottom: 24 }}>
+        <label style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+          Actor ID Apify
+        </label>
+        <input
+          type="text"
+          value={actorId}
+          onChange={(e) => setActorId(e.target.value)}
+          placeholder="username~actor-name"
+          className="glass-input"
+          style={{ width: "100%" }}
+        />
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)", marginTop: 6, lineHeight: 1.7 }}>
+          Vai su <strong style={{ color: "var(--text-secondary)" }}>apify.com</strong> → cerca "Google Maps Scraper" → copia l'ID dall'URL (es. <code>compass~google-maps-scraper</code>). Assicurati di aver cliccato "Try for free" sull'actor.
+        </p>
+      </div>
+
       {/* Paese default */}
       <div style={{ marginBottom: 20 }}>
         <label style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
@@ -166,6 +297,77 @@ export default function LeadgenSettings() {
         {saving && <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />}
         Salva impostazioni
       </button>
+
+      {/* Divider */}
+      <div style={{ height: 1, background: "var(--glass-border)", margin: "40px 0 32px" }} />
+
+      <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>
+        Blacklist catene
+      </h2>
+      <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--text-tertiary)", marginBottom: 28 }}>
+        Le attività che corrispondono a queste regole vengono escluse dai risultati e conteggiate separatamente.
+      </p>
+
+      {blLoading ? (
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-tertiary)" }}>Caricamento regole...</div>
+      ) : (
+        <>
+          <BlacklistSection
+            title="Parole chiave nei nomi"
+            help="Corrisponde se il nome dell'attività contiene la parola (case-insensitive)."
+            rules={byType("title_keyword")}
+            inputValue={newRuleInputs.title_keyword}
+            onInputChange={(v) => setNewRuleInputs((p) => ({ ...p, title_keyword: v }))}
+            onAdd={() => handleAddRule("title_keyword")}
+            onRemove={removeRule}
+            adding={addingRule === "title_keyword"}
+          />
+
+          <BlacklistSection
+            title="Domini siti web"
+            help="Corrisponde se il sito dell'attività contiene il dominio."
+            rules={byType("website_domain")}
+            inputValue={newRuleInputs.website_domain}
+            onInputChange={(v) => setNewRuleInputs((p) => ({ ...p, website_domain: v }))}
+            onAdd={() => handleAddRule("website_domain")}
+            onRemove={removeRule}
+            adding={addingRule === "website_domain"}
+          />
+
+          <BlacklistSection
+            title="Categorie escluse"
+            help="Corrisponde se la categoria Google dell'attività è nella lista."
+            rules={byType("category")}
+            inputValue={newRuleInputs.category}
+            onInputChange={(v) => setNewRuleInputs((p) => ({ ...p, category: v }))}
+            onAdd={() => handleAddRule("category")}
+            onRemove={removeRule}
+            adding={addingRule === "category"}
+          />
+
+          {/* Min reviews */}
+          <div style={{ marginBottom: 28 }}>
+            <label style={blLabelStyle}>Soglia recensioni</label>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)", marginBottom: 10 }}>
+              Attività con più recensioni di questo numero sono considerate catene ed escluse. Lascia 0 per disattivare.
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                type="number"
+                min={0}
+                value={newRuleInputs.min_reviews}
+                onChange={(e) => setNewRuleInputs((p) => ({ ...p, min_reviews: e.target.value }))}
+                className="glass-input"
+                style={{ width: 120 }}
+                placeholder="5000"
+              />
+              <button type="button" onClick={handleMinReviewsSave} className="btn-glass-ds" style={{ fontSize: 11 }}>
+                Salva soglia
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
