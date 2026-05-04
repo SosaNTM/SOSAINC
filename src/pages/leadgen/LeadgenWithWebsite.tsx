@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { Plus, ExternalLink, Filter } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { usePortal } from "@/lib/portalContext";
@@ -21,7 +21,8 @@ export default function LeadgenWithWebsite() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const searchText = searchParams.get("q") ?? "";
-  const outreachFilter = (searchParams.get("status") as OutreachStatus | "all") ?? "all";
+  const rawStatus = searchParams.get("status");
+  const outreachFilter = (STATUS_FILTERS.includes(rawStatus as typeof STATUS_FILTERS[number]) ? rawStatus : "all") as OutreachStatus | "all";
   const filterCategories = searchParams.getAll("cat");
   const minRating = parseFloat(searchParams.get("minRating") ?? "0") || 0;
   const maxRating = parseFloat(searchParams.get("maxRating") ?? "5") || 5;
@@ -30,26 +31,26 @@ export default function LeadgenWithWebsite() {
   const onlyWithEmail = searchParams.get("email") === "1";
   const onlyWithPhone = searchParams.get("phone") === "1";
 
-  const setParam = (key: string, value: string | null) => {
+  const setParam = useCallback((key: string, value: string | null) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
-      if (value === null || value === "" || value === "0" || value === "all") {
+      if (value === null || value === "" || value === "all") {
         next.delete(key);
       } else {
         next.set(key, value);
       }
       return next;
     }, { replace: true });
-  };
+  }, [setSearchParams]);
 
-  const setMultiParam = (key: string, values: string[]) => {
+  const setMultiParam = useCallback((key: string, values: string[]) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.delete(key);
       values.forEach((v) => next.append(key, v));
       return next;
     }, { replace: true });
-  };
+  }, [setSearchParams]);
 
   const resetFilters = () => setSearchParams({}, { replace: true });
 
@@ -77,7 +78,7 @@ export default function LeadgenWithWebsite() {
     [rawLeads]
   );
 
-  const activeFilterCount = [
+  const activeFilterCount = useMemo(() => [
     outreachFilter !== "all",
     filterCategories.length > 0,
     minRating > 0,
@@ -86,11 +87,12 @@ export default function LeadgenWithWebsite() {
     maxReviews < 999999,
     onlyWithEmail,
     onlyWithPhone,
-  ].filter(Boolean).length;
+  ].filter(Boolean).length, [outreachFilter, filterCategories, minRating, maxRating, minReviews, maxReviews, onlyWithEmail, onlyWithPhone]);
 
   const filterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!filterOpen) return;
     const handler = (e: MouseEvent) => {
       if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
         setFilterOpen(false);
@@ -98,19 +100,22 @@ export default function LeadgenWithWebsite() {
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  }, [filterOpen]);
 
-  const memberMap = new Map(members.map((m) => [m.user_id, m.display_name ?? m.email]));
+  const memberMap = useMemo(
+    () => new Map(members.map((m) => [m.user_id, m.display_name ?? m.email])),
+    [members]
+  );
 
-  const handleStatusChange = async (lead: LeadgenLead, status: OutreachStatus) => {
+  const handleStatusChange = useCallback(async (lead: LeadgenLead, status: OutreachStatus) => {
     const { error } = await updateLead(lead.id, {
       outreach_status: status,
       contacted_at: status !== "new" && !lead.contacted_at ? new Date().toISOString() : lead.contacted_at ?? undefined,
     });
     if (error) toast.error(error);
-  };
+  }, [updateLead]);
 
-  const columns: Column[] = [
+  const columns = useMemo<Column[]>(() => [
     {
       key: "name", label: "Azienda", sortKey: "name",
       render: (l) => (
@@ -160,7 +165,7 @@ export default function LeadgenWithWebsite() {
       key: "outreach_status", label: "Status",
       render: (l) => <LeadOutreachStatusBadge status={l.outreach_status} onClick={(e) => e.stopPropagation()} />,
     },
-  ];
+  ], [memberMap]);
 
   if (loading) return <div style={{ padding: 32, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", fontSize: 13 }}>Caricamento...</div>;
 
