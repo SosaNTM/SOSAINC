@@ -36,14 +36,17 @@ export function useLeadgenBlacklist() {
     [currentPortalId]
   );
 
+  // Fix 4: scope by portal_id for defense-in-depth (RLS alone was the only guard)
   const removeRule = useCallback(async (id: string) => {
+    if (!currentPortalId) return { error: "Nessun portale" };
     const { error } = await supabase
       .from("leadgen_blacklist")
       .delete()
+      .eq("portal_id", currentPortalId)
       .eq("id", id);
     if (!error) setRules((prev) => prev.filter((r) => r.id !== id));
     return { error: error?.message ?? null };
-  }, []);
+  }, [currentPortalId]);
 
   const seedDefaults = useCallback(async () => {
     if (!currentPortalId) return;
@@ -51,7 +54,8 @@ export function useLeadgenBlacklist() {
       .from("leadgen_blacklist")
       .select("id", { count: "exact", head: true })
       .eq("portal_id", currentPortalId);
-    if ((count.count ?? 0) > 0) return; // already seeded
+    // Fix 2: bail on count.error — null count would make (null ?? 0) > 0 = false, causing incorrect seed
+    if (count.error || (count.count ?? 0) > 0) return;
 
     const titleKeywords = [
       "Carrefour","Conad","Eurospin","Esselunga","Lidl","MD Discount",
@@ -94,12 +98,16 @@ export function useLeadgenBlacklist() {
       },
     ];
 
-    await supabase.from("leadgen_blacklist").insert(rows);
-    await fetchRules();
+    // Fix 3: only call fetchRules if insert succeeds
+    const { error: insertErr } = await supabase.from("leadgen_blacklist").insert(rows);
+    if (!insertErr) await fetchRules();
   }, [currentPortalId, fetchRules]);
 
-  const byType = (type: BlacklistRuleType) =>
-    rules.filter((r) => r.rule_type === type);
+  // Fix 1: wrap in useCallback to avoid creating a new ref on every render
+  const byType = useCallback(
+    (type: BlacklistRuleType) => rules.filter((r) => r.rule_type === type),
+    [rules]
+  );
 
   return { rules, loading, addRule, removeRule, seedDefaults, refetch: fetchRules, byType };
 }
