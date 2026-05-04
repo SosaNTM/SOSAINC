@@ -54,6 +54,15 @@ const OAuthCallback = React.lazy(() => import("./pages/social/OAuthCallback"));
 // Settings routes — lazy-loaded internally via settingsRoutes.tsx
 import { SettingsRoutes } from "./pages/settings/settingsRoutes";
 
+// ── Leadgen — lazy, REDX-only feature ────────────────────────────────────────
+const LeadgenDashboard    = React.lazy(() => import("./pages/leadgen/LeadgenDashboard"));
+const LeadgenSearch       = React.lazy(() => import("./pages/leadgen/LeadgenSearch"));
+const LeadgenSearchHistory = React.lazy(() => import("./pages/leadgen/LeadgenSearchHistory"));
+const LeadgenNoWebsite    = React.lazy(() => import("./pages/leadgen/LeadgenNoWebsite"));
+const LeadgenWithWebsite  = React.lazy(() => import("./pages/leadgen/LeadgenWithWebsite"));
+const LeadgenLeadDetail   = React.lazy(() => import("./pages/leadgen/LeadgenLeadDetail"));
+const LeadgenSettings     = React.lazy(() => import("./pages/leadgen/LeadgenSettings"));
+
 const queryClient = new QueryClient();
 
 // ── One-time data reset ──────────────────────────────────────────────────────
@@ -111,6 +120,13 @@ function PortalRoutes() {
       <Route path="social/audience" element={<SocialAudience />} />
       <Route path="social/competitors" element={<SocialCompetitors />} />
       {SettingsRoutes()}
+      <Route path="leadgen" element={<Lazy><LeadgenDashboard /></Lazy>} />
+      <Route path="leadgen/search" element={<Lazy><LeadgenSearch /></Lazy>} />
+      <Route path="leadgen/searches" element={<Lazy><LeadgenSearchHistory /></Lazy>} />
+      <Route path="leadgen/no-website" element={<Lazy><LeadgenNoWebsite /></Lazy>} />
+      <Route path="leadgen/with-website" element={<Lazy><LeadgenWithWebsite /></Lazy>} />
+      <Route path="leadgen/lead/:id" element={<Lazy><LeadgenLeadDetail /></Lazy>} />
+      <Route path="leadgen/settings" element={<Lazy><LeadgenSettings /></Lazy>} />
       {/* Default: redirect to dashboard */}
       <Route index element={<Navigate to="dashboard" replace />} />
     </>

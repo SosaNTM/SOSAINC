@@ -34,6 +34,11 @@ import {
   Package,
   FileText,
   Building2,
+  Crosshair,
+  Globe,
+  MonitorOff,
+  History,
+  SlidersHorizontal,
 } from "lucide-react";
 
 // ── AccordionSection is defined at module level to prevent remount on every render ──
@@ -125,6 +130,16 @@ const socialSubItems = [
 ];
 const socialPaths = socialSubItems.map((i) => i.path);
 
+const leadgenSubItems = [
+  { title: "Dashboard",    path: "/leadgen",              icon: Crosshair  },
+  { title: "Nuova ricerca", path: "/leadgen/search",      icon: Crosshair  },
+  { title: "Senza sito",   path: "/leadgen/no-website",   icon: MonitorOff },
+  { title: "Con sito",     path: "/leadgen/with-website", icon: Globe      },
+  { title: "Storico",      path: "/leadgen/searches",     icon: History    },
+];
+const leadgenAdminItem = { title: "Impostazioni", path: "/leadgen/settings", icon: SlidersHorizontal };
+const leadgenPaths = leadgenSubItems.map((i) => i.path);
+
 const topItems = [
   { title: "Profile", path: "/profile", icon: User },
 ];
@@ -177,8 +192,13 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
   const prefixedSocialPaths = socialPaths.map(p => `${prefix}${p}`);
   const isFinanceActive = prefixedFinancePaths.some(p => location.pathname === p || location.pathname.startsWith(p));
   const isSocialActive = prefixedSocialPaths.includes(location.pathname);
+  const prefixedLeadgenPaths = leadgenPaths.map((p) => `${prefix}${p}`);
+  const isLeadgenActive = prefixedLeadgenPaths.some(
+    (p) => location.pathname === p || location.pathname.startsWith(p)
+  ) || location.pathname.startsWith(`${prefix}/leadgen`);
   const [financeOpen, setFinanceOpen] = useState(isFinanceActive);
   const [socialOpen, setSocialOpen] = useState(isSocialActive);
+  const [leadgenOpen, setLeadgenOpen] = useState(isLeadgenActive);
 
   // Auto-expand sections when navigating
   useEffect(() => {
@@ -187,6 +207,9 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
   useEffect(() => {
     if (isSocialActive) setSocialOpen(true);
   }, [isSocialActive]);
+  useEffect(() => {
+    if (isLeadgenActive) setLeadgenOpen(true);
+  }, [isLeadgenActive]);
 
   const accentOf = (p: PortalConfig | null) => p?.accent || "var(--sosa-yellow)";
 
@@ -375,6 +398,63 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
                 </NavLink>
               );
             })}
+          </AccordionSection>
+        )}
+
+        {/* Lead Generation — REDX only */}
+        {portal?.id === "redx" && (
+          <AccordionSection
+            label="Lead Generation" icon={Crosshair}
+            isActive={isLeadgenActive} isOpen={leadgenOpen}
+            onToggle={() => setLeadgenOpen((p) => !p)}
+            portal={portal}
+          >
+            {leadgenSubItems.map((item) => {
+              const isActive =
+                location.pathname === `${prefix}${item.path}` ||
+                location.pathname.startsWith(`${prefix}${item.path}/`);
+              return (
+                <NavLink
+                  key={item.path} to={`${prefix}${item.path}`} onClick={onMobileClose}
+                  className="flex items-center gap-2"
+                  style={{
+                    padding: "7px 14px 7px 10px", borderRadius: 0,
+                    fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: isActive ? 600 : 400,
+                    letterSpacing: "0.03em",
+                    color: isActive ? "var(--text-primary)" : "var(--text-tertiary)",
+                    background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
+                    borderLeft: isActive ? `3px solid ${accentOf(portal)}` : "3px solid transparent",
+                  }}
+                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
+                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+                >
+                  <item.icon style={{ width: 13, height: 13, strokeWidth: 1.6, opacity: isActive ? 1 : 0.4 }} />
+                  {item.title}
+                </NavLink>
+              );
+            })}
+            {(user?.role === "owner" || user?.role === "admin") && (() => {
+              const isActive = location.pathname === `${prefix}${leadgenAdminItem.path}`;
+              return (
+                <NavLink
+                  to={`${prefix}${leadgenAdminItem.path}`} onClick={onMobileClose}
+                  className="flex items-center gap-2"
+                  style={{
+                    padding: "7px 14px 7px 10px", borderRadius: 0,
+                    fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: isActive ? 600 : 400,
+                    letterSpacing: "0.03em",
+                    color: isActive ? "var(--text-primary)" : "var(--text-tertiary)",
+                    background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
+                    borderLeft: isActive ? `3px solid ${accentOf(portal)}` : "3px solid transparent",
+                  }}
+                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
+                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+                >
+                  <leadgenAdminItem.icon style={{ width: 13, height: 13, strokeWidth: 1.6, opacity: isActive ? 1 : 0.4 }} />
+                  {leadgenAdminItem.title}
+                </NavLink>
+              );
+            })()}
           </AccordionSection>
         )}
 
