@@ -61,7 +61,6 @@ const LeadgenSearchHistory = React.lazy(() => import("./pages/leadgen/LeadgenSea
 const LeadgenNoWebsite    = React.lazy(() => import("./pages/leadgen/LeadgenNoWebsite"));
 const LeadgenWithWebsite  = React.lazy(() => import("./pages/leadgen/LeadgenWithWebsite"));
 const LeadgenLeadDetail   = React.lazy(() => import("./pages/leadgen/LeadgenLeadDetail"));
-const LeadgenSettings     = React.lazy(() => import("./pages/leadgen/LeadgenSettings"));
 
 const queryClient = new QueryClient();
 
@@ -126,7 +125,6 @@ function PortalRoutes() {
       <Route path="leadgen/no-website" element={<Lazy><LeadgenNoWebsite /></Lazy>} />
       <Route path="leadgen/with-website" element={<Lazy><LeadgenWithWebsite /></Lazy>} />
       <Route path="leadgen/lead/:id" element={<Lazy><LeadgenLeadDetail /></Lazy>} />
-      <Route path="leadgen/settings" element={<Lazy><LeadgenSettings /></Lazy>} />
       {/* Default: redirect to dashboard */}
       <Route index element={<Navigate to="dashboard" replace />} />
     </>

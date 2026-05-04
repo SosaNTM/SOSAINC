@@ -137,7 +137,7 @@ const leadgenSubItems = [
   { title: "Con sito",     path: "/leadgen/with-website", icon: Globe      },
   { title: "Storico",      path: "/leadgen/searches",     icon: History    },
 ];
-const leadgenAdminItem = { title: "Impostazioni", path: "/leadgen/settings", icon: SlidersHorizontal };
+const leadgenAdminItem = { title: "Impostazioni", path: "/settings/leadgen/impostazioni", icon: SlidersHorizontal };
 const leadgenPaths = leadgenSubItems.map((i) => i.path);
 
 const topItems = [

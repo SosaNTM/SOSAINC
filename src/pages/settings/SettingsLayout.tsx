@@ -1,11 +1,11 @@
-import { useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   TrendingUp, TrendingDown, RefreshCw, CreditCard,
   Repeat, Columns3, Tags, FileStack, Share2, CalendarClock,
-  Layers, Bell, AlertTriangle, Trash2, Settings2,
+  Layers, Bell, AlertTriangle, Trash2, Settings2, Crosshair,
 } from "lucide-react";
+import { usePortal } from "@/lib/portalContext";
 
 interface NavItemDef { title: string; path: string; icon: React.FC<any>; danger?: boolean }
 
@@ -83,6 +83,7 @@ function SidebarNavItem({ item }: { item: NavItemDef }) {
 
 export default function SettingsLayout() {
   const location = useLocation();
+  const { portal } = usePortal();
 
   return (
     <div className="settings-shell" style={{
@@ -171,6 +172,20 @@ export default function SettingsLayout() {
             {section.items.map((item) => <SidebarNavItem key={item.path} item={item} />)}
           </div>
         ))}
+
+        {/* Lead Generation — REDX only */}
+        {portal?.id === "redx" && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ height: 1, background: "var(--divider)", margin: "16px 8px 14px" }} />
+            <p style={{
+              fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 500,
+              textTransform: "uppercase", letterSpacing: "0.08em",
+              color: "var(--text-tertiary)",
+              padding: "0 8px 6px",
+            }}>LEAD GENERATION</p>
+            <SidebarNavItem item={{ title: "API & Token", path: "leadgen/impostazioni", icon: Crosshair }} />
+          </div>
+        )}
 
         {/* Divider + Danger Zone */}
         <div style={{
