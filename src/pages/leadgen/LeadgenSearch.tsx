@@ -125,6 +125,8 @@ const LANGUAGES = [
 
 const FAV_KEY = "leadgen_country_favs";
 
+const ALL_CHIPS = [...PMI_DEFAULT, ...PMI_EXTRA];
+
 function loadFavs(): string[] {
   try { return JSON.parse(localStorage.getItem(FAV_KEY) ?? "[]"); } catch { return []; }
 }
@@ -143,10 +145,10 @@ function CostBadge({ total }: { total: number }) {
     color = "var(--color-success)";
     text = "Coperto dal Free tier ($5/mese)";
   } else if (total < 3) {
-    color = "#f59e0b";
+    color = "var(--color-warning)";
     text = "Userà parte del Free credit";
   } else if (total <= 5) {
-    color = "#f97316";
+    color = "color-mix(in srgb, var(--color-warning) 60%, var(--color-error) 40%)";
     text = "Userà tutto il Free credit";
   } else {
     color = "var(--color-error)";
@@ -163,6 +165,50 @@ function CostBadge({ total }: { total: number }) {
     }}>
       {text}
     </span>
+  );
+}
+
+interface CountryRowProps {
+  c: { code: string; label: string };
+  isFav: boolean;
+  currentCode: string;
+  onSelect: (code: string) => void;
+  onToggleFav: (code: string, e: React.MouseEvent) => void;
+}
+
+function CountryRow({ c, isFav, currentCode, onSelect, onToggleFav }: CountryRowProps) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "0 14px",
+        height: 40,
+        background: c.code === currentCode ? "var(--sosa-bg-2)" : "transparent",
+        borderBottom: "1px solid var(--glass-border)",
+        cursor: "pointer",
+      }}
+      onMouseEnter={(e) => { if (c.code !== currentCode) (e.currentTarget as HTMLDivElement).style.background = "var(--sosa-bg-2)"; }}
+      onMouseLeave={(e) => { if (c.code !== currentCode) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+      onClick={() => onSelect(c.code)}
+    >
+      <span style={{ fontSize: 18, flexShrink: 0 }}>{flagEmoji(c.code)}</span>
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.label}</span>
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)", fontWeight: 600, flexShrink: 0, marginRight: 4 }}>{c.code}</span>
+      <button
+        type="button"
+        onClick={(e) => onToggleFav(c.code, e)}
+        style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex", alignItems: "center", flexShrink: 0 }}
+      >
+        <Star
+          size={12}
+          fill={isFav ? "var(--accent-primary)" : "none"}
+          color={isFav ? "var(--accent-primary)" : "var(--text-tertiary)"}
+          strokeWidth={2}
+        />
+      </button>
+    </div>
   );
 }
 
@@ -233,8 +279,10 @@ export default function LeadgenSearch() {
   const currentCountry = ALL_COUNTRIES.find((c) => c.code === countryCode) ?? ALL_COUNTRIES[0];
   const noToken = !settings?.apify_token;
 
-  // Category helpers
-  const ALL_CHIPS = [...PMI_DEFAULT, ...PMI_EXTRA];
+  const isPMIDefault = useMemo(
+    () => categories.length === PMI_DEFAULT.length && PMI_DEFAULT.every((c) => categories.includes(c)),
+    [categories]
+  );
 
   const toggleCategory = (cat: string) => {
     setCategories((prev) =>
@@ -290,40 +338,6 @@ export default function LeadgenSearch() {
       setRunning(false);
     }
   };
-
-  const CountryRow = ({ c, isFav }: { c: { code: string; label: string }; isFav: boolean }) => (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "0 14px",
-        height: 40,
-        background: c.code === countryCode ? "var(--sosa-bg-2)" : "transparent",
-        borderBottom: "1px solid var(--glass-border)",
-        cursor: "pointer",
-      }}
-      onMouseEnter={(e) => { if (c.code !== countryCode) (e.currentTarget as HTMLDivElement).style.background = "var(--sosa-bg-2)"; }}
-      onMouseLeave={(e) => { if (c.code !== countryCode) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-      onClick={() => { setCountryCode(c.code); setFlagOpen(false); setCountrySearch(""); }}
-    >
-      <span style={{ fontSize: 18, flexShrink: 0 }}>{flagEmoji(c.code)}</span>
-      <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.label}</span>
-      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)", fontWeight: 600, flexShrink: 0, marginRight: 4 }}>{c.code}</span>
-      <button
-        type="button"
-        onClick={(e) => toggleFav(c.code, e)}
-        style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex", alignItems: "center", flexShrink: 0 }}
-      >
-        <Star
-          size={12}
-          fill={isFav ? "var(--accent-primary)" : "none"}
-          color={isFav ? "var(--accent-primary)" : "var(--text-tertiary)"}
-          strokeWidth={2}
-        />
-      </button>
-    </div>
-  );
 
   return (
     <div style={{
@@ -440,7 +454,7 @@ export default function LeadgenSearch() {
                             </span>
                           </div>
                           {filteredCountries.top.map((c) => (
-                            <CountryRow key={c.code} c={c} isFav={true} />
+                            <CountryRow key={c.code} c={c} isFav={true} currentCode={countryCode} onSelect={(code) => { setCountryCode(code); setFlagOpen(false); setCountrySearch(""); }} onToggleFav={toggleFav} />
                           ))}
                           {filteredCountries.rest.length > 0 && (
                             <div style={{ padding: "6px 14px 4px", borderTop: "1px solid var(--glass-border)", marginTop: 2 }}>
@@ -454,7 +468,7 @@ export default function LeadgenSearch() {
 
                       {/* Rest */}
                       {filteredCountries.rest.map((c) => (
-                        <CountryRow key={c.code} c={c} isFav={false} />
+                        <CountryRow key={c.code} c={c} isFav={false} currentCode={countryCode} onSelect={(code) => { setCountryCode(code); setFlagOpen(false); setCountrySearch(""); }} onToggleFav={toggleFav} />
                       ))}
 
                       {filteredCountries.top.length === 0 && filteredCountries.rest.length === 0 && (
@@ -497,24 +511,24 @@ export default function LeadgenSearch() {
               {/* Submit */}
               <button
                 type="submit"
-                disabled={running || noToken || categories.length === 0}
+                disabled={running || noToken || categories.length === 0 || !postalCode.trim()}
                 style={{
                   width: 56,
                   height: "100%",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  background: (running || noToken || categories.length === 0) ? "var(--sosa-bg-2)" : "var(--accent-primary)",
+                  background: (running || noToken || categories.length === 0 || !postalCode.trim()) ? "var(--sosa-bg-2)" : "var(--accent-primary)",
                   border: "none",
                   borderLeft: "1.5px solid var(--glass-border)",
-                  cursor: (running || noToken || categories.length === 0) ? "not-allowed" : "pointer",
+                  cursor: (running || noToken || categories.length === 0 || !postalCode.trim()) ? "not-allowed" : "pointer",
                   flexShrink: 0,
                   transition: "background 0.15s",
                 }}
               >
                 {running
                   ? <Loader2 size={18} color="#000" style={{ animation: "spin 1s linear infinite" }} />
-                  : <Search size={18} color={(noToken || categories.length === 0) ? "var(--text-tertiary)" : "#000"} />
+                  : <Search size={18} color={(noToken || categories.length === 0 || !postalCode.trim()) ? "var(--text-tertiary)" : "#000"} />
                 }
               </button>
             </div>
@@ -695,9 +709,9 @@ export default function LeadgenSearch() {
                 padding: "6px 14px",
                 fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700,
                 letterSpacing: "0.08em", textTransform: "uppercase",
-                background: categories.length === PMI_DEFAULT.length && PMI_DEFAULT.every(c => categories.includes(c)) && categories.every(c => PMI_DEFAULT.includes(c)) ? "var(--accent-primary)" : "transparent",
-                border: `1px solid ${categories.length === PMI_DEFAULT.length && PMI_DEFAULT.every(c => categories.includes(c)) && categories.every(c => PMI_DEFAULT.includes(c)) ? "var(--accent-primary)" : "var(--glass-border)"}`,
-                color: categories.length === PMI_DEFAULT.length && PMI_DEFAULT.every(c => categories.includes(c)) && categories.every(c => PMI_DEFAULT.includes(c)) ? "#000" : "var(--text-tertiary)",
+                background: isPMIDefault ? "var(--accent-primary)" : "transparent",
+                border: `1px solid ${isPMIDefault ? "var(--accent-primary)" : "var(--glass-border)"}`,
+                color: isPMIDefault ? "#000" : "var(--text-tertiary)",
                 cursor: "pointer",
               }}
             >
