@@ -14,6 +14,7 @@ export interface LeadgenSettings {
   id: string;
   portal_id: string;
   apify_token: string | null;
+  actor_id: string;
   default_country_code: string;
   default_language: string;
   default_max_places: number;
@@ -27,13 +28,15 @@ export interface LeadgenSearch {
   portal_id: string;
   country_code: string;
   postal_code: string;
-  category: string;
+  category: string | null;
+  categories: string[];
   status: SearchStatus;
   apify_run_id: string | null;
   apify_dataset_id: string | null;
   total_results: number;
   with_website: number;
   without_website: number;
+  excluded_count: number;
   error_message: string | null;
   started_at: string;
   completed_at: string | null;
@@ -58,11 +61,21 @@ export interface LeadgenLead {
   emails: string[];
   social_media: Record<string, string>;
   has_website: boolean;
+  assigned_to: string | null;
   outreach_status: OutreachStatus;
   outreach_notes: string | null;
   contacted_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface LeadgenLeadNote {
+  id: string;
+  portal_id: string;
+  lead_id: string;
+  author_id: string;
+  content: string;
+  created_at: string;
 }
 
 export interface LeadgenOutreachEvent {
@@ -73,6 +86,17 @@ export interface LeadgenOutreachEvent {
   direction: OutreachDirection;
   notes: string | null;
   occurred_at: string;
+}
+
+export type BlacklistRuleType = "title_keyword" | "website_domain" | "category" | "min_reviews";
+
+export interface LeadgenBlacklist {
+  id: string;
+  portal_id: string;
+  rule_type: BlacklistRuleType;
+  rule_value: string;
+  active: boolean;
+  created_at: string;
 }
 
 // Shape returned by Apify Google Maps Scraper dataset items
