@@ -218,7 +218,7 @@ export default function LeadgenSearch() {
   const { portal } = usePortal();
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const filterRef = useRef<HTMLDivElement>(null);
+  const snapshotRef = useRef<{ categories: string[]; maxPlaces: number; scrapeContacts: boolean; language: string } | null>(null);
 
   const [countryCode, setCountryCode] = useState("IT");
   const [postalCode, setPostalCode] = useState("");
@@ -229,7 +229,7 @@ export default function LeadgenSearch() {
   const [language, setLanguage] = useState("it");
   const [running, setRunning] = useState(false);
   const [flagOpen, setFlagOpen] = useState(false);
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
   const [favs, setFavs] = useState<string[]>(loadFavs);
 
@@ -242,14 +242,29 @@ export default function LeadgenSearch() {
     }
   }, [settings]);
 
+  const openModal = () => {
+    snapshotRef.current = { categories: [...categories], maxPlaces, scrapeContacts, language };
+    setModalOpen(true);
+  };
+
+  const handleSave = () => setModalOpen(false);
+
+  const handleCancel = () => {
+    if (snapshotRef.current) {
+      const s = snapshotRef.current;
+      setCategories(s.categories);
+      setMaxPlaces(s.maxPlaces);
+      setScrapeContacts(s.scrapeContacts);
+      setLanguage(s.language);
+    }
+    setModalOpen(false);
+  };
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setFlagOpen(false);
         setCountrySearch("");
-      }
-      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
-        setFilterOpen(false);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -536,295 +551,43 @@ export default function LeadgenSearch() {
             </div>
           </form>
 
-          {/* Settings + category panel button */}
-          <div ref={filterRef} style={{ position: "relative", flexShrink: 0 }}>
-            <button
-              type="button"
-              onClick={() => { setFilterOpen((p) => !p); setFlagOpen(false); setCountrySearch(""); }}
-              title="Categorie e impostazioni"
-              style={{
-                width: 56,
-                height: 56,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 3,
-                background: filterOpen ? "var(--sosa-bg-2)" : "var(--glass-bg)",
-                border: filterOpen
-                  ? "1.5px solid var(--accent-primary)"
-                  : hasNonDefaultSettings
-                  ? "1.5px solid color-mix(in srgb, var(--accent-primary) 50%, var(--glass-border))"
-                  : "1.5px solid var(--glass-border)",
-                cursor: "pointer",
-                transition: "border-color 0.15s",
-                position: "relative",
-              }}
-            >
-              <SlidersHorizontal size={16} color={filterOpen ? "var(--accent-primary)" : hasNonDefaultSettings ? "var(--accent-primary)" : "var(--text-secondary)"} />
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, fontWeight: 700, color: filterOpen || hasNonDefaultSettings ? "var(--accent-primary)" : "var(--text-tertiary)", letterSpacing: "0.06em" }}>
-                {categories.length}/{MAX_CATEGORIES}
-              </span>
-              {hasNonDefaultSettings && (
-                <span style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "var(--accent-primary)" }} />
-              )}
-            </button>
-
-            {/* Panel */}
-            {filterOpen && (
-              <div style={{
-                position: "absolute",
-                top: "calc(100% + 6px)",
-                right: 0,
-                zIndex: 200,
-                background: "var(--sosa-bg)",
-                border: "1.5px solid var(--glass-border)",
-                width: 380,
-                maxHeight: "80vh",
-                overflowY: "auto",
-                boxShadow: "0 12px 40px rgba(0,0,0,0.7)",
-                padding: "20px",
-              }}>
-
-                {/* ── Categorie ── */}
-                <div style={{ marginBottom: 18 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                    <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--text-tertiary)", margin: 0 }}>
-                      Categorie
-                    </p>
-                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                      <button
-                        type="button"
-                        onClick={() => setCategories([...PMI_DEFAULT])}
-                        style={{
-                          padding: "3px 10px",
-                          fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700,
-                          letterSpacing: "0.08em", textTransform: "uppercase",
-                          background: isPMIDefault ? "var(--accent-primary)" : "transparent",
-                          border: `1px solid ${isPMIDefault ? "var(--accent-primary)" : "var(--glass-border)"}`,
-                          color: isPMIDefault ? "#000" : "var(--text-tertiary)",
-                          cursor: "pointer",
-                        }}
-                      >
-                        PMI
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setCategories([])}
-                        style={{
-                          padding: "3px 10px",
-                          fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700,
-                          letterSpacing: "0.08em", textTransform: "uppercase",
-                          background: "transparent",
-                          border: "1px solid var(--glass-border)",
-                          color: "var(--text-tertiary)",
-                          cursor: "pointer",
-                        }}
-                      >
-                        Reset
-                      </button>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: categories.length >= MAX_CATEGORIES ? "var(--color-error)" : "var(--text-tertiary)" }}>
-                        {categories.length}/{MAX_CATEGORIES}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Chips */}
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
-                    {ALL_CHIPS.map((cat) => {
-                      const selected = categories.includes(cat);
-                      const disabled = !selected && categories.length >= MAX_CATEGORIES;
-                      return (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => toggleCategory(cat)}
-                          disabled={disabled}
-                          style={{
-                            padding: "4px 10px",
-                            fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 600,
-                            letterSpacing: "0.06em",
-                            background: selected ? "var(--accent-primary)" : "transparent",
-                            border: `1px solid ${selected ? "var(--accent-primary)" : "var(--glass-border)"}`,
-                            color: selected ? "#000" : "var(--text-tertiary)",
-                            cursor: disabled ? "not-allowed" : "pointer",
-                            opacity: disabled ? 0.4 : 1,
-                          }}
-                        >
-                          {cat}
-                        </button>
-                      );
-                    })}
-                    {categories.filter((c) => !ALL_CHIPS.includes(c)).map((cat) => (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => removeCategory(cat)}
-                        style={{
-                          padding: "4px 10px",
-                          fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 600,
-                          letterSpacing: "0.06em",
-                          background: "var(--accent-primary)",
-                          border: "1px solid var(--accent-primary)",
-                          color: "#000",
-                          cursor: "pointer",
-                          display: "inline-flex", alignItems: "center", gap: 5,
-                        }}
-                      >
-                        {cat} <XIcon size={9} />
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Custom input */}
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <input
-                      type="text"
-                      value={customCatInput}
-                      onChange={(e) => setCustomCatInput(e.target.value.slice(0, 40))}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomCategory(); } }}
-                      placeholder="Categoria custom..."
-                      autoComplete="off"
-                      name="leadgen-custom-cat"
-                      className="glass-input"
-                      style={{ flex: 1, fontSize: 11 }}
-                    />
-                    <button
-                      type="button"
-                      onClick={addCustomCategory}
-                      disabled={!customCatInput.trim() || categories.length >= MAX_CATEGORIES}
-                      className="btn-glass-ds"
-                      style={{ fontSize: 10, whiteSpace: "nowrap" }}
-                    >
-                      + Aggiungi
-                    </button>
-                  </div>
-                </div>
-
-                <div style={{ height: 1, background: "var(--glass-border)", marginBottom: 18 }} />
-
-                {/* ── Impostazioni ── */}
-                <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--text-tertiary)", marginBottom: 16 }}>
-                  Impostazioni
-                </p>
-
-                {/* Max risultati */}
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                      Max risultati
-                    </span>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--accent-primary)" }}>
-                      {maxPlaces}
-                    </span>
-                  </div>
-                  <input
-                    type="range" min={10} max={100} step={10} value={maxPlaces}
-                    onChange={(e) => setMaxPlaces(Number(e.target.value))}
-                    style={{ width: "100%", accentColor: "var(--accent-primary)" }}
-                  />
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)" }}>10</span>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)" }}>100</span>
-                  </div>
-                </div>
-
-                {/* Scrape contacts */}
-                <div style={{ marginBottom: 20 }}>
-                  <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
-                    <div>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase", display: "block" }}>
-                        Estrai contatti
-                      </span>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)", marginTop: 2, display: "block" }}>
-                        Email, telefono, social
-                      </span>
-                    </div>
-                    <input
-                      type="checkbox" checked={scrapeContacts}
-                      onChange={(e) => setScrapeContacts(e.target.checked)}
-                      style={{ width: 15, height: 15, cursor: "pointer", accentColor: "var(--accent-primary)", flexShrink: 0 }}
-                    />
-                  </label>
-                </div>
-
-                {/* Language */}
-                <div style={{ marginBottom: 20 }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>
-                    Lingua ricerca
-                  </span>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {LANGUAGES.map((l) => (
-                      <button
-                        key={l.code}
-                        type="button"
-                        onClick={() => setLanguage(l.code)}
-                        style={{
-                          padding: "4px 10px",
-                          fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, letterSpacing: "0.06em",
-                          background: language === l.code ? "var(--accent-primary)" : "transparent",
-                          color: language === l.code ? "#000" : "var(--text-tertiary)",
-                          border: `1px solid ${language === l.code ? "var(--accent-primary)" : "var(--glass-border)"}`,
-                          cursor: "pointer",
-                        }}
-                      >
-                        {l.code.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={{ height: 1, background: "var(--glass-border)", marginBottom: 18 }} />
-
-                {/* ── Costo stimato ── */}
-                <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--text-tertiary)", marginBottom: 12 }}>
-                  Costo stimato
-                </p>
-                {categories.length === 0 ? (
-                  <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>
-                    Seleziona almeno una categoria
-                  </p>
-                ) : (() => {
-                  const base = categories.length * maxPlaces * 0.004;
-                  const contacts = scrapeContacts ? categories.length * maxPlaces * 0.002 : 0;
-                  const total = base + contacts;
-                  const estDedup = Math.round(categories.length * maxPlaces * 0.7);
-                  return (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>Scraping ({categories.length} cat. × {maxPlaces} ris.)</span>
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-secondary)", fontWeight: 600 }}>~${base.toFixed(2)}</span>
-                      </div>
-                      {scrapeContacts && (
-                        <div style={{ display: "flex", justifyContent: "space-between" }}>
-                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>Estrazione contatti</span>
-                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-secondary)", fontWeight: 600 }}>~${contacts.toFixed(2)}</span>
-                        </div>
-                      )}
-                      <div style={{ height: 1, background: "var(--glass-border)", margin: "2px 0" }} />
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "var(--text-primary)" }}>Totale</span>
-                        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <CostBadge total={total} />
-                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: "var(--accent-primary)" }}>~${total.toFixed(2)}</span>
-                        </span>
-                      </div>
-                      <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)", marginTop: 4, lineHeight: 1.6 }}>
-                        ≈ {estDedup} attività dopo deduplica · Piano Free: $5/mese incluso
-                      </p>
-                    </div>
-                  );
-                })()}
-              </div>
+          {/* Modal trigger button */}
+          <button
+            type="button"
+            onClick={() => { openModal(); setFlagOpen(false); setCountrySearch(""); }}
+            title="Categorie e impostazioni"
+            style={{
+              width: 56,
+              height: 56,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 3,
+              background: "var(--glass-bg)",
+              border: hasNonDefaultSettings
+                ? "1.5px solid var(--accent-primary)"
+                : "1.5px solid var(--glass-border)",
+              cursor: "pointer",
+              flexShrink: 0,
+              position: "relative",
+            }}
+          >
+            <SlidersHorizontal size={16} color={hasNonDefaultSettings ? "var(--accent-primary)" : "var(--text-secondary)"} />
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, fontWeight: 700, color: hasNonDefaultSettings ? "var(--accent-primary)" : "var(--text-tertiary)", letterSpacing: "0.06em" }}>
+              {categories.length}/{MAX_CATEGORIES}
+            </span>
+            {hasNonDefaultSettings && (
+              <span style={{ position: "absolute", top: 6, right: 6, width: 5, height: 5, borderRadius: "50%", background: "var(--accent-primary)" }} />
             )}
-          </div>
+          </button>
         </div>
 
         {/* Compact status line */}
         <div style={{ width: "100%", maxWidth: 700, marginTop: 10, minHeight: 18 }}>
           {categories.length === 0 ? (
             <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--color-error)", margin: 0 }}>
-              Nessuna categoria — apri il pannello a destra per selezionare
+              Nessuna categoria — clicca il pannello a destra per selezionare
             </p>
           ) : postalCode.trim() ? (
             <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)", margin: 0 }}>
@@ -834,6 +597,304 @@ export default function LeadgenSearch() {
         </div>
 
       </div>
+
+      {/* ── Modal overlay ── */}
+      {modalOpen && (
+        <div
+          onClick={handleCancel}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 500,
+            background: "rgba(0,0,0,0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 24,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "var(--sosa-bg)",
+              border: "1.5px solid var(--glass-border)",
+              width: "100%",
+              maxWidth: 520,
+              maxHeight: "85vh",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 24px 80px rgba(0,0,0,0.85)",
+            }}
+          >
+            {/* Modal header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--glass-border)", flexShrink: 0 }}>
+              <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--text-primary)", margin: 0 }}>
+                Configura ricerca
+              </p>
+              <button type="button" onClick={handleCancel} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", color: "var(--text-tertiary)" }}>
+                <XIcon size={16} />
+              </button>
+            </div>
+
+            {/* Modal body — scrollable */}
+            <div style={{ overflowY: "auto", padding: "20px", flex: 1 }}>
+
+              {/* ── Categorie ── */}
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--text-tertiary)" }}>
+                    Categorie
+                  </span>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <button
+                      type="button"
+                      onClick={() => setCategories([...PMI_DEFAULT])}
+                      style={{
+                        padding: "3px 10px",
+                        fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700,
+                        letterSpacing: "0.08em", textTransform: "uppercase",
+                        background: isPMIDefault ? "var(--accent-primary)" : "transparent",
+                        border: `1px solid ${isPMIDefault ? "var(--accent-primary)" : "var(--glass-border)"}`,
+                        color: isPMIDefault ? "#000" : "var(--text-tertiary)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      PMI
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCategories([])}
+                      style={{
+                        padding: "3px 10px",
+                        fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700,
+                        letterSpacing: "0.08em", textTransform: "uppercase",
+                        background: "transparent",
+                        border: "1px solid var(--glass-border)",
+                        color: "var(--text-tertiary)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Reset
+                    </button>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: categories.length >= MAX_CATEGORIES ? "var(--color-error)" : "var(--text-tertiary)" }}>
+                      {categories.length}/{MAX_CATEGORIES}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+                  {ALL_CHIPS.map((cat) => {
+                    const selected = categories.includes(cat);
+                    const disabled = !selected && categories.length >= MAX_CATEGORIES;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => toggleCategory(cat)}
+                        disabled={disabled}
+                        style={{
+                          padding: "5px 12px",
+                          fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, letterSpacing: "0.06em",
+                          background: selected ? "var(--accent-primary)" : "transparent",
+                          border: `1px solid ${selected ? "var(--accent-primary)" : "var(--glass-border)"}`,
+                          color: selected ? "#000" : "var(--text-tertiary)",
+                          cursor: disabled ? "not-allowed" : "pointer",
+                          opacity: disabled ? 0.4 : 1,
+                        }}
+                      >
+                        {cat}
+                      </button>
+                    );
+                  })}
+                  {categories.filter((c) => !ALL_CHIPS.includes(c)).map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => removeCategory(cat)}
+                      style={{
+                        padding: "5px 12px",
+                        fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, letterSpacing: "0.06em",
+                        background: "var(--accent-primary)",
+                        border: "1px solid var(--accent-primary)",
+                        color: "#000",
+                        cursor: "pointer",
+                        display: "inline-flex", alignItems: "center", gap: 5,
+                      }}
+                    >
+                      {cat} <XIcon size={10} />
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    type="text"
+                    value={customCatInput}
+                    onChange={(e) => setCustomCatInput(e.target.value.slice(0, 40))}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomCategory(); } }}
+                    placeholder="Categoria custom..."
+                    autoComplete="off"
+                    name="leadgen-custom-cat"
+                    className="glass-input"
+                    style={{ flex: 1, fontSize: 12 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={addCustomCategory}
+                    disabled={!customCatInput.trim() || categories.length >= MAX_CATEGORIES}
+                    className="btn-glass-ds"
+                    style={{ fontSize: 11, whiteSpace: "nowrap" }}
+                  >
+                    + Aggiungi
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ height: 1, background: "var(--glass-border)", marginBottom: 24 }} />
+
+              {/* ── Impostazioni ── */}
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--text-tertiary)", display: "block", marginBottom: 18 }}>
+                Impostazioni
+              </span>
+
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                    Max risultati
+                  </span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--accent-primary)" }}>{maxPlaces}</span>
+                </div>
+                <input
+                  type="range" min={10} max={100} step={10} value={maxPlaces}
+                  onChange={(e) => setMaxPlaces(Number(e.target.value))}
+                  style={{ width: "100%", accentColor: "var(--accent-primary)" }}
+                />
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)" }}>10</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)" }}>100</span>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
+                  <div>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase", display: "block" }}>
+                      Estrai contatti
+                    </span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)", marginTop: 2, display: "block" }}>
+                      Email, telefono, social
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox" checked={scrapeContacts}
+                    onChange={(e) => setScrapeContacts(e.target.checked)}
+                    style={{ width: 15, height: 15, cursor: "pointer", accentColor: "var(--accent-primary)", flexShrink: 0 }}
+                  />
+                </label>
+              </div>
+
+              <div style={{ marginBottom: 24 }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase", display: "block", marginBottom: 10 }}>
+                  Lingua ricerca
+                </span>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {LANGUAGES.map((l) => (
+                    <button
+                      key={l.code}
+                      type="button"
+                      onClick={() => setLanguage(l.code)}
+                      style={{
+                        padding: "5px 14px",
+                        fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, letterSpacing: "0.06em",
+                        background: language === l.code ? "var(--accent-primary)" : "transparent",
+                        color: language === l.code ? "#000" : "var(--text-tertiary)",
+                        border: `1px solid ${language === l.code ? "var(--accent-primary)" : "var(--glass-border)"}`,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {l.code.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ height: 1, background: "var(--glass-border)", marginBottom: 24 }} />
+
+              {/* ── Costo stimato ── */}
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--text-tertiary)", display: "block", marginBottom: 14 }}>
+                Costo stimato
+              </span>
+              {categories.length === 0 ? (
+                <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>Seleziona almeno una categoria</p>
+              ) : (() => {
+                const base = categories.length * maxPlaces * 0.004;
+                const contacts = scrapeContacts ? categories.length * maxPlaces * 0.002 : 0;
+                const total = base + contacts;
+                const estDedup = Math.round(categories.length * maxPlaces * 0.7);
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>Scraping ({categories.length} cat. × {maxPlaces} ris.)</span>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-secondary)", fontWeight: 600 }}>~${base.toFixed(2)}</span>
+                    </div>
+                    {scrapeContacts && (
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>Estrazione contatti</span>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-secondary)", fontWeight: 600 }}>~${contacts.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div style={{ height: 1, background: "var(--glass-border)", margin: "2px 0" }} />
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: "var(--text-primary)" }}>Totale</span>
+                      <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <CostBadge total={total} />
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 14, fontWeight: 700, color: "var(--accent-primary)" }}>~${total.toFixed(2)}</span>
+                      </span>
+                    </div>
+                    <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)", marginTop: 2, lineHeight: 1.6 }}>
+                      ≈ {estDedup} attività dopo deduplica · Piano Free: $5/mese incluso
+                    </p>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Modal footer */}
+            <div style={{ display: "flex", gap: 8, padding: "14px 20px", borderTop: "1px solid var(--glass-border)", flexShrink: 0, justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={handleCancel}
+                style={{
+                  padding: "8px 20px",
+                  fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700,
+                  letterSpacing: "0.08em", textTransform: "uppercase",
+                  background: "transparent",
+                  border: "1px solid var(--glass-border)",
+                  color: "var(--text-tertiary)",
+                  cursor: "pointer",
+                }}
+              >
+                Annulla
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                style={{
+                  padding: "8px 24px",
+                  fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700,
+                  letterSpacing: "0.08em", textTransform: "uppercase",
+                  background: "var(--accent-primary)",
+                  border: "1px solid var(--accent-primary)",
+                  color: "#000",
+                  cursor: "pointer",
+                }}
+              >
+                Salva
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
