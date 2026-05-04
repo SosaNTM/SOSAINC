@@ -4,6 +4,7 @@ import { usePortalDB } from "@/lib/portalContextDB";
 import type { LeadgenSearch, ApifyPlaceResult } from "@/types/leadgen";
 import { broadcastLeadgenUpdate } from "@/lib/leadgenRealtime";
 import { getRunStatus, getDatasetItems } from "@/lib/apifyClient";
+import { applyBlacklist } from "@/lib/leadgenFilter";
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -36,7 +37,36 @@ export function useLeadgenSearches() {
 
         if (status === "SUCCEEDED") {
           const items = await getDatasetItems<ApifyPlaceResult>(apifyToken, defaultDatasetId);
-          const leadsToInsert = items.map((item) => ({
+
+          // Load blacklist rules for this portal
+          const { data: blacklistRows } = await supabase
+            .from("leadgen_blacklist")
+            .select("rule_type, rule_value")
+            .eq("portal_id", currentPortalId)
+            .eq("active", true);
+
+          const bRows = (blacklistRows ?? []) as { rule_type: string; rule_value: string }[];
+          const blacklistRules = {
+            titleKeywords: bRows.filter((r) => r.rule_type === "title_keyword").map((r) => r.rule_value),
+            websiteDomains: bRows.filter((r) => r.rule_type === "website_domain").map((r) => r.rule_value),
+            categories: bRows.filter((r) => r.rule_type === "category").map((r) => r.rule_value),
+            minReviews: (() => {
+              const row = bRows.find((r) => r.rule_type === "min_reviews");
+              if (!row) return null;
+              const n = parseInt(row.rule_value, 10);
+              return isNaN(n) || n === 0 ? null : n;
+            })(),
+          };
+
+          const kept: typeof items = [];
+          let excludedCount = 0;
+          for (const item of items) {
+            const { keep } = applyBlacklist(blacklistRules, item);
+            if (keep) kept.push(item);
+            else excludedCount++;
+          }
+
+          const leadsToInsert = kept.map((item) => ({
             portal_id: currentPortalId,
             search_id: search.id,
             place_id: item.placeId,
@@ -47,6 +77,7 @@ export function useLeadgenSearches() {
             country_code: item.countryCode ?? null,
             phone: item.phone ?? null,
             website: item.website ?? null,
+            has_website: !!item.website,
             category: item.categoryName ?? null,
             rating: item.totalScore ?? null,
             reviews_count: item.reviewsCount ?? null,
@@ -78,6 +109,7 @@ export function useLeadgenSearches() {
               total_results: leadsToInsert.length,
               with_website: withWebsite,
               without_website: withoutWebsite,
+              excluded_count: excludedCount,
               completed_at: new Date().toISOString(),
             })
             .eq("id", search.id);
@@ -113,14 +145,19 @@ export function useLeadgenSearches() {
   const createSearch = useCallback(async (payload: {
     country_code: string;
     postal_code: string;
-    category: string;
+    categories: string[];
     apify_run_id: string;
     apify_dataset_id: string;
   }) => {
     if (!currentPortalId) return { error: "Nessun portale selezionato", data: null };
     const { data: row, error } = await supabase
       .from("leadgen_searches")
-      .insert({ ...payload, portal_id: currentPortalId, status: "running" })
+      .insert({
+        ...payload,
+        portal_id: currentPortalId,
+        status: "running",
+        category: payload.categories[0] ?? null,
+      })
       .select()
       .single();
     if (!error && row) {
