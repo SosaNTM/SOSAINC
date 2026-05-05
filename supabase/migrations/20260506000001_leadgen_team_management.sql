@@ -15,9 +15,9 @@ CREATE TABLE IF NOT EXISTS public.leadgen_members (
   UNIQUE (portal_id, user_id)
 );
 
-CREATE INDEX IF NOT EXISTS leadgen_members_portal_idx
+CREATE INDEX IF NOT EXISTS idx_leadgen_members_portal_active
   ON public.leadgen_members (portal_id, active);
-CREATE INDEX IF NOT EXISTS leadgen_members_user_idx
+CREATE INDEX IF NOT EXISTS idx_leadgen_members_user
   ON public.leadgen_members (user_id);
 
 ALTER TABLE public.leadgen_members ENABLE ROW LEVEL SECURITY;
@@ -52,10 +52,10 @@ DO $$ BEGIN
   ALTER TABLE public.leadgen_leads ADD COLUMN last_activity_at TIMESTAMPTZ;
 EXCEPTION WHEN duplicate_column THEN NULL; END $$;
 
-CREATE INDEX IF NOT EXISTS leadgen_leads_assigned_idx
+CREATE INDEX IF NOT EXISTS idx_leadgen_leads_assigned
   ON public.leadgen_leads (portal_id, assigned_to, outreach_status);
 
-CREATE INDEX IF NOT EXISTS leadgen_leads_pool_idx
+CREATE INDEX IF NOT EXISTS idx_leadgen_leads_pool
   ON public.leadgen_leads (portal_id, outreach_status)
   WHERE assigned_to IS NULL;
 
