@@ -93,7 +93,6 @@ export function useFollowUpLeads(filters?: FollowUpFilters) {
     }
 
     setLoading(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPortalId, ownership]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);

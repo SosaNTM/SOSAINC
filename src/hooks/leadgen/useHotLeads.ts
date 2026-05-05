@@ -90,7 +90,6 @@ export function useHotLeads(filters?: HotLeadsFilters) {
 
     setHotLeads(hot);
     setLoading(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPortalId, ownership]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
