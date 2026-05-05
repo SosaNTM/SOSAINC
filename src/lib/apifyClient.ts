@@ -82,3 +82,7 @@ export async function testConnection(token: string): Promise<{ username: string 
   const res = await apifyFetch<{ data: { username: string } }>(token, "/users/me");
   return { username: res.data.username };
 }
+
+export async function abortRun(token: string, runId: string): Promise<void> {
+  await apifyFetch(token, `/runs/${runId}/abort`, { method: "POST" });
+}

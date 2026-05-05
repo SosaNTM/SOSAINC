@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { usePortalDB } from "@/lib/portalContextDB";
 import type { LeadgenSearch, ApifyPlaceResult } from "@/types/leadgen";
 import { broadcastLeadgenUpdate } from "@/lib/leadgenRealtime";
-import { getRunStatus, getDatasetItems } from "@/lib/apifyClient";
+import { getRunStatus, getDatasetItems, abortRun } from "@/lib/apifyClient";
 import { applyBlacklist } from "@/lib/leadgenFilter";
 
 const POLL_INTERVAL_MS = 5000;
@@ -182,5 +182,17 @@ export function useLeadgenSearches() {
     return { data: row as LeadgenSearch | null, error: error?.message ?? null };
   }, [currentPortalId]);
 
-  return { searches, loading, refetch: fetchSearches, createSearch, startPolling, stopPolling };
+  const abortSearch = useCallback(async (searchId: string, apifyRunId: string, apifyToken: string) => {
+    if (!currentPortalId) return { error: "Nessun portale" };
+    try { await abortRun(apifyToken, apifyRunId); } catch { /* ignore — run may have already finished */ }
+    const { error } = await supabase
+      .from("leadgen_searches")
+      .update({ status: "failed", error_message: "Annullata dall'utente", completed_at: new Date().toISOString() })
+      .eq("portal_id", currentPortalId)
+      .eq("id", searchId);
+    if (!error) setSearches((prev) => prev.map((s) => s.id === searchId ? { ...s, status: "failed" as const, error_message: "Annullata dall'utente" } : s));
+    return { error: error?.message ?? null };
+  }, [currentPortalId]);
+
+  return { searches, loading, refetch: fetchSearches, createSearch, startPolling, stopPolling, abortSearch };
 }

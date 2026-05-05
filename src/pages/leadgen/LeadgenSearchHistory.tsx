@@ -1,9 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useLeadgenSearches } from "@/hooks/leadgen/useLeadgenSearches";
 import { useLeadgenSettings } from "@/hooks/leadgen/useLeadgenSettings";
 import { SearchProgressIndicator } from "@/components/leadgen/SearchProgressIndicator";
 import { usePortal } from "@/lib/portalContext";
+import { Square } from "lucide-react";
+import { toast } from "sonner";
 import type { LeadgenSearch } from "@/types/leadgen";
 
 function duration(search: LeadgenSearch): string {
@@ -14,20 +16,38 @@ function duration(search: LeadgenSearch): string {
 }
 
 export default function LeadgenSearchHistory() {
-  const { searches, loading, startPolling, stopPolling } = useLeadgenSearches();
+  const { searches, loading, refetch, startPolling, stopPolling, abortSearch } = useLeadgenSearches();
   const { data: settings } = useLeadgenSettings();
   const { portal } = usePortal();
   const [searchParams] = useSearchParams();
   const highlight = searchParams.get("highlight");
+  const [aborting, setAborting] = useState<string | null>(null);
+
+  const hasRunning = searches.some((s) => s.status === "running");
 
   useEffect(() => {
-    const hasRunning = searches.some((s) => s.status === "running");
     if (hasRunning && settings?.apify_token) {
       startPolling(settings.apify_token);
     } else {
       stopPolling();
     }
-  }, [searches, settings, startPolling, stopPolling]);
+  }, [hasRunning, settings, startPolling, stopPolling]);
+
+  // Refresh counts every 10s while a search is running
+  useEffect(() => {
+    if (!hasRunning) return;
+    const id = setInterval(refetch, 10000);
+    return () => clearInterval(id);
+  }, [hasRunning, refetch]);
+
+  const handleAbort = async (s: LeadgenSearch) => {
+    if (!s.apify_run_id || !settings?.apify_token) return;
+    setAborting(s.id);
+    const { error } = await abortSearch(s.id, s.apify_run_id, settings.apify_token);
+    setAborting(null);
+    if (error) toast.error(error);
+    else toast.success("Ricerca annullata");
+  };
 
   if (loading) {
     return <div style={{ padding: 32, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", fontSize: 13 }}>Caricamento...</div>;
@@ -46,7 +66,7 @@ export default function LeadgenSearchHistory() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: 12 }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--glass-border)" }}>
-                {["Paese", "CAP", "Categorie", "Status", "Salvate", "Escluse", "Con sito", "Senza sito", "Data", "Durata"].map((h) => (
+                {["Paese", "CAP", "Categorie", "Status", "Salvate", "Escluse", "Con sito", "Senza sito", "Data", "Durata", ""].map((h) => (
                   <th key={h} style={{ padding: "8px 12px", textAlign: "left", color: "var(--text-tertiary)", fontWeight: 600, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
@@ -75,13 +95,34 @@ export default function LeadgenSearchHistory() {
                     <td style={{ padding: "10px 12px", color: "var(--color-error)", textAlign: "center" }}>{s.without_website}</td>
                     <td style={{ padding: "10px 12px", color: "var(--text-tertiary)", whiteSpace: "nowrap" }}>{new Date(s.started_at).toLocaleDateString("it-IT")}</td>
                     <td style={{ padding: "10px 12px", color: "var(--text-tertiary)" }}>{duration(s)}</td>
+                    <td style={{ padding: "10px 12px" }}>
+                      {s.status === "running" && (
+                        <button
+                          type="button"
+                          onClick={() => handleAbort(s)}
+                          disabled={aborting === s.id}
+                          title="Annulla ricerca"
+                          style={{
+                            display: "inline-flex", alignItems: "center", justifyContent: "center",
+                            width: 26, height: 26,
+                            background: "color-mix(in srgb, var(--color-error) 12%, transparent)",
+                            border: "1px solid var(--color-error)",
+                            color: "var(--color-error)",
+                            cursor: aborting === s.id ? "not-allowed" : "pointer",
+                            opacity: aborting === s.id ? 0.5 : 1,
+                          }}
+                        >
+                          <Square size={11} fill="currentColor" />
+                        </button>
+                      )}
+                    </td>
                   </tr>,
                 ];
 
                 if (s.status === "completed" && (s.excluded_count ?? 0) > 0) {
                   rows.push(
                     <tr key={`${s.id}-excl`} style={{ borderBottom: "1px solid var(--glass-border)" }}>
-                      <td colSpan={10} style={{ padding: "0 12px 8px", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>
+                      <td colSpan={11} style={{ padding: "0 12px 8px", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>
                         {s.excluded_count ?? 0} attività escluse dalla blacklist (catene) —{" "}
                         <a href={`/${portal?.id ?? "redx"}/leadgen/settings`} style={{ color: "var(--accent-primary)", textDecoration: "none" }}>
                           Gestisci blacklist
