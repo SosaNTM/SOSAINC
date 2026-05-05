@@ -77,7 +77,6 @@ export function useLeadgenSearches() {
             country_code: item.countryCode ?? null,
             phone: item.phone ?? null,
             website: item.website ?? null,
-            has_website: !!item.website,
             category: item.categoryName ?? null,
             rating: item.totalScore ?? null,
             reviews_count: item.reviewsCount ?? null,
