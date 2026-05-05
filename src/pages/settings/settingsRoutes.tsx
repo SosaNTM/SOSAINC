@@ -26,6 +26,7 @@ const NotificationChannels = React.lazy(() => import("./notifications/Notificati
 const AlertRules = React.lazy(() => import("./notifications/AlertRules"));
 const DangerZone = React.lazy(() => import("./DangerZone"));
 const LeadgenSettingsPage = React.lazy(() => import("../leadgen/LeadgenSettings"));
+const LeadgenTeamPage = React.lazy(() => import("./leadgen/TeamManagement"));
 
 function SettingsLoader() {
   return (
@@ -72,6 +73,7 @@ export function SettingsRoutes() {
         <Route path="notifiche/regole-alert"        element={<SLazy><AlertRules /></SLazy>} />
         {/* Lead Generation — REDX only */}
         <Route path="leadgen/impostazioni"          element={<SLazy><LeadgenSettingsPage /></SLazy>} />
+        <Route path="leadgen/team"                  element={<SLazy><LeadgenTeamPage /></SLazy>} />
         {/* Danger Zone */}
         <Route path="danger-zone"                   element={<SLazy><DangerZone /></SLazy>} />
       </Route>

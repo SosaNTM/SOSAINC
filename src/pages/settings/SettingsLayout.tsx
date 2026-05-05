@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import {
   TrendingUp, TrendingDown, RefreshCw, CreditCard,
   Repeat, Columns3, Tags, FileStack, Share2, CalendarClock,
-  Layers, Bell, AlertTriangle, Trash2, Settings2, Crosshair,
+  Layers, Bell, AlertTriangle, Trash2, Settings2, Crosshair, Users,
 } from "lucide-react";
 import { usePortal } from "@/lib/portalContext";
 
@@ -184,6 +184,7 @@ export default function SettingsLayout() {
               padding: "0 8px 6px",
             }}>LEAD GENERATION</p>
             <SidebarNavItem item={{ title: "API & Token", path: "leadgen/impostazioni", icon: Crosshair }} />
+            <SidebarNavItem item={{ title: "Team",        path: "leadgen/team",         icon: Users      }} />
           </div>
         )}
 
