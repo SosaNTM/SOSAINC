@@ -19,7 +19,7 @@ function RoleSelect({ value, onChange }: { value: LeadgenMemberRole; onChange: (
     <div style={{ display: "flex", gap: 6 }}>
       {(["owner", "admin", "sales"] as const).map((r) => (
         <button key={r} type="button" onClick={() => onChange(r)}
-          style={{ fontFamily: "var(--font-mono)", fontSize: 10, padding: "3px 10px", border: `1px solid ${value === r ? "var(--accent-primary)" : "var(--glass-border)"}`, background: value === r ? "var(--accent-primary)" : "transparent", color: value === r ? "#000" : "var(--text-secondary)", cursor: "pointer", textTransform: "capitalize" }}>
+          style={{ fontFamily: "var(--font-mono)", fontSize: 10, padding: "3px 10px", border: `1px solid ${value === r ? "var(--accent-primary)" : "var(--glass-border)"}`, background: value === r ? "var(--accent-primary)" : "transparent", color: value === r ? "var(--sosa-bg)" : "var(--text-secondary)", cursor: "pointer", textTransform: "capitalize" }}>
           {r}
         </button>
       ))}
@@ -32,7 +32,7 @@ function TeamSelect({ value, onChange }: { value: LeadgenMemberTeam; onChange: (
     <div style={{ display: "flex", gap: 6 }}>
       {(["internal", "external"] as const).map((t) => (
         <button key={t} type="button" onClick={() => onChange(t)}
-          style={{ fontFamily: "var(--font-mono)", fontSize: 10, padding: "3px 10px", border: `1px solid ${value === t ? "var(--accent-primary)" : "var(--glass-border)"}`, background: value === t ? "var(--accent-primary)" : "transparent", color: value === t ? "#000" : "var(--text-secondary)", cursor: "pointer", textTransform: "capitalize" }}>
+          style={{ fontFamily: "var(--font-mono)", fontSize: 10, padding: "3px 10px", border: `1px solid ${value === t ? "var(--accent-primary)" : "var(--glass-border)"}`, background: value === t ? "var(--accent-primary)" : "transparent", color: value === t ? "var(--sosa-bg)" : "var(--text-secondary)", cursor: "pointer", textTransform: "capitalize" }}>
           {t === "internal" ? "Interno" : "Esterno"}
         </button>
       ))}
@@ -262,6 +262,11 @@ export default function TeamManagement() {
   const activeMembers = members.filter((m) => m.active);
   const maxWorkload = Math.max(1, ...Array.from(workload.values()).map((w) => w.total));
 
+  const handleMemberAdded = useCallback(() => {
+    setShowAdd(false);
+    refetch();
+  }, [refetch]);
+
   if (loading) {
     return <div style={{ padding: 32, fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-tertiary)" }}>Caricamento...</div>;
   }
@@ -367,7 +372,7 @@ export default function TeamManagement() {
         </div>
       </div>
 
-      {showAdd && <AddMemberModal onClose={() => setShowAdd(false)} onAdded={() => { setShowAdd(false); refetch(); }} />}
+      {showAdd && <AddMemberModal onClose={() => setShowAdd(false)} onAdded={handleMemberAdded} />}
       {editing && <EditMemberModal member={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); refetch(); }} />}
     </div>
   );
