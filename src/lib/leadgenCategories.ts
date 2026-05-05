@@ -21,3 +21,19 @@ export const PMI_EXTRA = [
 ];
 
 export const MAX_CATEGORIES = 10;
+
+// Default selection shown every time the search modal opens
+export const SEARCH_DEFAULT_CATEGORIES = [
+  "ristoranti",
+  "bar",
+  "parrucchieri",
+  "pizzerie",
+  "studi legali",
+  "officine auto",
+  "carrozzerie",
+  "agenzie immobiliari",
+  "gioiellerie",
+  "negozi abbigliamento",
+];
+
+export const SEARCH_DEFAULT_TARGET_LEADS = 100;

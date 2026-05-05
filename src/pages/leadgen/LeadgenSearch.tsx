@@ -6,7 +6,7 @@ import { useLeadgenSettings } from "@/hooks/leadgen/useLeadgenSettings";
 import { useLeadgenSearches } from "@/hooks/leadgen/useLeadgenSearches";
 import { startGoogleMapsRun } from "@/lib/apifyClient";
 import { usePortal } from "@/lib/portalContext";
-import { PMI_DEFAULT, PMI_EXTRA, MAX_CATEGORIES } from "@/lib/leadgenCategories";
+import { PMI_DEFAULT, PMI_EXTRA, MAX_CATEGORIES, SEARCH_DEFAULT_CATEGORIES, SEARCH_DEFAULT_TARGET_LEADS } from "@/lib/leadgenCategories";
 import { countryName } from "@/lib/countries";
 
 function flagEmoji(code: string): string {
@@ -222,10 +222,10 @@ export default function LeadgenSearch() {
 
   const [countryCode, setCountryCode] = useState("IT");
   const [postalCode, setPostalCode] = useState("");
-  const [categories, setCategories] = useState<string[]>([...PMI_DEFAULT]);
+  const [categories, setCategories] = useState<string[]>([...SEARCH_DEFAULT_CATEGORIES]);
   const [customCatInput, setCustomCatInput] = useState("");
   const [scrapeContacts, setScrapeContacts] = useState(true);
-  const [targetLeads, setTargetLeads] = useState(200);
+  const [targetLeads, setTargetLeads] = useState(SEARCH_DEFAULT_TARGET_LEADS);
   const [language, setLanguage] = useState("it");
   const [running, setRunning] = useState(false);
   const [flagOpen, setFlagOpen] = useState(false);
@@ -240,7 +240,7 @@ export default function LeadgenSearch() {
     if (settings) {
       setCountryCode(settings.default_country_code);
       setScrapeContacts(settings.scrape_contacts);
-      setTargetLeads(Math.round(settings.default_max_places * PMI_DEFAULT.length * 0.7));
+      setTargetLeads(SEARCH_DEFAULT_TARGET_LEADS);
       setLanguage(settings.default_language ?? "it");
     }
   }, [settings]);
@@ -298,7 +298,7 @@ export default function LeadgenSearch() {
   const noToken = !settings?.apify_token;
 
   const isPMIDefault = useMemo(
-    () => categories.length === PMI_DEFAULT.length && PMI_DEFAULT.every((c) => categories.includes(c)),
+    () => categories.length === SEARCH_DEFAULT_CATEGORIES.length && SEARCH_DEFAULT_CATEGORIES.every((c) => categories.includes(c)),
     [categories]
   );
 
@@ -651,7 +651,7 @@ export default function LeadgenSearch() {
                   <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                     <button
                       type="button"
-                      onClick={() => setCategories([...PMI_DEFAULT])}
+                      onClick={() => setCategories([...SEARCH_DEFAULT_CATEGORIES])}
                       style={{
                         padding: "3px 10px",
                         fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700,
