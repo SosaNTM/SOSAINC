@@ -296,7 +296,7 @@ function ColdCard({
           <ExternalLink size={11} /> Apri
         </button>
         <button onClick={handleContacted} disabled={marking}
-          style={{ flex: 2, padding: "9px 0", background: marking ? "rgba(212,255,0,0.3)" : "var(--accent-primary)", border: "none", borderRight: "1px solid var(--glass-border)", cursor: marking ? "default" : "pointer", fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "#000", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+          style={{ flex: 2, padding: "9px 0", background: marking ? "rgba(212,255,0,0.3)" : "var(--accent-primary)", border: "none", borderRight: "1px solid var(--glass-border)", cursor: marking ? "default" : "pointer", fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "var(--sosa-bg)", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
           <UserCheck size={11} />
           {marking ? "..." : isPool ? "Prendilo →" : "Contattato ✓"}
         </button>
