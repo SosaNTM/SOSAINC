@@ -218,14 +218,14 @@ export default function LeadgenSearch() {
   const { portal } = usePortal();
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const snapshotRef = useRef<{ categories: string[]; maxPlaces: number; scrapeContacts: boolean; language: string } | null>(null);
+  const snapshotRef = useRef<{ categories: string[]; targetLeads: number; scrapeContacts: boolean; language: string } | null>(null);
 
   const [countryCode, setCountryCode] = useState("IT");
   const [postalCode, setPostalCode] = useState("");
   const [categories, setCategories] = useState<string[]>([...PMI_DEFAULT]);
   const [customCatInput, setCustomCatInput] = useState("");
   const [scrapeContacts, setScrapeContacts] = useState(true);
-  const [maxPlaces, setMaxPlaces] = useState(50);
+  const [targetLeads, setTargetLeads] = useState(200);
   const [language, setLanguage] = useState("it");
   const [running, setRunning] = useState(false);
   const [flagOpen, setFlagOpen] = useState(false);
@@ -233,17 +233,20 @@ export default function LeadgenSearch() {
   const [countrySearch, setCountrySearch] = useState("");
   const [favs, setFavs] = useState<string[]>(loadFavs);
 
+  // maxPlaces per category derived from total lead target (inverse of 70% dedup formula)
+  const maxPlaces = Math.max(10, Math.ceil(targetLeads / Math.max(1, categories.length) / 0.7));
+
   useEffect(() => {
     if (settings) {
       setCountryCode(settings.default_country_code);
       setScrapeContacts(settings.scrape_contacts);
-      setMaxPlaces(settings.default_max_places);
+      setTargetLeads(Math.round(settings.default_max_places * PMI_DEFAULT.length * 0.7));
       setLanguage(settings.default_language ?? "it");
     }
   }, [settings]);
 
   const openModal = () => {
-    snapshotRef.current = { categories: [...categories], maxPlaces, scrapeContacts, language };
+    snapshotRef.current = { categories: [...categories], targetLeads, scrapeContacts, language };
     setModalOpen(true);
   };
 
@@ -253,7 +256,7 @@ export default function LeadgenSearch() {
     if (snapshotRef.current) {
       const s = snapshotRef.current;
       setCategories(s.categories);
-      setMaxPlaces(s.maxPlaces);
+      setTargetLeads(s.targetLeads);
       setScrapeContacts(s.scrapeContacts);
       setLanguage(s.language);
     }
@@ -759,19 +762,26 @@ export default function LeadgenSearch() {
 
               <div style={{ marginBottom: 20 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                    Max risultati
+                  <div>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                      Lead target
+                    </span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)", display: "block", marginTop: 2 }}>
+                      ~{maxPlaces} ris. × {categories.length} cat.
+                    </span>
+                  </div>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 700, color: "var(--accent-primary)" }}>
+                    ~{targetLeads} <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-tertiary)" }}>lead</span>
                   </span>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--accent-primary)" }}>{maxPlaces}</span>
                 </div>
                 <input
-                  type="range" min={10} max={100} step={10} value={maxPlaces}
-                  onChange={(e) => setMaxPlaces(Number(e.target.value))}
+                  type="range" min={10} max={1000} step={10} value={targetLeads}
+                  onChange={(e) => setTargetLeads(Number(e.target.value))}
                   style={{ width: "100%", accentColor: "var(--accent-primary)" }}
                 />
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)" }}>10</span>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)" }}>100</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)" }}>10 lead</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)" }}>1.000 lead</span>
                 </div>
               </div>
 
@@ -827,14 +837,16 @@ export default function LeadgenSearch() {
               {categories.length === 0 ? (
                 <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>Seleziona almeno una categoria</p>
               ) : (() => {
-                const base = categories.length * maxPlaces * 0.004;
-                const contacts = scrapeContacts ? categories.length * maxPlaces * 0.002 : 0;
+                const rawResults = categories.length * maxPlaces;
+                const base = rawResults * 0.004;
+                const contacts = scrapeContacts ? rawResults * 0.002 : 0;
                 const total = base + contacts;
-                const estDedup = Math.round(categories.length * maxPlaces * 0.7);
                 return (
                   <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>Scraping ({categories.length} cat. × {maxPlaces} ris.)</span>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>
+                        Scraping ({categories.length} cat. × {maxPlaces} ris.)
+                      </span>
                       <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-secondary)", fontWeight: 600 }}>~${base.toFixed(2)}</span>
                     </div>
                     {scrapeContacts && (
@@ -852,7 +864,7 @@ export default function LeadgenSearch() {
                       </span>
                     </div>
                     <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)", marginTop: 2, lineHeight: 1.6 }}>
-                      ≈ {estDedup} attività dopo deduplica · Piano Free: $5/mese incluso
+                      ~{targetLeads} lead dopo deduplica · Piano Free: $5/mese incluso
                     </p>
                   </div>
                 );
