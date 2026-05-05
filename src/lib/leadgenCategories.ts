@@ -27,7 +27,7 @@ export const SEARCH_DEFAULT_CATEGORIES = [
   "ristoranti",
   "bar",
   "parrucchieri",
-  "pizzerie",
+  "studi dentistici",
   "studi legali",
   "officine auto",
   "carrozzerie",
