@@ -4,6 +4,7 @@ import { usePortalDB } from "@/lib/portalContextDB";
 import { broadcastLeadgenUpdate } from "@/lib/leadgenRealtime";
 
 const AUTO_RELEASE_DAYS = 14;
+const NOTIFICATION_THROTTLE_MS = 60_000;
 const SEEN_KEY = (portalId: string) => `leadgen_autoreleased_seen_${portalId}`;
 
 export interface AutoReleaseNotification {
@@ -50,7 +51,7 @@ export function useAutoRelease() {
       lead_id: l.id,
       channel: "email" as const,
       direction: "outbound" as const,
-      notes: "Rilasciato automaticamente al pool — inattivo 14 giorni",
+      notes: `Rilasciato automaticamente al pool — inattivo ${AUTO_RELEASE_DAYS} giorni`,
       occurred_at: now,
       user_id: null,
     }));
@@ -63,7 +64,7 @@ export function useAutoRelease() {
     if (myReleased.length > 0) {
       const lastSeen = localStorage.getItem(SEEN_KEY(currentPortalId));
       // Only notify if we haven't notified for this batch
-      if (!lastSeen || new Date(lastSeen).getTime() < Date.now() - 60_000) {
+      if (!lastSeen || new Date(lastSeen).getTime() < Date.now() - NOTIFICATION_THROTTLE_MS) {
         setNotification({
           count: myReleased.length,
           leadNames: myReleased.map((l) => l.name).slice(0, 3),
