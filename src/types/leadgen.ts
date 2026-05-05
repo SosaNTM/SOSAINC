@@ -10,6 +10,23 @@ export type SearchStatus = "pending" | "running" | "completed" | "failed";
 export type OutreachChannel = "email" | "dm_instagram" | "call" | "pec";
 export type OutreachDirection = "outbound" | "inbound";
 
+export type LeadgenMemberRole = "owner" | "admin" | "sales";
+export type LeadgenMemberTeam = "internal" | "external";
+export type LeadgenLeadVisibility = "team" | "internal_only" | "private";
+
+export interface LeadgenMember {
+  id: string;
+  portal_id: string;
+  user_id: string;
+  role: LeadgenMemberRole;
+  team: LeadgenMemberTeam;
+  display_name: string | null;
+  active: boolean;
+  notes: string | null;
+  added_at: string;
+  added_by: string | null;
+}
+
 export interface LeadgenSettings {
   id: string;
   portal_id: string;
@@ -37,6 +54,7 @@ export interface LeadgenSearch {
   with_website: number;
   without_website: number;
   excluded_count: number;
+  discarded_no_contact_count: number;
   error_message: string | null;
   started_at: string;
   completed_at: string | null;
@@ -62,6 +80,10 @@ export interface LeadgenLead {
   social_media: Record<string, string>;
   has_website: boolean;
   assigned_to: string | null;
+  assigned_at: string | null;
+  assigned_by: string | null;
+  visibility: LeadgenLeadVisibility;
+  last_activity_at: string | null;
   outreach_status: OutreachStatus;
   outreach_notes: string | null;
   contacted_at: string | null;
@@ -82,6 +104,7 @@ export interface LeadgenOutreachEvent {
   id: string;
   portal_id: string;
   lead_id: string;
+  user_id: string | null;
   channel: OutreachChannel;
   direction: OutreachDirection;
   notes: string | null;
