@@ -47,3 +47,42 @@ export function applyBlacklist(
 
   return { keep: true };
 }
+
+export function getValidEmails(item: ApifyPlaceResult): string[] {
+  return (item.emails ?? []).filter((e) => e && e.includes("@") && e.length > 5);
+}
+
+export function shouldDiscardForNoContact(item: ApifyPlaceResult): boolean {
+  const trimmedPhone = (item.phone ?? "").replace(/\D/g, "");
+  const hasPhone = trimmedPhone.length >= 6;
+  const hasEmail = getValidEmails(item).length > 0;
+  return !hasPhone && !hasEmail;
+}
+
+// Blacklist check first, then no-contact check. A chain without contacts is
+// counted as chain, not no_contact — no double-counting.
+export function evaluateLead(
+  rules: BlacklistRules,
+  item: ApifyPlaceResult
+): FilterResult {
+  const blacklistResult = applyBlacklist(rules, item);
+  if (!blacklistResult.keep) return blacklistResult;
+
+  if (shouldDiscardForNoContact(item)) {
+    return { keep: false, reason: "no_contact_info" };
+  }
+
+  return { keep: true };
+}
+
+export type OwnershipFilter = "mine" | "pool" | "all";
+
+export function applyOwnershipFilter<Q extends { eq(col: string, val: string): Q; is(col: string, val: null): Q }>(
+  query: Q,
+  ownership: OwnershipFilter,
+  currentUserId?: string
+): Q {
+  if (ownership === "mine" && currentUserId) return query.eq("assigned_to", currentUserId);
+  if (ownership === "pool") return query.is("assigned_to", null);
+  return query;
+}
