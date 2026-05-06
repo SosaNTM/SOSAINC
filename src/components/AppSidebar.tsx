@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useTodayCount } from "@/hooks/leadgen/useTodayCount";
+import { useLeadgenCurrentMember } from "@/hooks/leadgen/useLeadgenMembers";
 import { useAuth } from "@/lib/authContext";
 import { usePortal, type PortalConfig } from "@/lib/portalContext";
 import { usePermission, PERMISSIONS, type Role } from "@/lib/permissions";
@@ -38,20 +40,107 @@ import {
   Globe,
   MonitorOff,
   History,
+  CalendarClock,
+  LayoutDashboard,
 } from "lucide-react";
+
+// ── Leadgen sidebar section (owns useTodayCount so it only runs for REDX) ─────
+function LeadgenSidebarSection({
+  isActive, isOpen, onToggle, portal, accentOf, prefix, location, onMobileClose,
+}: {
+  isActive: boolean; isOpen: boolean; onToggle: () => void;
+  portal: PortalConfig | null;
+  accentOf: (p: PortalConfig | null) => string;
+  prefix: string; location: { pathname: string }; onMobileClose: () => void;
+}) {
+  const { total } = useTodayCount();
+  const currentMember = useLeadgenCurrentMember();
+  const isLeadgenAdmin = currentMember?.role === "owner" || currentMember?.role === "admin";
+
+  const renderLabel = () => (
+    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      Lead Generation
+      {total > 0 && (
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, background: "var(--accent-primary)", color: "#000", padding: "1px 5px", lineHeight: 1.4 }}>
+          {total}
+        </span>
+      )}
+    </span>
+  );
+
+  const navLinkStyle = (active: boolean) => ({
+    padding: "7px 14px 7px 10px", borderRadius: 0,
+    fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: active ? 600 : 400,
+    letterSpacing: "0.03em",
+    color: active ? "var(--text-primary)" : "var(--text-tertiary)",
+    background: active ? "rgba(255,255,255,0.04)" : "transparent",
+    borderLeft: active ? `3px solid ${accentOf(portal)}` : "3px solid transparent",
+  });
+
+  return (
+    <AccordionSection
+      label="Lead Generation"
+      icon={Crosshair}
+      isActive={isActive} isOpen={isOpen}
+      onToggle={onToggle} portal={portal}
+      renderLabel={renderLabel}
+    >
+      {leadgenSubItems.map((item) => {
+        const isItemActive =
+          location.pathname === `${prefix}${item.path}` ||
+          (item.path !== "/leadgen/dashboard" && location.pathname.startsWith(`${prefix}${item.path}/`));
+        return (
+          <NavLink
+            key={item.path} to={`${prefix}${item.path}`} onClick={onMobileClose}
+            className="flex items-center gap-2"
+            style={navLinkStyle(isItemActive)}
+            onMouseEnter={(e) => { if (!isItemActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
+            onMouseLeave={(e) => { if (!isItemActive) e.currentTarget.style.background = "transparent"; }}
+          >
+            <item.icon style={{ width: 13, height: 13, strokeWidth: 1.6, opacity: isItemActive ? 1 : 0.4 }} />
+            {item.title}
+            {item.path === "/leadgen/today" && total > 0 && (
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, background: "var(--accent-primary)", color: "#000", padding: "1px 5px", lineHeight: 1.4, marginLeft: "auto" }}>
+                {total}
+              </span>
+            )}
+          </NavLink>
+        );
+      })}
+
+      {isLeadgenAdmin && (() => {
+        const overviewPath = `${prefix}/leadgen/overview`;
+        const isOverviewActive = location.pathname === overviewPath;
+        return (
+          <NavLink
+            to={overviewPath} onClick={onMobileClose}
+            className="flex items-center gap-2"
+            style={navLinkStyle(isOverviewActive)}
+            onMouseEnter={(e) => { if (!isOverviewActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
+            onMouseLeave={(e) => { if (!isOverviewActive) e.currentTarget.style.background = "transparent"; }}
+          >
+            <BarChart2 style={{ width: 13, height: 13, strokeWidth: 1.6, opacity: isOverviewActive ? 1 : 0.4 }} />
+            Overview
+          </NavLink>
+        );
+      })()}
+    </AccordionSection>
+  );
+}
 
 // ── AccordionSection is defined at module level to prevent remount on every render ──
 interface AccordionSectionProps {
-  label: string;
+  label: React.ReactNode;
   icon: React.ElementType;
   isActive: boolean;
   isOpen: boolean;
   onToggle: () => void;
   portal: PortalConfig | null;
   children: React.ReactNode;
+  renderLabel?: () => React.ReactNode;
 }
 
-function AccordionSection({ label, icon: Icon, isActive, isOpen, onToggle, portal, children }: AccordionSectionProps) {
+function AccordionSection({ label, icon: Icon, isActive, isOpen, onToggle, portal, children, renderLabel }: AccordionSectionProps) {
   return (
     <div>
       <button type="button"
@@ -80,7 +169,7 @@ function AccordionSection({ label, icon: Icon, isActive, isOpen, onToggle, porta
         }}>
           <Icon style={{ width: 13, height: 13, strokeWidth: 1.8, color: isActive ? "#000" : "var(--sosa-white-40)" }} />
         </div>
-        <span className="flex-1">{label}</span>
+        <span className="flex-1">{renderLabel ? renderLabel() : label}</span>
         <ChevronDown
           className="shrink-0 transition-transform duration-200"
           style={{ width: 12, height: 12, color: "var(--sosa-white-20)", transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)" }}
@@ -103,8 +192,8 @@ const personalFinanceSubItems = [
   { title: "Budget",        path: "/costs",         icon: Wallet                         },
   { title: "Subscriptions", path: "/channels",      icon: Zap                            },
   { title: "Goals",         path: "/pl-rules",      icon: Target                         },
-  { title: "Crypto",        path: "/crypto",        icon: Bitcoin                        },
-  { title: "Gift Cards",   path: "/gift-cards",    icon: Gift                           },
+  { title: "Crypto",        path: "/crypto",        icon: Bitcoin,    feature: "crypto"      },
+  { title: "Gift Cards",   path: "/gift-cards",    icon: Gift,       feature: "gift-cards"  },
   { title: "Reports",       path: "/reports",       icon: FileText,   comingSoon: true   },
   { title: "Forecast",      path: "/forecast",      icon: TrendingUp, comingSoon: true   },
 ];
@@ -130,11 +219,13 @@ const socialSubItems = [
 const socialPaths = socialSubItems.map((i) => i.path);
 
 const leadgenSubItems = [
-  { title: "Dashboard",    path: "/leadgen",              icon: Crosshair  },
-  { title: "Nuova ricerca", path: "/leadgen/search",      icon: Crosshair  },
-  { title: "Senza sito",   path: "/leadgen/no-website",   icon: MonitorOff },
-  { title: "Con sito",     path: "/leadgen/with-website", icon: Globe      },
-  { title: "Storico",      path: "/leadgen/searches",     icon: History    },
+  { title: "Dashboard",     path: "/leadgen/dashboard",    icon: LayoutDashboard },
+  { title: "Da Fare Oggi",  path: "/leadgen/today",        icon: CalendarClock   },
+  { title: "Nuova ricerca", path: "/leadgen/search",       icon: Crosshair       },
+  { title: "Senza sito",    path: "/leadgen/no-website",   icon: MonitorOff      },
+  { title: "Con sito",      path: "/leadgen/with-website", icon: Globe           },
+  { title: "Storico",       path: "/leadgen/searches",     icon: History         },
+  { title: "Impostazioni",  path: "/leadgen/settings",     icon: Settings        },
 ];
 const leadgenPaths = leadgenSubItems.map((i) => i.path);
 
@@ -341,7 +432,10 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
             onToggle={() => setFinanceOpen((p) => !p)}
             portal={portal}
           >
-            {activeFinanceItems.filter(item => !("comingSoon" in item && item.comingSoon)).map((item) => {
+            {activeFinanceItems.filter(item =>
+              !("comingSoon" in item && item.comingSoon) &&
+              !("feature" in item && portal?.disabledFeatures?.includes((item as { feature?: string }).feature!))
+            ).map((item) => {
               const isActive = location.pathname === `${prefix}${item.path}` || location.pathname.startsWith(`${prefix}${item.path}/`);
               return (
                 <NavLink
@@ -401,37 +495,12 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
 
         {/* Lead Generation — REDX only */}
         {portal?.id === "redx" && (
-          <AccordionSection
-            label="Lead Generation" icon={Crosshair}
+          <LeadgenSidebarSection
             isActive={isLeadgenActive} isOpen={leadgenOpen}
             onToggle={() => setLeadgenOpen((p) => !p)}
-            portal={portal}
-          >
-            {leadgenSubItems.map((item) => {
-              const isActive =
-                location.pathname === `${prefix}${item.path}` ||
-                location.pathname.startsWith(`${prefix}${item.path}/`);
-              return (
-                <NavLink
-                  key={item.path} to={`${prefix}${item.path}`} onClick={onMobileClose}
-                  className="flex items-center gap-2"
-                  style={{
-                    padding: "7px 14px 7px 10px", borderRadius: 0,
-                    fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: isActive ? 600 : 400,
-                    letterSpacing: "0.03em",
-                    color: isActive ? "var(--text-primary)" : "var(--text-tertiary)",
-                    background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
-                    borderLeft: isActive ? `3px solid ${accentOf(portal)}` : "3px solid transparent",
-                  }}
-                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
-                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
-                >
-                  <item.icon style={{ width: 13, height: 13, strokeWidth: 1.6, opacity: isActive ? 1 : 0.4 }} />
-                  {item.title}
-                </NavLink>
-              );
-            })}
-          </AccordionSection>
+            portal={portal} accentOf={accentOf}
+            prefix={prefix} location={location} onMobileClose={onMobileClose}
+          />
         )}
 
         <div style={{ height: 1, background: "var(--sosa-border)", margin: "8px 4px" }} />
@@ -552,27 +621,51 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
   // ── Dock items for collapsed mode ──────────────────────────────────────────
   const disabled = portal?.disabledFeatures ?? [];
   const dockGroups = [
+    { label: "Profile", icon: User, path: `${prefix}/profile` },
     ...(canViewFinance ? [{ label: "Finance",   icon: Wallet,      path: `${prefix}/dashboard`,       matchPaths: prefixedFinancePaths }] : []),
     ...(canViewSocial && !disabled.includes("social") ? [{ label: "Social",  icon: TrendingUp, path: `${prefix}/social/overview`, matchPaths: prefixedSocialPaths }] : []),
+    ...(portal?.id === "redx" ? [{ label: "Lead Gen", icon: Crosshair, path: `${prefix}/leadgen/today`, matchPaths: prefixedLeadgenPaths }] : []),
     ...(!disabled.includes("vault") ? [{ label: "Vault",     icon: Lock,        path: `${prefix}/vault` }] : []),
     ...(!disabled.includes("cloud") ? [{ label: "Cloud",     icon: Cloud,       path: `${prefix}/cloud` }] : []),
+    ...(!disabled.includes("inventory") ? [{ label: "Inventory", icon: Package,  path: `${prefix}/inventory` }] : []),
     ...(!disabled.includes("tasks") ? [{ label: "Tasks",     icon: CheckSquare, path: `${prefix}/tasks` }] : []),
     ...(!disabled.includes("notes") ? [{ label: "Notes",     icon: StickyNote,  path: `${prefix}/notes` }] : []),
     ...(canAccessAdmin && (!portal || portal.id === "sosa") ? [{ label: "Admin", icon: ShieldCheck, path: `${prefix}/admin` }] : []),
   ];
 
   const collapsedDock = (
-    <div className="flex flex-col h-full items-center" style={{ paddingTop: 16, paddingBottom: 0 }}>
-      {/* Logo mark + toggle button */}
-      <h1 style={{ fontSize: 16, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "0.1em", marginBottom: 8 }}>{portal ? portal.name.charAt(0) : 'S'}</h1>
+    <div className="flex flex-col h-full items-center" style={{ paddingTop: 12, paddingBottom: 0 }}>
+      {/* Portal logo mark */}
+      <div style={{
+        width: 38, height: 38, marginBottom: 2,
+        background: "var(--sosa-yellow)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexShrink: 0,
+      }}>
+        <span style={{
+          fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 900,
+          color: "#000", letterSpacing: "0.02em", lineHeight: 1,
+        }}>
+          {portal ? portal.name.charAt(0) : "S"}
+        </span>
+      </div>
+
+      {/* Expand toggle */}
       <button type="button"
         onClick={onToggle}
         className="flex items-center justify-center"
-        style={{ width: 28, height: 28, borderRadius: 0, padding: 0, marginBottom: 6, border: "1px solid var(--sosa-border)", cursor: "pointer", background: "transparent" }}
+        style={{
+          width: 38, height: 24, borderRadius: 0, padding: 0, marginTop: 0, marginBottom: 10,
+          border: "none", borderBottom: "1px solid var(--sosa-border)",
+          cursor: "pointer", background: "var(--sosa-bg-2)",
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = "color-mix(in srgb, var(--sosa-yellow) 8%, transparent)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
       >
-        <ChevronRight className="h-4 w-4" style={{ color: "var(--sosa-white-40)", strokeWidth: 1.7 }} />
+        <ChevronRight className="h-3 w-3" style={{ color: "var(--sosa-white-40)", strokeWidth: 2 }} />
       </button>
-      <div style={{ height: 1, background: "var(--sosa-border)", width: 32, marginBottom: 4 }} />
+
+      <div style={{ height: 1, background: "var(--sosa-border)", width: 38, marginBottom: 6 }} />
 
       {/* Magnifying dock */}
       <div className="flex-1 flex items-center justify-center w-full">
