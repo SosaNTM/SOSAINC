@@ -40,7 +40,7 @@ export function usePersonalLeads(filters: PersonalLeadsFilters = {}) {
   const page      = filters.page     ?? 0;
   const pageSize  = filters.pageSize ?? 25;
 
-  const fetch = useCallback(async () => {
+  const fetchLeads = useCallback(async () => {
     if (!currentPortalId || !currentUserId) return;
     setLoading(true);
 
@@ -77,13 +77,13 @@ export function usePersonalLeads(filters: PersonalLeadsFilters = {}) {
     setLoading(false);
   }, [currentPortalId, currentUserId, group, searchText, sortBy, sortDir, page, pageSize]);
 
-  useEffect(() => { fetch(); }, [fetch]);
+  useEffect(() => { fetchLeads(); }, [fetchLeads]);
 
   useEffect(() => {
     return subscribeToLeadgenUpdates((event) => {
-      if (event === "lead_updated") fetch();
+      if (event === "lead_updated") fetchLeads();
     });
-  }, [fetch]);
+  }, [fetchLeads]);
 
   return { leads, totalCount, loading };
 }
@@ -99,7 +99,7 @@ export function useArchivedLeads() {
     supabase.auth.getUser().then(({ data: { user } }) => setCurrentUserId(user?.id ?? null));
   }, []);
 
-  const fetch = useCallback(async () => {
+  const fetchArchived = useCallback(async () => {
     if (!currentPortalId || !currentUserId) return;
     setLoading(true);
 
@@ -123,18 +123,17 @@ export function useArchivedLeads() {
     setLoading(false);
   }, [currentPortalId, currentUserId]);
 
-  useEffect(() => { fetch(); }, [fetch]);
+  useEffect(() => { fetchArchived(); }, [fetchArchived]);
 
   useEffect(() => {
     return subscribeToLeadgenUpdates((event) => {
-      if (event === "lead_updated") fetch();
+      if (event === "lead_updated") fetchArchived();
     });
-  }, [fetch]);
+  }, [fetchArchived]);
 
   const reopen = useCallback(async (leadId: string): Promise<void> => {
     if (!currentPortalId || !currentUserId) return;
     const now = new Date().toISOString();
-    const { data: { user } } = await supabase.auth.getUser();
 
     const { error } = await supabase
       .from("leadgen_leads")
@@ -151,7 +150,7 @@ export function useArchivedLeads() {
       direction: "outbound" as const,
       notes: "Riaperto dall'archivio",
       occurred_at: now,
-      user_id: user?.id ?? null,
+      user_id: currentUserId,
     });
 
     broadcastLeadgenUpdate("lead_updated", { leadId });
