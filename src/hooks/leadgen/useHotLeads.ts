@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { usePortalDB } from "@/lib/portalContextDB";
 import { subscribeToLeadgenUpdates } from "@/lib/leadgenRealtime";
+import { HOT_THRESHOLD_DAYS } from "@/lib/leadgenConstants";
+import { applyOwnershipFilter } from "@/lib/leadgenFilter";
 import type { LeadgenLead } from "@/types/leadgen";
-
-const HOT_THRESHOLD_DAYS = 2;
 
 export interface HotLead extends LeadgenLead {
   lastInboundAt: string;
@@ -39,14 +39,11 @@ export function useHotLeads(filters?: HotLeadsFilters) {
       .eq("portal_id", currentPortalId)
       .eq("outreach_status", "replied");
 
-    if (ownership === "mine" && currentUserId) {
-      query = query.eq("assigned_to", currentUserId);
-    } else if (ownership === "pool") {
-      query = query.is("assigned_to", null);
-    }
+    query = applyOwnershipFilter(query, ownership, currentUserId);
 
-    const { data: leads } = await query;
+    const { data: leads, error } = await query;
 
+    if (error) { setHotLeads([]); setLoading(false); return; }
     if (!leads?.length) { setHotLeads([]); setLoading(false); return; }
 
     const ids = leads.map((l) => l.id);
