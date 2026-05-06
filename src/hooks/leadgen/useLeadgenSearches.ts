@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { usePortalDB } from "@/lib/portalContextDB";
 import type { LeadgenSearch, ApifyPlaceResult } from "@/types/leadgen";
 import { broadcastLeadgenUpdate } from "@/lib/leadgenRealtime";
 import { getRunStatus, getDatasetItems, abortRun } from "@/lib/apifyClient";
-import { applyBlacklist } from "@/lib/leadgenFilter";
+import { evaluateLead, getValidEmails } from "@/lib/leadgenFilter";
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -12,6 +13,7 @@ export function useLeadgenSearches() {
   const { currentPortalId } = usePortalDB();
   const [searches, setSearches] = useState<LeadgenSearch[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pollError, setPollError] = useState<string | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchSearches = useCallback(async () => {
@@ -60,10 +62,16 @@ export function useLeadgenSearches() {
 
           const kept: typeof items = [];
           let excludedCount = 0;
+          let discardedNoContactCount = 0;
           for (const item of items) {
-            const { keep } = applyBlacklist(blacklistRules, item);
-            if (keep) kept.push(item);
-            else excludedCount++;
+            const result = evaluateLead(blacklistRules, item);
+            if (result.keep) {
+              kept.push(item);
+            } else if (result.reason === "no_contact_info") {
+              discardedNoContactCount++;
+            } else {
+              excludedCount++;
+            }
           }
 
           const leadsToInsert = kept.map((item) => ({
@@ -80,7 +88,7 @@ export function useLeadgenSearches() {
             category: item.categoryName ?? null,
             rating: item.totalScore ?? null,
             reviews_count: item.reviewsCount ?? null,
-            emails: item.emails ?? [],
+            emails: getValidEmails(item),
             social_media: {
               ...(item.instagram ? { instagram: item.instagram } : {}),
               ...(item.facebook ? { facebook: item.facebook } : {}),
@@ -120,6 +128,7 @@ export function useLeadgenSearches() {
               with_website: withWebsite,
               without_website: withoutWebsite,
               excluded_count: excludedCount,
+              discarded_no_contact_count: discardedNoContactCount,
               completed_at: new Date().toISOString(),
             })
             .eq("portal_id", currentPortalId)
@@ -138,7 +147,9 @@ export function useLeadgenSearches() {
           await fetchSearches();
         }
       } catch (err) {
-        console.warn("[leadgen poll]", err);
+        const msg = err instanceof Error ? err.message : "Errore di polling";
+        setPollError(msg);
+        toast.error(`Errore polling ricerca: ${msg}`);
       }
     }
   }, [searches, currentPortalId, fetchSearches]);
@@ -194,5 +205,5 @@ export function useLeadgenSearches() {
     return { error: error?.message ?? null };
   }, [currentPortalId]);
 
-  return { searches, loading, refetch: fetchSearches, createSearch, startPolling, stopPolling, abortSearch };
+  return { searches, loading, pollError, refetch: fetchSearches, createSearch, startPolling, stopPolling, abortSearch };
 }
