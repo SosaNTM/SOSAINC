@@ -2,23 +2,13 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { usePortalDB } from "@/lib/portalContextDB";
 import { subscribeToLeadgenUpdates } from "@/lib/leadgenRealtime";
+import { CONTACTED_THRESHOLD_DAYS, QUALIFIED_THRESHOLD_DAYS, FOLLOWUP_SKIP_TTL_MS } from "@/lib/leadgenConstants";
+import { followUpSkipKey, getSkipMap, saveSkipMap } from "@/lib/leadgenSkipTracking";
+import { applyOwnershipFilter } from "@/lib/leadgenFilter";
 import type { LeadgenLead } from "@/types/leadgen";
-
-const CONTACTED_THRESHOLD_DAYS = 7;
-const QUALIFIED_THRESHOLD_DAYS = 5;
-const SKIP_TTL = 7 * 24 * 60 * 60 * 1000;
 
 export interface FollowUpFilters {
   ownership?: "mine" | "pool" | "all";
-}
-
-function skipKey(portalId: string) { return `leadgen_followup_skipped_${portalId}`; }
-function getSkipMap(portalId: string): Record<string, number> {
-  try { return JSON.parse(localStorage.getItem(skipKey(portalId)) || "{}"); }
-  catch { return {}; }
-}
-function saveSkipMap(portalId: string, map: Record<string, number>) {
-  try { localStorage.setItem(skipKey(portalId), JSON.stringify(map)); } catch { /**/ }
 }
 
 export function useFollowUpLeads(filters?: FollowUpFilters) {
@@ -57,15 +47,11 @@ export function useFollowUpLeads(filters?: FollowUpFilters) {
       .eq("portal_id", currentPortalId)
       .eq("outreach_status", "qualified");
 
-    if (ownership === "mine" && currentUserId) {
-      contactedQuery = contactedQuery.eq("assigned_to", currentUserId);
-      qualifiedQuery = qualifiedQuery.eq("assigned_to", currentUserId);
-    } else if (ownership === "pool") {
-      contactedQuery = contactedQuery.is("assigned_to", null);
-      qualifiedQuery = qualifiedQuery.is("assigned_to", null);
-    }
+    contactedQuery = applyOwnershipFilter(contactedQuery, ownership, currentUserId);
+    qualifiedQuery = applyOwnershipFilter(qualifiedQuery, ownership, currentUserId);
 
     const [contactedRes, qualifiedRes] = await Promise.all([contactedQuery, qualifiedQuery]);
+    if (contactedRes.error || qualifiedRes.error) { setLoading(false); return; }
 
     const contacted = (contactedRes.data ?? []) as LeadgenLead[];
     const qualified = (qualifiedRes.data ?? []) as LeadgenLead[];
@@ -105,9 +91,9 @@ export function useFollowUpLeads(filters?: FollowUpFilters) {
 
   const skipLead = useCallback((leadId: string) => {
     if (!currentPortalId) return;
-    const map = getSkipMap(currentPortalId);
+    const map = getSkipMap(followUpSkipKey(currentPortalId));
     map[leadId] = Date.now();
-    saveSkipMap(currentPortalId, map);
+    saveSkipMap(followUpSkipKey(currentPortalId), map);
     setSkipVersion((v) => v + 1);
   }, [currentPortalId]);
 
@@ -119,9 +105,9 @@ export function useFollowUpLeads(filters?: FollowUpFilters) {
   const { contactedAging, qualifiedAging, total } = useMemo(() => {
     if (!currentPortalId) return { contactedAging: [] as LeadgenLead[], qualifiedAging: [] as LeadgenLead[], total: 0 };
 
-    const skipMap = getSkipMap(currentPortalId);
+    const skipMap = getSkipMap(followUpSkipKey(currentPortalId));
     const now = Date.now();
-    const isSkipped = (id: string) => !!skipMap[id] && now - skipMap[id] < SKIP_TTL;
+    const isSkipped = (id: string) => !!skipMap[id] && now - skipMap[id] < FOLLOWUP_SKIP_TTL_MS;
 
     const contactedAging = contactedLeads.filter((l) => !isSkipped(l.id));
 
