@@ -143,3 +143,24 @@ export function useLeadgenMembers() {
     deactivateMember,
   };
 }
+
+export function useLeadgenCurrentMember(): LeadgenMember | null {
+  const { currentPortalId } = usePortalDB();
+  const [currentMember, setCurrentMember] = useState<LeadgenMember | null>(null);
+
+  useEffect(() => {
+    if (!currentPortalId) return;
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      const { data } = await supabase
+        .from("leadgen_members")
+        .select("*")
+        .eq("portal_id", currentPortalId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setCurrentMember((data as LeadgenMember | null));
+    });
+  }, [currentPortalId]);
+
+  return currentMember;
+}
