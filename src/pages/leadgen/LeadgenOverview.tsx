@@ -4,6 +4,7 @@ import { usePortal } from "@/lib/portalContext";
 import { useLeadgenLeads } from "@/hooks/leadgen/useLeadgenLeads";
 import { useLeadgenSearches } from "@/hooks/leadgen/useLeadgenSearches";
 import { useLeadgenSummary } from "@/hooks/leadgen/useLeadgenSummary";
+import { useLeadgenOverviewStats } from "@/hooks/leadgen/useLeadgenOverviewStats";
 import { SearchProgressIndicator } from "@/components/leadgen/SearchProgressIndicator";
 import { X } from "lucide-react";
 import {
@@ -81,6 +82,7 @@ export default function LeadgenOverview() {
   const { allLeads, loading } = useLeadgenLeads();
   const { searches } = useLeadgenSearches();
   const summary = useLeadgenSummary(allLeads, searches);
+  const overviewStats = useLeadgenOverviewStats();
   const [showDiscardModal, setShowDiscardModal] = useState(false);
 
   const completedSearches = searches.filter((s) => s.status === "completed");
@@ -111,9 +113,58 @@ export default function LeadgenOverview() {
 
   return (
     <div style={{ padding: "24px 32px" }}>
-      <h1 style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, color: "var(--text-primary)", marginBottom: 24 }}>
-        Lead Generation
+      {/* Page title */}
+      <h1 style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, color: "var(--text-primary)", marginBottom: 20 }}>
+        Overview — Team Lead Generation
       </h1>
+
+      {/* Global KPI cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 20 }}>
+        {[
+          { label: "Lead totali",        value: overviewStats.totalLeads,        dim: false },
+          { label: "Lead attivi",        value: overviewStats.activeLeads,       dim: false },
+          { label: "Pool libero",        value: overviewStats.poolSize,          dim: false },
+          { label: "Convertiti (mese)",  value: overviewStats.convertedThisMonth, dim: false },
+          { label: "Conv. rate team",    value: `${(overviewStats.teamConversionRate * 100).toFixed(1)}%`, dim: false },
+        ].map((kpi) => (
+          <div key={kpi.label} style={{
+            background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)",
+            borderRadius: "var(--radius-md)", padding: "16px 20px",
+          }}>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)", margin: "0 0 6px" }}>{kpi.label}</p>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+              {overviewStats.loading ? "—" : kpi.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Member workload table */}
+      {overviewStats.memberStats.length > 0 && (
+        <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: "var(--radius-md)", padding: 20, marginBottom: 28 }}>
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)", margin: "0 0 14px" }}>Workload team</p>
+          {/* Table header */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 80px 80px 80px 90px", gap: 10, padding: "4px 0", borderBottom: "1px solid var(--glass-border)", marginBottom: 4 }}>
+            {["Membro", "Ruolo", "Totale", "Attivi", "Chiusi", "Conv.%"].map((h) => (
+              <span key={h} style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)" }}>{h}</span>
+            ))}
+          </div>
+          {overviewStats.memberStats.map((m) => (
+            <div key={m.userId} style={{ display: "grid", gridTemplateColumns: "1fr 80px 80px 80px 80px 90px", gap: 10, padding: "7px 0", borderBottom: "1px solid var(--glass-border)", alignItems: "center" }}>
+              <div>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, color: "var(--text-primary)" }}>{m.displayName}</span>
+              </div>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)", textTransform: "uppercase" }}>{m.role}</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-primary)" }}>{m.total}</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-info)" }}>{m.active}</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-success)" }}>{m.completed}</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: m.conversionRate >= 0.5 ? "var(--color-success)" : m.conversionRate > 0 ? "var(--accent-primary)" : "var(--text-tertiary)" }}>
+                {m.completed + m.rejected > 0 ? `${(m.conversionRate * 100).toFixed(1)}%` : "—"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* KPI Cards — 5 col desktop, 2 col mobile */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, marginBottom: 32 }}>
