@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { usePortalDB } from "@/lib/portalContextDB";
 import { subscribeToLeadgenUpdates } from "@/lib/leadgenRealtime";
+import { COLD_SKIP_TTL_MS, COLD_LIMIT } from "@/lib/leadgenConstants";
+import { coldSkipKey, getSkipMap, saveSkipMap } from "@/lib/leadgenSkipTracking";
+import { applyOwnershipFilter } from "@/lib/leadgenFilter";
 import type { LeadgenLead } from "@/types/leadgen";
 
 export interface ColdLeadsFilters {
@@ -12,17 +15,6 @@ export interface ColdLeadsFilters {
   cities?: string[];
   orderBy: "score" | "recent" | "reviews" | "rating";
   ownership?: "mine" | "pool" | "all";
-}
-
-const SKIP_TTL = 24 * 60 * 60 * 1000;
-
-function skipKey(portalId: string) { return `leadgen_skipped_${portalId}`; }
-function getSkipMap(portalId: string): Record<string, number> {
-  try { return JSON.parse(localStorage.getItem(skipKey(portalId)) || "{}"); }
-  catch { return {}; }
-}
-function saveSkipMap(portalId: string, map: Record<string, number>) {
-  try { localStorage.setItem(skipKey(portalId), JSON.stringify(map)); } catch { /**/ }
 }
 
 function scoreLead(lead: LeadgenLead): number {
@@ -58,25 +50,26 @@ export function useColdLeads(filters: ColdLeadsFilters) {
       .eq("outreach_status", "new")
       .gte("rating", filters.minRating)
       .gte("reviews_count", filters.minReviews)
-      .limit(200);
+      .limit(COLD_LIMIT);
 
     if (filters.hasWebsite !== undefined) query = query.eq("has_website", filters.hasWebsite);
     if (filters.categories?.length) query = query.in("category", filters.categories);
     if (filters.cities?.length) query = query.in("city", filters.cities);
 
-    if (filters.ownership === "pool") {
-      query = query.is("assigned_to", null);
-    } else if (filters.ownership === "mine") {
+    let currentUserId: string | undefined;
+    if (filters.ownership === "mine") {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) query = query.eq("assigned_to", user.id);
+      currentUserId = user?.id;
     }
+    query = applyOwnershipFilter(query, filters.ownership ?? "all", currentUserId);
 
     if (filters.orderBy === "recent") query = query.order("created_at", { ascending: false });
     else if (filters.orderBy === "reviews") query = query.order("reviews_count", { ascending: false });
     else if (filters.orderBy === "rating") query = query.order("rating", { ascending: false });
     else query = query.order("rating", { ascending: false }); // score-sorted client-side
 
-    const { data } = await query;
+    const { data, error } = await query;
+    if (error) { setRawLeads([]); setLoading(false); return; }
     setRawLeads((data ?? []) as LeadgenLead[]);
     setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -92,9 +85,9 @@ export function useColdLeads(filters: ColdLeadsFilters) {
 
   const skipLead = useCallback((leadId: string) => {
     if (!currentPortalId) return;
-    const map = getSkipMap(currentPortalId);
+    const map = getSkipMap(coldSkipKey(currentPortalId));
     map[leadId] = Date.now();
-    saveSkipMap(currentPortalId, map);
+    saveSkipMap(coldSkipKey(currentPortalId), map);
     setSkipVersion((v) => v + 1);
   }, [currentPortalId]);
 
@@ -105,11 +98,11 @@ export function useColdLeads(filters: ColdLeadsFilters) {
   const { leads, totalEligibleCount } = useMemo(() => {
     if (!currentPortalId) return { leads: [] as LeadgenLead[], totalEligibleCount: 0 };
 
-    const skipMap = getSkipMap(currentPortalId);
+    const skipMap = getSkipMap(coldSkipKey(currentPortalId));
     const now = Date.now();
 
     for (const id of Object.keys(skipMap)) {
-      if (now - skipMap[id] > SKIP_TTL) delete skipMap[id];
+      if (now - skipMap[id] > COLD_SKIP_TTL_MS) delete skipMap[id];
     }
 
     const totalEligibleCount = rawLeads.length;
