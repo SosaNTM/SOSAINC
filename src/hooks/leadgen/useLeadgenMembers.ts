@@ -90,6 +90,17 @@ export function useLeadgenMembers() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  useEffect(() => {
+    if (!currentPortalId) return;
+    const channel = supabase
+      .channel(`leadgen-members-${currentPortalId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "leadgen_members", filter: `portal_id=eq.${currentPortalId}` }, () => {
+        fetchAll();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [currentPortalId, fetchAll]);
+
   const searchByEmail = useCallback(async (email: string): Promise<{ user_id: string; display_name: string | null; email: string } | null> => {
     const { data } = await supabase
       .from("user_profiles")
@@ -121,10 +132,11 @@ export function useLeadgenMembers() {
   }, [currentPortalId, fetchAll]);
 
   const updateMember = useCallback(async (id: string, patch: Partial<Pick<LeadgenMember, "role" | "team" | "display_name" | "active" | "notes">>): Promise<{ error: string | null }> => {
-    const { error } = await supabase.from("leadgen_members").update(patch).eq("id", id);
+    if (!currentPortalId) return { error: "Nessun portale" };
+    const { error } = await supabase.from("leadgen_members").update(patch).eq("id", id).eq("portal_id", currentPortalId);
     if (!error) await fetchAll();
     return { error: error?.message ?? null };
-  }, [fetchAll]);
+  }, [currentPortalId, fetchAll]);
 
   const deactivateMember = useCallback(async (id: string): Promise<{ error: string | null }> => {
     return updateMember(id, { active: false });
