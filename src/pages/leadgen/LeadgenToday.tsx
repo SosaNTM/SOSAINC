@@ -231,7 +231,10 @@ function ColdCard({
   }, [currentPortalId, lead.id, lead.name, marking, onMarked, isPool]);
 
   return (
-    <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", display: "flex", flexDirection: "column" }}>
+    <div
+      onClick={() => navigate(`${prefix}/leadgen/lead/${lead.id}`)}
+      style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", display: "flex", flexDirection: "column", height: 240, cursor: "pointer" }}
+    >
       {/* Hero placeholder */}
       <div style={{ height: 80, background: "var(--sosa-bg-2)", borderBottom: "1px solid var(--glass-border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 900, color: "var(--text-tertiary)", letterSpacing: "0.05em", opacity: 0.3 }}>
@@ -239,7 +242,7 @@ function ColdCard({
         </span>
       </div>
 
-      <div style={{ padding: "10px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ padding: "10px 12px", flex: 1, display: "flex", flexDirection: "column", gap: 6, overflow: "hidden" }}>
         {/* Name + chips row */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, minWidth: 0 }}>
           <span title={lead.name}
@@ -291,16 +294,16 @@ function ColdCard({
 
       {/* Actions */}
       <div style={{ display: "flex", borderTop: "1px solid var(--glass-border)" }}>
-        <button onClick={() => navigate(`${prefix}/leadgen/lead/${lead.id}`)}
+        <button onClick={(e) => { e.stopPropagation(); navigate(`${prefix}/leadgen/lead/${lead.id}`); }}
           style={{ flex: 1, padding: "9px 0", background: "none", border: "none", borderRight: "1px solid var(--glass-border)", cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
           <ExternalLink size={11} /> Apri
         </button>
-        <button onClick={handleContacted} disabled={marking}
-          style={{ flex: 2, padding: "9px 0", background: marking ? "rgba(212,255,0,0.3)" : "var(--accent-primary)", border: "none", borderRight: "1px solid var(--glass-border)", cursor: marking ? "default" : "pointer", fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "var(--sosa-bg)", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+        <button onClick={(e) => { e.stopPropagation(); handleContacted(); }} disabled={marking}
+          style={{ flex: 2, padding: "9px 0", background: marking ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.10)", border: "none", borderRight: "1px solid var(--glass-border)", cursor: marking ? "default" : "pointer", fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, color: "var(--text-primary)", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
           <UserCheck size={11} />
           {marking ? "..." : isPool ? "Prendilo →" : "Contattato ✓"}
         </button>
-        <button onClick={() => onSkipped(lead.id)} title="Salta per 24h"
+        <button onClick={(e) => { e.stopPropagation(); onSkipped(lead.id); }} title="Salta per 24h"
           style={{ flex: 1, padding: "9px 0", background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <SkipForward size={12} />
         </button>

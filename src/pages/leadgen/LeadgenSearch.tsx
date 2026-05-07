@@ -801,6 +801,11 @@ export default function LeadgenSearch() {
                     style={{ width: 15, height: 15, cursor: "pointer", accentColor: "var(--accent-primary)", flexShrink: 0 }}
                   />
                 </label>
+                {!scrapeContacts && (
+                  <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--color-warning)", lineHeight: 1.6, marginTop: 6 }}>
+                    ⚠ Senza contact scraping i lead avranno solo il telefono. Quelli senza telefono su Maps verranno scartati.
+                  </p>
+                )}
               </div>
 
               <div style={{ marginBottom: 24 }}>
@@ -864,7 +869,7 @@ export default function LeadgenSearch() {
                       </span>
                     </div>
                     <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)", marginTop: 2, lineHeight: 1.6 }}>
-                      ~{targetLeads} lead dopo deduplica · Piano Free: $5/mese incluso
+                      ~{targetLeads} lead nel CRM dopo deduplica e filtri · Piano Free: $5/mese incluso
                     </p>
                   </div>
                 );

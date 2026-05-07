@@ -36,6 +36,7 @@ export const PORTALS: PortalConfig[] = [
     accent: "#FF5A5A",
     icon: "Zap",
     routePrefix: "/redx",
+    disabledFeatures: ["inventory", "crypto", "gift-cards"],
   },
   {
     id: "trustme",

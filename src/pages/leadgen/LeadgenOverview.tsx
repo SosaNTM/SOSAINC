@@ -1,273 +1,449 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { usePortal } from "@/lib/portalContext";
-import { useLeadgenLeads } from "@/hooks/leadgen/useLeadgenLeads";
-import { useLeadgenSearches } from "@/hooks/leadgen/useLeadgenSearches";
-import { useLeadgenSummary } from "@/hooks/leadgen/useLeadgenSummary";
-import { useLeadgenOverviewStats } from "@/hooks/leadgen/useLeadgenOverviewStats";
-import { SearchProgressIndicator } from "@/components/leadgen/SearchProgressIndicator";
-import { X } from "lucide-react";
-import {
-  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-} from "recharts";
+import { usePortalDB } from "@/lib/portalContextDB";
+import { supabase } from "@/lib/supabase";
+import { useLeadgenOverviewDashboard } from "@/hooks/leadgen/useLeadgenOverviewDashboard";
+import type { LeadgenLead, LeadgenSearch } from "@/types/leadgen";
 
-const OUTREACH_FUNNEL = [
-  { key: "new",       label: "Nuovi" },
-  { key: "contacted", label: "Contattati" },
-  { key: "replied",   label: "Risposto" },
-  { key: "qualified", label: "Qualificati" },
-  { key: "converted", label: "Convertiti" },
-];
+// ── Types ────────────────────────────────────────────────────────────────────
 
-const DONUT_COLORS = ["#4ade80", "#f87171"];
+type DrilldownConfig =
+  | { kind: "all_leads"; title: string }
+  | { kind: "leads_by_status"; title: string; statuses: string[] }
+  | { kind: "leads_by_website"; title: string; hasWebsite: boolean }
+  | { kind: "member_leads"; title: string; userId: string }
+  | { kind: "searches"; title: string }
+  | { kind: "outreach"; title: string };
 
-function DiscardedInfoModal({ onClose, summary }: {
-  onClose: () => void;
-  summary: { discardedNoContact: number; totalRawResults: number; excludedChains: number; saved: number };
+type OutreachRow = {
+  id: string;
+  channel: string;
+  direction: string;
+  occurred_at: string;
+  lead_id: string;
+  lead_name: string | null;
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function fmt(date: string | null): string {
+  if (!date) return "—";
+  return new Date(date).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  new: "Nuovo", contacted: "Contattato", replied: "Risposto",
+  qualified: "Qualificato", converted: "Convertito", rejected: "Rifiutato",
+};
+
+const STATUS_COLOR: Record<string, string> = {
+  new: "var(--text-tertiary)",
+  contacted: "var(--color-info)",
+  replied: "var(--color-warning)",
+  qualified: "var(--color-warning)",
+  converted: "var(--color-success)",
+  rejected: "var(--color-error)",
+};
+
+// ── KpiCard ───────────────────────────────────────────────────────────────────
+
+function KpiCard({
+  label, value, dim, onClick,
+}: {
+  label: string; value: string | number; dim?: boolean; onClick?: () => void;
 }) {
-  const discardPct = summary.totalRawResults > 0
-    ? ((summary.discardedNoContact / summary.totalRawResults) * 100).toFixed(1)
-    : "0.0";
-
+  const [hover, setHover] = useState(false);
+  const clickable = Boolean(onClick);
   return (
     <div
-      onClick={onClose}
-      style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center" }}
+      onClick={onClick}
+      onMouseEnter={() => { if (clickable) setHover(true); }}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: hover ? "rgba(255,255,255,0.04)" : "var(--glass-bg)",
+        border: `0.5px solid ${hover ? "var(--accent-primary)" : "var(--glass-border)"}`,
+        padding: "18px 20px",
+        cursor: clickable ? "pointer" : "default",
+        transition: "border-color 0.15s, background 0.15s",
+        position: "relative",
+      }}
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{ background: "var(--glass-bg)", border: "1px solid var(--glass-border)", padding: 28, maxWidth: 460, width: "90%", fontFamily: "var(--font-mono)" }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "0.04em" }}>
-            Lead scartati senza contatti
-          </h2>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)", padding: 0 }}>
-            <X size={16} />
-          </button>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20, padding: "16px", background: "var(--sosa-bg-2)", border: "1px solid var(--glass-border)" }}>
-          {[
-            { label: "Lead grezzi trovati", value: summary.totalRawResults, color: "var(--text-primary)" },
-            { label: "Catene escluse", value: summary.excludedChains, color: "var(--color-error)" },
-            { label: "Senza contatti", value: `${summary.discardedNoContact} (${discardPct}%)`, color: "var(--text-tertiary)" },
-            { label: "Salvati nel CRM", value: summary.saved, color: "var(--accent-primary)" },
-          ].map(({ label, value, color }) => (
-            <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>{label}</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color }}>{value}</span>
-            </div>
-          ))}
-        </div>
-
-        <p style={{ fontSize: 10, color: "var(--text-tertiary)", lineHeight: 1.8, marginBottom: 20 }}>
-          Apify trova attività su Google Maps senza telefono né email pubblici — vengono scartate
-          perché non contattabili. Se la percentuale è alta, prova categorie diverse (es. "ristoranti"
-          ha più contatti di "uffici postali") o aree con più PMI strutturate.
-        </p>
-
-        <button onClick={onClose} className="btn-primary" style={{ width: "100%" }}>
-          Chiudi
-        </button>
-      </div>
+      <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.10em", color: "var(--text-tertiary)", margin: "0 0 8px" }}>
+        {label}
+      </p>
+      <p style={{ fontFamily: "var(--font-mono)", fontSize: 28, fontWeight: 700, color: dim ? "var(--text-tertiary)" : "var(--text-primary)", margin: 0 }}>
+        {value}
+      </p>
+      {clickable && (
+        <span style={{ position: "absolute", top: 10, right: 10, fontFamily: "var(--font-mono)", fontSize: 9, color: hover ? "var(--accent-primary)" : "var(--text-tertiary)", opacity: hover ? 1 : 0.4, transition: "opacity 0.15s, color 0.15s" }}>
+          ↗
+        </span>
+      )}
     </div>
   );
 }
 
-export default function LeadgenOverview() {
-  const { portal } = usePortal();
+// ── Drilldown Modal ───────────────────────────────────────────────────────────
+
+interface DrilldownModalProps {
+  config: DrilldownConfig;
+  portalId: string;
+  prefix: string;
+  onClose: () => void;
+}
+
+function DrilldownModal({ config, portalId, prefix, onClose }: DrilldownModalProps) {
   const navigate = useNavigate();
-  const slug = portal?.id ?? "redx";
-  const { allLeads, loading } = useLeadgenLeads();
-  const { searches } = useLeadgenSearches();
-  const summary = useLeadgenSummary(allLeads, searches);
-  const overviewStats = useLeadgenOverviewStats();
-  const [showDiscardModal, setShowDiscardModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [leads, setLeads] = useState<LeadgenLead[]>([]);
+  const [searches, setSearches] = useState<LeadgenSearch[]>([]);
+  const [outreach, setOutreach] = useState<OutreachRow[]>([]);
 
-  const completedSearches = searches.filter((s) => s.status === "completed");
-  const totalExcludedChains = completedSearches.reduce((sum, s) => sum + (s.excluded_count ?? 0), 0);
+  useEffect(() => {
+    if (!portalId) return;
+    let cancelled = false;
+    setLoading(true);
 
-  const donutData = [
-    { name: "Con sito",   value: summary.withWebsite    },
-    { name: "Senza sito", value: summary.withoutWebsite },
+    (async () => {
+      if (config.kind === "searches") {
+        const { data } = await supabase
+          .from("leadgen_searches")
+          .select("*")
+          .eq("portal_id", portalId)
+          .order("started_at", { ascending: false });
+        if (!cancelled) setSearches((data ?? []) as LeadgenSearch[]);
+      } else if (config.kind === "outreach") {
+        const { data } = await supabase
+          .from("leadgen_outreach_events")
+          .select("id, channel, direction, occurred_at, lead_id, leadgen_leads(name)")
+          .eq("portal_id", portalId)
+          .order("occurred_at", { ascending: false })
+          .limit(100);
+        if (!cancelled) {
+          setOutreach(
+            (data ?? []).map((e: any) => ({
+              id: e.id,
+              channel: e.channel,
+              direction: e.direction,
+              occurred_at: e.occurred_at,
+              lead_id: e.lead_id,
+              lead_name: e.leadgen_leads?.name ?? null,
+            }))
+          );
+        }
+      } else {
+        let query = supabase
+          .from("leadgen_leads")
+          .select("*")
+          .eq("portal_id", portalId)
+          .order("created_at", { ascending: false })
+          .limit(200);
+
+        if (config.kind === "leads_by_status") {
+          query = query.in("outreach_status", config.statuses);
+        } else if (config.kind === "leads_by_website") {
+          query = query.eq("has_website", config.hasWebsite);
+        } else if (config.kind === "member_leads") {
+          query = query.eq("assigned_to", config.userId);
+        }
+
+        const { data } = await query;
+        if (!cancelled) setLeads((data ?? []) as LeadgenLead[]);
+      }
+      if (!cancelled) setLoading(false);
+    })();
+
+    return () => { cancelled = true; };
+  }, [config, portalId]);
+
+  const mono = { fontFamily: "var(--font-mono)", fontSize: 11 } as const;
+  const header = {
+    ...mono, fontSize: 9, fontWeight: 700, textTransform: "uppercase" as const,
+    letterSpacing: "0.08em", color: "var(--text-tertiary)",
+  };
+  const rowBase = {
+    borderBottom: "1px solid var(--glass-border)", alignItems: "center",
+    cursor: "pointer" as const, transition: "background 0.1s",
+  };
+
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <p style={{ ...mono, color: "var(--text-tertiary)", padding: "24px 0" }}>Caricamento...</p>
+      );
+    }
+
+    // ── Searches list ──────────────────────────────────────────────────────
+    if (config.kind === "searches") {
+      if (searches.length === 0) {
+        return <p style={{ ...mono, color: "var(--text-tertiary)", padding: "16px 0" }}>Nessuna ricerca.</p>;
+      }
+      const cols = "2fr 140px 70px 70px 80px";
+      return (
+        <div>
+          <div style={{ display: "grid", gridTemplateColumns: cols, gap: 12, padding: "4px 0", borderBottom: "1px solid var(--glass-border)", marginBottom: 2 }}>
+            {["Keyword", "Data", "Salvati", "Scartati", "Stato"].map((h) => (
+              <span key={h} style={header}>{h}</span>
+            ))}
+          </div>
+          {searches.map((s) => (
+            <div key={s.id} style={{ display: "grid", gridTemplateColumns: cols, gap: 12, padding: "8px 0", ...rowBase, cursor: "default" }}>
+              <span style={{ ...mono, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.category ?? "—"}</span>
+              <span style={{ ...mono, color: "var(--text-secondary)" }}>{fmt(s.started_at)}</span>
+              <span style={{ ...mono, color: "var(--color-success)" }}>{s.total_results}</span>
+              <span style={{ ...mono, color: "var(--text-tertiary)" }}>{s.discarded_no_contact_count}</span>
+              <span style={{
+                ...mono, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.06em",
+                color: s.status === "completed" ? "var(--color-success)" : s.status === "failed" ? "var(--color-error)" : "var(--color-warning)",
+              }}>{s.status}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // ── Outreach events ────────────────────────────────────────────────────
+    if (config.kind === "outreach") {
+      if (outreach.length === 0) {
+        return <p style={{ ...mono, color: "var(--text-tertiary)", padding: "16px 0" }}>Nessuna attività.</p>;
+      }
+      const cols = "2fr 110px 90px 140px";
+      return (
+        <div>
+          <div style={{ display: "grid", gridTemplateColumns: cols, gap: 12, padding: "4px 0", borderBottom: "1px solid var(--glass-border)", marginBottom: 2 }}>
+            {["Lead", "Canale", "Direzione", "Data"].map((h) => (
+              <span key={h} style={header}>{h}</span>
+            ))}
+          </div>
+          {outreach.map((e) => (
+            <div
+              key={e.id}
+              onClick={() => { navigate(`${prefix}/leadgen/lead/${e.lead_id}`); onClose(); }}
+              onMouseEnter={(ev) => { (ev.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.03)"; }}
+              onMouseLeave={(ev) => { (ev.currentTarget as HTMLElement).style.background = "transparent"; }}
+              style={{ display: "grid", gridTemplateColumns: cols, gap: 12, padding: "8px 0", ...rowBase }}
+            >
+              <span style={{ ...mono, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {e.lead_name ?? `${e.lead_id.slice(0, 8)}…`}
+              </span>
+              <span style={{ ...mono, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-info)" }}>{e.channel}</span>
+              <span style={{ ...mono, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-tertiary)" }}>{e.direction}</span>
+              <span style={{ ...mono, color: "var(--text-secondary)" }}>{fmt(e.occurred_at)}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // ── Lead list (all other kinds) ────────────────────────────────────────
+    if (leads.length === 0) {
+      return <p style={{ ...mono, color: "var(--text-tertiary)", padding: "16px 0" }}>Nessun lead.</p>;
+    }
+    const cols = "2fr 150px 60px 70px 100px";
+    return (
+      <div>
+        <div style={{ display: "grid", gridTemplateColumns: cols, gap: 12, padding: "4px 0", borderBottom: "1px solid var(--glass-border)", marginBottom: 2 }}>
+          {["Nome", "Categoria", "★", "Rec.", "Stato"].map((h) => (
+            <span key={h} style={header}>{h}</span>
+          ))}
+        </div>
+        {leads.map((lead) => (
+          <div
+            key={lead.id}
+            onClick={() => { navigate(`${prefix}/leadgen/lead/${lead.id}`); onClose(); }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.03)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+            style={{ display: "grid", gridTemplateColumns: cols, gap: 12, padding: "8px 0", ...rowBase }}
+          >
+            <span style={{ ...mono, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.name}</span>
+            <span style={{ ...mono, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.category ?? "—"}</span>
+            <span style={{ ...mono, color: "var(--text-primary)" }}>{lead.rating?.toFixed(1) ?? "—"}</span>
+            <span style={{ ...mono, color: "var(--text-tertiary)" }}>{lead.reviews_count ?? "—"}</span>
+            <span style={{ ...mono, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.06em", color: STATUS_COLOR[lead.outreach_status] ?? "var(--text-tertiary)" }}>
+              {STATUS_LABEL[lead.outreach_status] ?? lead.outreach_status}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.72)", zIndex: 1000 }} />
+      <div style={{
+        position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
+        width: "min(880px, 92vw)", maxHeight: "80vh",
+        background: "var(--sosa-bg)", border: "1px solid var(--glass-border)",
+        zIndex: 1001, display: "flex", flexDirection: "column",
+      }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderBottom: "1px solid var(--glass-border)", flexShrink: 0 }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            {config.title}
+          </span>
+          <button
+            onClick={onClose}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", fontSize: 16, lineHeight: 1, padding: "0 2px" }}
+          >
+            ✕
+          </button>
+        </div>
+        {/* Body */}
+        <div style={{ overflowY: "auto", padding: "16px 20px", flex: 1 }}>
+          {renderContent()}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
+export default function LeadgenOverview() {
+  const { currentPortalId, currentPortal } = usePortalDB();
+  const dashboard = useLeadgenOverviewDashboard();
+  const [drilldown, setDrilldown] = useState<DrilldownConfig | null>(null);
+
+  const prefix = `/${currentPortal?.slug ?? ""}`;
+
+  if (dashboard.loading) {
+    return (
+      <div style={{ padding: 32, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", fontSize: 13 }}>
+        Caricamento...
+      </div>
+    );
+  }
+
+  const row1: { label: string; value: string | number; config: DrilldownConfig }[] = [
+    { label: "Lead Totali",    value: dashboard.totalLeads,    config: { kind: "all_leads",          title: "Tutti i Lead" } },
+    { label: "Non Contattati", value: dashboard.notContacted,  config: { kind: "leads_by_status",    title: "Non Contattati",  statuses: ["new"] } },
+    { label: "Contattati",     value: dashboard.contacted,     config: { kind: "leads_by_status",    title: "Contattati",      statuses: ["contacted"] } },
+    { label: "In Trattativa",  value: dashboard.inNegotiation, config: { kind: "leads_by_status",    title: "In Trattativa",   statuses: ["replied", "qualified"] } },
+    { label: "Convertiti",     value: dashboard.converted,     config: { kind: "leads_by_status",    title: "Convertiti",      statuses: ["converted"] } },
+    { label: "Rifiutati",      value: dashboard.rejected,      config: { kind: "leads_by_status",    title: "Rifiutati",       statuses: ["rejected"] } },
   ];
 
-  const barData = summary.topCategories.map((c) => ({ name: c.category, count: c.count }));
-
-  const kpiCards = [
-    { label: "Lead totali",         value: summary.total,                                              onClick: () => navigate(`/${slug}/leadgen/no-website`) },
-    { label: "Con sito",            value: summary.withWebsite,                                        onClick: () => navigate(`/${slug}/leadgen/with-website`) },
-    { label: "Senza sito",          value: summary.withoutWebsite,                                     onClick: () => navigate(`/${slug}/leadgen/no-website`) },
-    { label: "Tasso contatto",      value: `${(summary.contactRate * 100).toFixed(1)}%`,               onClick: undefined as (() => void) | undefined },
-    {
-      label: "Scartati no-contatti",
-      value: summary.discardedNoContact,
-      sub: summary.totalRawResults > 0 ? `${(summary.discardRate * 100).toFixed(1)}% del totale grezzo` : "nessuna ricerca",
-      onClick: () => setShowDiscardModal(true),
-      dim: true,
-    },
+  const row2: { label: string; value: string | number; dim?: boolean; config: DrilldownConfig }[] = [
+    { label: "Ricerche Effettuate", value: dashboard.searchCount,          config: { kind: "searches", title: "Ricerche Effettuate" } },
+    { label: "Lead Scartati",       value: dashboard.discardedTotal, dim: true, config: { kind: "searches", title: "Ricerche — Lead Scartati" } },
+    { label: "Lead con Sito",       value: dashboard.withWebsite,           config: { kind: "leads_by_website", title: "Lead con Sito",    hasWebsite: true } },
+    { label: "Lead senza Sito",     value: dashboard.withoutWebsite,        config: { kind: "leads_by_website", title: "Lead senza Sito",  hasWebsite: false } },
+    { label: "Tasso Conversione",   value: `${dashboard.conversionRate.toFixed(1)}%`, config: { kind: "leads_by_status", title: "Lead Convertiti", statuses: ["converted"] } },
+    { label: "Attività Outreach",   value: dashboard.outreachActivityCount, config: { kind: "outreach", title: "Attività Outreach" } },
   ];
 
-  if (loading) return <div style={{ padding: 32, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", fontSize: 13 }}>Caricamento...</div>;
+  const tableHeaders = ["Nome", "Ruolo", "Assegnati", "Contattati", "Convertiti", "Ultima attività"];
+  const gridCols = "2fr 80px 90px 90px 90px 140px";
 
   return (
     <div style={{ padding: "24px 32px" }}>
-      {/* Page title */}
-      <h1 style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, color: "var(--text-primary)", marginBottom: 20 }}>
+      <h1 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 24px", letterSpacing: "0.02em" }}>
         Overview — Team Lead Generation
       </h1>
 
-      {/* Global KPI cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 20 }}>
-        {[
-          { label: "Lead totali",        value: overviewStats.totalLeads,        dim: false },
-          { label: "Lead attivi",        value: overviewStats.activeLeads,       dim: false },
-          { label: "Pool libero",        value: overviewStats.poolSize,          dim: false },
-          { label: "Convertiti (mese)",  value: overviewStats.convertedThisMonth, dim: false },
-          { label: "Conv. rate team",    value: `${(overviewStats.teamConversionRate * 100).toFixed(1)}%`, dim: false },
-        ].map((kpi) => (
-          <div key={kpi.label} style={{
-            background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)",
-            borderRadius: "var(--radius-md)", padding: "16px 20px",
-          }}>
-            <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)", margin: "0 0 6px" }}>{kpi.label}</p>
-            <p style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-              {overviewStats.loading ? "—" : kpi.value}
-            </p>
-          </div>
+      {/* Row 1 KPIs */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10, marginBottom: 10 }}>
+        {row1.map((kpi) => (
+          <KpiCard key={kpi.label} label={kpi.label} value={kpi.value} onClick={() => setDrilldown(kpi.config)} />
         ))}
       </div>
 
-      {/* Member workload table */}
-      {overviewStats.memberStats.length > 0 && (
-        <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: "var(--radius-md)", padding: 20, marginBottom: 28 }}>
-          <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)", margin: "0 0 14px" }}>Workload team</p>
-          {/* Table header */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 80px 80px 80px 90px", gap: 10, padding: "4px 0", borderBottom: "1px solid var(--glass-border)", marginBottom: 4 }}>
-            {["Membro", "Ruolo", "Totale", "Attivi", "Chiusi", "Conv.%"].map((h) => (
-              <span key={h} style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)" }}>{h}</span>
-            ))}
-          </div>
-          {overviewStats.memberStats.map((m) => (
-            <div key={m.userId} style={{ display: "grid", gridTemplateColumns: "1fr 80px 80px 80px 80px 90px", gap: 10, padding: "7px 0", borderBottom: "1px solid var(--glass-border)", alignItems: "center" }}>
-              <div>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, color: "var(--text-primary)" }}>{m.displayName}</span>
-              </div>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)", textTransform: "uppercase" }}>{m.role}</span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-primary)" }}>{m.total}</span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-info)" }}>{m.active}</span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-success)" }}>{m.completed}</span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: m.conversionRate >= 0.5 ? "var(--color-success)" : m.conversionRate > 0 ? "var(--accent-primary)" : "var(--text-tertiary)" }}>
-                {m.completed + m.rejected > 0 ? `${(m.conversionRate * 100).toFixed(1)}%` : "—"}
-              </span>
-            </div>
+      {/* Row 2 KPIs */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10, marginBottom: 28 }}>
+        {row2.map((kpi) => (
+          <KpiCard key={kpi.label} label={kpi.label} value={kpi.value} dim={kpi.dim} onClick={() => setDrilldown(kpi.config)} />
+        ))}
+      </div>
+
+      {/* Member activity table */}
+      <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", padding: 20, marginBottom: 24 }}>
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)", margin: "0 0 14px" }}>
+          Attività per Membro
+        </p>
+
+        {/* Header row */}
+        <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: 12, padding: "4px 0", borderBottom: "1px solid var(--glass-border)", marginBottom: 2 }}>
+          {tableHeaders.map((h) => (
+            <span key={h} style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)" }}>
+              {h}
+            </span>
           ))}
         </div>
-      )}
 
-      {/* KPI Cards — 5 col desktop, 2 col mobile */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, marginBottom: 32 }}>
-        {kpiCards.map((kpi) => (
-          <div key={kpi.label}
-            onClick={kpi.onClick}
-            title={kpi.label === "Scartati no-contatti" ? "Lead trovati ma scartati perché senza email né telefono. Non sono salvati nel CRM." : undefined}
-            style={{
-              background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)",
-              borderRadius: "var(--radius-md)", padding: "20px 24px",
-              cursor: kpi.onClick ? "pointer" : "default",
-            }}
-            onMouseEnter={(e) => { if (kpi.onClick) e.currentTarget.style.borderColor = "var(--accent-primary)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--glass-border)"; }}
+        {dashboard.memberActivity.length === 0 && (
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-tertiary)", padding: "10px 0" }}>
+            Nessun membro attivo.
+          </p>
+        )}
+
+        {dashboard.memberActivity.map((m) => (
+          <div
+            key={m.userId}
+            onClick={() => setDrilldown({ kind: "member_leads", title: `Lead di ${m.displayName}`, userId: m.userId })}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.03)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+            style={{ display: "grid", gridTemplateColumns: gridCols, gap: 12, padding: "8px 0", borderBottom: "1px solid var(--glass-border)", alignItems: "center", cursor: "pointer" }}
           >
-            <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)", margin: "0 0 8px" }}>{kpi.label}</p>
-            <p style={{ fontFamily: "var(--font-mono)", fontSize: 28, fontWeight: 700, color: kpi.dim ? "var(--text-tertiary)" : "var(--text-primary)", margin: 0 }}>{kpi.value}</p>
-            {"sub" in kpi && kpi.sub && (
-              <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)", margin: "4px 0 0" }}>{kpi.sub}</p>
-            )}
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {m.displayName}
+            </span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              {m.role}
+            </span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-primary)" }}>{m.assignedLeads}</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-info)" }}>{m.contacted}</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-success)" }}>{m.converted}</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-tertiary)" }}>{fmt(m.lastActivityAt)}</span>
           </div>
         ))}
       </div>
 
-      {/* Charts row */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 24, marginBottom: 32 }}>
-        <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: "var(--radius-md)", padding: 20 }}>
-          <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)", margin: "0 0 16px" }}>Distribuzione sito</p>
-          <ResponsiveContainer width="100%" height={180}>
-            <PieChart>
-              <Pie data={donutData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value">
-                {donutData.map((_entry, i) => (
-                  <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(val, name) => [val, name]} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div style={{ display: "flex", gap: 16, justifyContent: "center", marginTop: 8 }}>
-            {donutData.map((d, i) => (
-              <span key={d.name} style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 5 }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: DONUT_COLORS[i % DONUT_COLORS.length], flexShrink: 0 }} />
-                {d.name}: {d.value}
-              </span>
-            ))}
-          </div>
-        </div>
+      {/* Recent searches */}
+      <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", padding: 20 }}>
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)", margin: "0 0 14px" }}>
+          Ricerche Recenti
+        </p>
 
-        <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: "var(--radius-md)", padding: 20 }}>
-          <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)", margin: "0 0 16px" }}>Top categorie</p>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={barData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-              <XAxis dataKey="name" tick={{ fontFamily: "var(--font-mono)", fontSize: 10, fill: "#666" }} />
-              <YAxis tick={{ fontFamily: "var(--font-mono)", fontSize: 10, fill: "#666" }} />
-              <Tooltip />
-              <Bar dataKey="count" fill="#d4ff00" radius={[2, 2, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Bottom row */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-        <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: "var(--radius-md)", padding: 20 }}>
-          <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)", margin: "0 0 16px" }}>Ultime ricerche</p>
-          {searches.slice(0, 5).map((s) => (
-            <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--glass-border)" }}>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-primary)", flex: 1 }}>{s.category} · {s.postal_code}</span>
-              <SearchProgressIndicator status={s.status} />
-            </div>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 120px 90px 90px", gap: 12, padding: "4px 0", borderBottom: "1px solid var(--glass-border)", marginBottom: 2 }}>
+          {["Keyword", "Data", "Salvati", "Scartati"].map((h) => (
+            <span key={h} style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)" }}>
+              {h}
+            </span>
           ))}
-          {searches.length === 0 && <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-tertiary)" }}>Nessuna ricerca.</p>}
         </div>
 
-        <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: "var(--radius-md)", padding: 20 }}>
-          <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-tertiary)", margin: "0 0 16px" }}>Funnel outreach</p>
-          {OUTREACH_FUNNEL.map(({ key, label }) => {
-            const count = summary.byOutreachStatus[key as keyof typeof summary.byOutreachStatus] ?? 0;
-            const pct = summary.total > 0 ? (count / summary.total) * 100 : 0;
-            return (
-              <div key={key} style={{ marginBottom: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)" }}>{label}</span>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-primary)" }}>{count}</span>
-                </div>
-                <div style={{ height: 4, background: "var(--glass-border)", borderRadius: 2, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${pct}%`, background: "var(--accent-primary)", borderRadius: 2, transition: "width 0.3s" }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        {dashboard.recentSearches.length === 0 && (
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-tertiary)", padding: "10px 0" }}>
+            Nessuna ricerca effettuata.
+          </p>
+        )}
+
+        {dashboard.recentSearches.map((s) => (
+          <div
+            key={s.id}
+            onClick={() => setDrilldown({ kind: "searches", title: "Tutte le Ricerche" })}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.03)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+            style={{ display: "grid", gridTemplateColumns: "2fr 120px 90px 90px", gap: 12, padding: "8px 0", borderBottom: "1px solid var(--glass-border)", alignItems: "center", cursor: "pointer" }}
+          >
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {s.category ?? "—"}
+            </span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-secondary)" }}>{fmt(s.started_at)}</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-success)" }}>{s.total_results}</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-tertiary)" }}>{s.discarded_no_contact_count}</span>
+          </div>
+        ))}
       </div>
 
-      {showDiscardModal && (
-        <DiscardedInfoModal
-          onClose={() => setShowDiscardModal(false)}
-          summary={{
-            discardedNoContact: summary.discardedNoContact,
-            totalRawResults: summary.totalRawResults,
-            excludedChains: totalExcludedChains,
-            saved: summary.total,
-          }}
+      {/* Drilldown modal */}
+      {drilldown && currentPortalId && (
+        <DrilldownModal
+          config={drilldown}
+          portalId={currentPortalId}
+          prefix={prefix}
+          onClose={() => setDrilldown(null)}
         />
       )}
     </div>

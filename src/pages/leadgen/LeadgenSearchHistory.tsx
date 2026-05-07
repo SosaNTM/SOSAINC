@@ -66,7 +66,7 @@ export default function LeadgenSearchHistory() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: 12 }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--glass-border)" }}>
-                {["Paese", "CAP", "Categorie", "Status", "Salvate", "Escluse", "Con sito", "Senza sito", "Data", "Durata", ""].map((h) => (
+                {["Paese", "CAP", "Categorie", "Status", "Salvate", "Catene", "No-contatti", "Con sito", "Senza sito", "Data", "Durata", ""].map((h) => (
                   <th key={h} style={{ padding: "8px 12px", textAlign: "left", color: "var(--text-tertiary)", fontWeight: 600, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
@@ -90,6 +90,9 @@ export default function LeadgenSearchHistory() {
                     <td style={{ padding: "10px 12px", color: "var(--text-primary)", textAlign: "center" }}>{s.total_results}</td>
                     <td style={{ padding: "10px 12px", color: "var(--color-error)", textAlign: "center" }}>
                       {s.excluded_count ?? 0}
+                    </td>
+                    <td style={{ padding: "10px 12px", color: "var(--text-tertiary)", textAlign: "center" }}>
+                      {s.discarded_no_contact_count ?? 0}
                     </td>
                     <td style={{ padding: "10px 12px", color: "var(--color-success)", textAlign: "center" }}>{s.with_website}</td>
                     <td style={{ padding: "10px 12px", color: "var(--color-error)", textAlign: "center" }}>{s.without_website}</td>
@@ -119,11 +122,14 @@ export default function LeadgenSearchHistory() {
                   </tr>,
                 ];
 
-                if (s.status === "completed" && (s.excluded_count ?? 0) > 0) {
+                if (s.status === "completed" && ((s.excluded_count ?? 0) > 0 || (s.discarded_no_contact_count ?? 0) > 0)) {
+                  const parts: string[] = [];
+                  if ((s.excluded_count ?? 0) > 0) parts.push(`${s.excluded_count} catene`);
+                  if ((s.discarded_no_contact_count ?? 0) > 0) parts.push(`${s.discarded_no_contact_count} senza contatti`);
                   rows.push(
                     <tr key={`${s.id}-excl`} style={{ borderBottom: "1px solid var(--glass-border)" }}>
-                      <td colSpan={11} style={{ padding: "0 12px 8px", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>
-                        {s.excluded_count ?? 0} attività escluse dalla blacklist (catene) —{" "}
+                      <td colSpan={12} style={{ padding: "0 12px 8px", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>
+                        Escluse: {parts.join(", ")} —{" "}
                         <a href={`/${portal?.id ?? "redx"}/leadgen/settings`} style={{ color: "var(--accent-primary)", textDecoration: "none" }}>
                           Gestisci blacklist
                         </a>

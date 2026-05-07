@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { useLeadgenSettings } from "@/hooks/leadgen/useLeadgenSettings";
 import { testConnection } from "@/lib/apifyClient";
 import { useLeadgenBlacklist } from "@/hooks/leadgen/useLeadgenBlacklist";
+import { usePortalDB } from "@/lib/portalContextDB";
+import { supabase } from "@/lib/supabase";
 import type { BlacklistRuleType } from "@/types/leadgen";
 
 const COUNTRIES = [
@@ -85,6 +87,40 @@ function BlacklistSection({
 
 export default function LeadgenSettings() {
   const { data, loading, upsert } = useLeadgenSettings();
+  const { currentPortalId } = usePortalDB();
+  const [cleanupCount, setCleanupCount] = useState<number | null>(null);
+  const [cleanupLoading, setCleanupLoading] = useState(false);
+  const [showCleanupConfirm, setShowCleanupConfirm] = useState(false);
+
+  const handleCountNoContact = async () => {
+    if (!currentPortalId) return;
+    setCleanupLoading(true);
+    const { count } = await supabase
+      .from("leadgen_leads")
+      .select("id", { count: "exact", head: true })
+      .eq("portal_id", currentPortalId)
+      .or("phone.is.null,phone.eq.")
+      .or("emails.eq.{},emails.is.null");
+    setCleanupLoading(false);
+    setCleanupCount(count ?? 0);
+    setShowCleanupConfirm(true);
+  };
+
+  const handleCleanupNoContact = async () => {
+    if (!currentPortalId) return;
+    setCleanupLoading(true);
+    const { error, count } = await supabase
+      .from("leadgen_leads")
+      .delete({ count: "exact" })
+      .eq("portal_id", currentPortalId)
+      .or("phone.is.null,phone.eq.")
+      .or("emails.eq.{},emails.is.null");
+    setCleanupLoading(false);
+    setShowCleanupConfirm(false);
+    setCleanupCount(null);
+    if (error) toast.error(error.message);
+    else toast.success(`Eliminati ${count ?? 0} lead senza contatti`);
+  };
 
   const [token, setToken] = useState("");
   const [actorId, setActorId] = useState("compass~google-maps-scraper");
@@ -373,6 +409,55 @@ export default function LeadgenSettings() {
             </div>
           </div>
         </>
+      )}
+
+      {/* Cleanup section */}
+      <div style={{ height: 1, background: "var(--glass-border)", margin: "40px 0 32px" }} />
+      <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>
+        Pulizia dati
+      </h2>
+      <p style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--text-tertiary)", marginBottom: 20 }}>
+        Rimuovi lead salvati prima che il filtro "senza contatti" fosse attivo.
+      </p>
+
+      {!showCleanupConfirm ? (
+        <button
+          type="button"
+          onClick={handleCountNoContact}
+          disabled={cleanupLoading}
+          className="btn-glass-ds"
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--color-error)", borderColor: "var(--color-error)" }}
+        >
+          {cleanupLoading && <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} />}
+          <Trash2 size={13} />
+          Pulisci lead senza contatti
+        </button>
+      ) : (
+        <div style={{ background: "color-mix(in srgb, var(--color-error) 8%, transparent)", border: "1px solid var(--color-error)", padding: 16 }}>
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-primary)", marginBottom: 12 }}>
+            Trovati <strong>{cleanupCount}</strong> lead senza né telefono né email. Eliminarli?
+            Questa operazione non è reversibile.
+          </p>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button"
+              onClick={handleCleanupNoContact}
+              disabled={cleanupLoading}
+              style={{ padding: "8px 16px", background: "var(--color-error)", border: "none", color: "#fff", fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
+            >
+              {cleanupLoading && <Loader2 size={12} style={{ animation: "spin 1s linear infinite" }} />}
+              Elimina {cleanupCount} lead
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowCleanupConfirm(false); setCleanupCount(null); }}
+              className="btn-glass-ds"
+              style={{ fontSize: 11 }}
+            >
+              Annulla
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

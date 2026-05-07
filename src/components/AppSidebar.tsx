@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { useTodayCount } from "@/hooks/leadgen/useTodayCount";
-import { useLeadgenCurrentMember } from "@/hooks/leadgen/useLeadgenMembers";
 import { useAuth } from "@/lib/authContext";
 import { usePortal, type PortalConfig } from "@/lib/portalContext";
 import { usePermission, PERMISSIONS, type Role } from "@/lib/permissions";
@@ -42,6 +40,7 @@ import {
   History,
   CalendarClock,
   LayoutDashboard,
+  List,
 } from "lucide-react";
 
 // ── Leadgen sidebar section (owns useTodayCount so it only runs for REDX) ─────
@@ -53,21 +52,6 @@ function LeadgenSidebarSection({
   accentOf: (p: PortalConfig | null) => string;
   prefix: string; location: { pathname: string }; onMobileClose: () => void;
 }) {
-  const { total } = useTodayCount();
-  const currentMember = useLeadgenCurrentMember();
-  const isLeadgenAdmin = currentMember?.role === "owner" || currentMember?.role === "admin";
-
-  const renderLabel = () => (
-    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      Lead Generation
-      {total > 0 && (
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, background: "var(--accent-primary)", color: "#000", padding: "1px 5px", lineHeight: 1.4 }}>
-          {total}
-        </span>
-      )}
-    </span>
-  );
-
   const navLinkStyle = (active: boolean) => ({
     padding: "7px 14px 7px 10px", borderRadius: 0,
     fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: active ? 600 : 400,
@@ -77,14 +61,27 @@ function LeadgenSidebarSection({
     borderLeft: active ? `3px solid ${accentOf(portal)}` : "3px solid transparent",
   });
 
+  const overviewPath = `${prefix}/leadgen/overview`;
+  const isOverviewActive = location.pathname === overviewPath;
+
   return (
     <AccordionSection
       label="Lead Generation"
       icon={Crosshair}
       isActive={isActive} isOpen={isOpen}
       onToggle={onToggle} portal={portal}
-      renderLabel={renderLabel}
     >
+      <NavLink
+        to={overviewPath} onClick={onMobileClose}
+        className="flex items-center gap-2"
+        style={navLinkStyle(isOverviewActive)}
+        onMouseEnter={(e) => { if (!isOverviewActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
+        onMouseLeave={(e) => { if (!isOverviewActive) e.currentTarget.style.background = "transparent"; }}
+      >
+        <BarChart2 style={{ width: 13, height: 13, strokeWidth: 1.6, opacity: isOverviewActive ? 1 : 0.4 }} />
+        Overview
+      </NavLink>
+
       {leadgenSubItems.map((item) => {
         const isItemActive =
           location.pathname === `${prefix}${item.path}` ||
@@ -99,31 +96,9 @@ function LeadgenSidebarSection({
           >
             <item.icon style={{ width: 13, height: 13, strokeWidth: 1.6, opacity: isItemActive ? 1 : 0.4 }} />
             {item.title}
-            {item.path === "/leadgen/today" && total > 0 && (
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, background: "var(--accent-primary)", color: "#000", padding: "1px 5px", lineHeight: 1.4, marginLeft: "auto" }}>
-                {total}
-              </span>
-            )}
           </NavLink>
         );
       })}
-
-      {isLeadgenAdmin && (() => {
-        const overviewPath = `${prefix}/leadgen/overview`;
-        const isOverviewActive = location.pathname === overviewPath;
-        return (
-          <NavLink
-            to={overviewPath} onClick={onMobileClose}
-            className="flex items-center gap-2"
-            style={navLinkStyle(isOverviewActive)}
-            onMouseEnter={(e) => { if (!isOverviewActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
-            onMouseLeave={(e) => { if (!isOverviewActive) e.currentTarget.style.background = "transparent"; }}
-          >
-            <BarChart2 style={{ width: 13, height: 13, strokeWidth: 1.6, opacity: isOverviewActive ? 1 : 0.4 }} />
-            Overview
-          </NavLink>
-        );
-      })()}
     </AccordionSection>
   );
 }
@@ -219,13 +194,10 @@ const socialSubItems = [
 const socialPaths = socialSubItems.map((i) => i.path);
 
 const leadgenSubItems = [
-  { title: "Dashboard",     path: "/leadgen/dashboard",    icon: LayoutDashboard },
-  { title: "Da Fare Oggi",  path: "/leadgen/today",        icon: CalendarClock   },
-  { title: "Nuova ricerca", path: "/leadgen/search",       icon: Crosshair       },
-  { title: "Senza sito",    path: "/leadgen/no-website",   icon: MonitorOff      },
-  { title: "Con sito",      path: "/leadgen/with-website", icon: Globe           },
-  { title: "Storico",       path: "/leadgen/searches",     icon: History         },
-  { title: "Impostazioni",  path: "/leadgen/settings",     icon: Settings        },
+  { title: "Tutti i Lead",       path: "/leadgen/leads",    icon: List            },
+  { title: "Personal Dashboard", path: "/leadgen/dashboard", icon: LayoutDashboard },
+  { title: "Nuova ricerca",      path: "/leadgen/search",   icon: Crosshair       },
+  { title: "Storico",            path: "/leadgen/searches", icon: History         },
 ];
 const leadgenPaths = leadgenSubItems.map((i) => i.path);
 
@@ -624,7 +596,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
     { label: "Profile", icon: User, path: `${prefix}/profile` },
     ...(canViewFinance ? [{ label: "Finance",   icon: Wallet,      path: `${prefix}/dashboard`,       matchPaths: prefixedFinancePaths }] : []),
     ...(canViewSocial && !disabled.includes("social") ? [{ label: "Social",  icon: TrendingUp, path: `${prefix}/social/overview`, matchPaths: prefixedSocialPaths }] : []),
-    ...(portal?.id === "redx" ? [{ label: "Lead Gen", icon: Crosshair, path: `${prefix}/leadgen/today`, matchPaths: prefixedLeadgenPaths }] : []),
+    ...(portal?.id === "redx" ? [{ label: "Lead Gen", icon: Crosshair, path: `${prefix}/leadgen/dashboard`, matchPaths: prefixedLeadgenPaths }] : []),
     ...(!disabled.includes("vault") ? [{ label: "Vault",     icon: Lock,        path: `${prefix}/vault` }] : []),
     ...(!disabled.includes("cloud") ? [{ label: "Cloud",     icon: Cloud,       path: `${prefix}/cloud` }] : []),
     ...(!disabled.includes("inventory") ? [{ label: "Inventory", icon: Package,  path: `${prefix}/inventory` }] : []),

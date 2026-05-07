@@ -13,6 +13,7 @@ export function AppLayout() {
   const location = useLocation();
   const workspace = portal?.id ?? "sosa";
   const isCloud = location.pathname.endsWith("/cloud");
+  const isStaticPage = isCloud || location.pathname.endsWith("/leadgen/search");
   const mainRef = useRef<HTMLElement>(null);
 
   useKeyboardShortcuts();
@@ -38,14 +39,14 @@ export function AppLayout() {
             ref={mainRef}
             style={{
               flex:      1,
-              padding:   "16px 24px 24px",
-              overflowY: isCloud ? "hidden" : "auto",
-              display:   isCloud ? "flex" : "block",
-              flexDirection: isCloud ? "column" : undefined,
+              padding:   isStaticPage ? 0 : "16px 24px 24px",
+              overflowY: isStaticPage ? "hidden" : "auto",
+              display:   isStaticPage ? "flex" : "block",
+              flexDirection: isStaticPage ? "column" : undefined,
             }}
           >
             <Outlet />
-            {!isCloud && <div style={{ height: 48 }} />}
+            {!isStaticPage && <div style={{ height: 48 }} />}
           </main>
         </div>
       </div>

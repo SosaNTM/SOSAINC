@@ -255,26 +255,6 @@ export default function LeadgenDashboard() {
     setTimeout(() => listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   };
 
-  // Empty state: no leads at all
-  if (!summary.loading && summary.totalActive === 0 && summary.archived === 0) {
-    return (
-      <div style={{ padding: "24px 32px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 400 }}>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12 }}>
-          Benvenuto, {greetName}!
-        </h2>
-        <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-tertiary)", marginBottom: 24, textAlign: "center" }}>
-          Non hai ancora lead assegnati. Vai sul pool e prendine uno per iniziare.
-        </p>
-        <button
-          onClick={() => navigate(`/${slug}/leadgen/today`)}
-          className="btn-primary"
-        >
-          Vai al pool →
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div style={{ padding: "24px 32px" }}>
       {/* Header + period selector */}
@@ -404,7 +384,7 @@ export default function LeadgenDashboard() {
                   Vedi tutti i miei lead
                 </button>
               )}
-              <button onClick={() => navigate(`/${slug}/leadgen/today`)} className="btn-primary" style={{ fontSize: 11 }}>
+              <button onClick={() => navigate(`/${slug}/leadgen/search`)} className="btn-primary" style={{ fontSize: 11 }}>
                 Prendi nuovi lead dal pool →
               </button>
             </div>

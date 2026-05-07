@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { LeadgenLead, OutreachStatus } from "@/types/leadgen";
+import type { LeadgenLead, LeadgenSearch, OutreachStatus } from "@/types/leadgen";
 
 export interface LeadgenSummary {
   total: number;
@@ -8,13 +8,16 @@ export interface LeadgenSummary {
   contactRate: number;
   byOutreachStatus: Record<OutreachStatus, number>;
   topCategories: { category: string; count: number }[];
+  discardedNoContact: number;
+  totalRawResults: number;
+  discardRate: number;
 }
 
 const OUTREACH_STATUSES: OutreachStatus[] = [
   "new", "contacted", "replied", "qualified", "converted", "rejected",
 ];
 
-export function useLeadgenSummary(leads: LeadgenLead[]): LeadgenSummary {
+export function useLeadgenSummary(leads: LeadgenLead[], searches?: LeadgenSearch[]): LeadgenSummary {
   return useMemo(() => {
     const total = leads.length;
     const withWebsite = leads.filter((l) => l.has_website).length;
@@ -37,6 +40,11 @@ export function useLeadgenSummary(leads: LeadgenLead[]): LeadgenSummary {
       .sort((a, b) => b.count - a.count)
       .slice(0, 8);
 
-    return { total, withWebsite, withoutWebsite, contactRate, byOutreachStatus, topCategories };
-  }, [leads]);
+    const completedSearches = (searches ?? []).filter((s) => s.status === "completed");
+    const totalRawResults = completedSearches.reduce((sum, s) => sum + (s.total_results ?? 0), 0);
+    const discardedNoContact = completedSearches.reduce((sum, s) => sum + (s.discarded_no_contact_count ?? 0), 0);
+    const discardRate = totalRawResults > 0 ? discardedNoContact / totalRawResults : 0;
+
+    return { total, withWebsite, withoutWebsite, contactRate, byOutreachStatus, topCategories, discardedNoContact, totalRawResults, discardRate };
+  }, [leads, searches]);
 }

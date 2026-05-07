@@ -1362,6 +1362,15 @@ select option {
   --portal-accent-dim: rgba(255, 45, 85, 0.15);
 }
 
+/* Dim neon yellow inside REDX — too harsh alongside red portal accent */
+[data-color="hustler"] [data-portal="redx"] {
+  --accent-color:       #a8bb00;
+  --accent-dim:         rgba(168, 187, 0, 0.10);
+  --accent-border-color: rgba(168, 187, 0, 0.18);
+  --accent-hover-color:  rgba(168, 187, 0, 0.16);
+  --accent-glow:         rgba(168, 187, 0, 0.06);
+}
+
 [data-portal="trustme"] {
   --portal-accent:     #39ff14;
   --portal-accent-dim: rgba(57, 255, 20, 0.15);
