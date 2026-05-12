@@ -21,7 +21,7 @@ async function getAuditBridge() {
 
 const PORTAL_NAMES: Record<string, string> = {
   sosa:    "Sosa Inc",
-  keylo:   "KEYLO",
+  keylo:   "KEYLOW",
   redx:    "REDX",
   trustme: "Trust Me",
 };

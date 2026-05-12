@@ -1,6 +1,6 @@
 const WORKSPACE_LABELS: Record<string, string> = {
   sosa:    "SOSA INC.",
-  keylo:   "KEYLO",
+  keylo:   "KEYLOW",
   redx:    "REDX",
   trustme: "TRUST ME",
 };

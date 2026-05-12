@@ -23,7 +23,7 @@ export const PORTALS: PortalConfig[] = [
   },
   {
     id: "keylo",
-    name: "KEYLO",
+    name: "KEYLOW",
     subtitle: "Access control & security hub",
     accent: "#2ECC71",
     icon: "KeyRound",
