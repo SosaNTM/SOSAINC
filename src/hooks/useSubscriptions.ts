@@ -83,6 +83,7 @@ function subToDbRow(
     start_date:        sub.start_date || null,
     next_billing_date: sub.next_billing_date || null,
     is_active:         sub.is_active,
+    status:            sub.is_active ? "active" : "paused",
     color:             sub.color ?? null,
     icon:              sub.icon ?? null,
     account_id:        sub.account_id ?? null,
