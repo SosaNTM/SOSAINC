@@ -7,6 +7,7 @@ import SettingsLayout from "./SettingsLayout";
 // ── Lazy-loaded settings pages ──────────────────────────────────────────────
 const PortalProfile = React.lazy(() => import("./general/PortalProfile"));
 const Appearance = React.lazy(() => import("./general/Appearance"));
+const PortalAccess = React.lazy(() => import("./general/PortalAccess"));
 const IncomeCategories = React.lazy(() => import("./finance/IncomeCategories"));
 const ExpenseCategories = React.lazy(() => import("./finance/ExpenseCategories"));
 const SubscriptionCategories = React.lazy(() => import("./finance/SubscriptionCategories"));
@@ -49,6 +50,7 @@ export function SettingsRoutes() {
         {/* General */}
         <Route path="general/profile"               element={<SLazy><PortalProfile /></SLazy>} />
         <Route path="general/aspetto"               element={<SLazy><Appearance /></SLazy>} />
+        <Route path="general/accesso"               element={<SLazy><PortalAccess /></SLazy>} />
         {/* Finanza */}
         <Route path="finance/categorie-entrate"     element={<SLazy><IncomeCategories /></SLazy>} />
         <Route path="finance/categorie-uscite"      element={<SLazy><ExpenseCategories /></SLazy>} />

@@ -4,12 +4,21 @@ import {
   TrendingUp, TrendingDown, RefreshCw, CreditCard,
   Repeat, Columns3, Tags, FileStack, Share2, CalendarClock,
   Layers, Bell, AlertTriangle, Trash2, Settings2, Crosshair, Users,
+  Building2, Palette, Lock,
 } from "lucide-react";
 import { usePortal } from "@/lib/portalContext";
 
 interface NavItemDef { title: string; path: string; icon: React.FC<any>; danger?: boolean }
 
 const NAV_SECTIONS: { label: string; items: NavItemDef[] }[] = [
+  {
+    label: "GENERALE",
+    items: [
+      { title: "Profilo Portale", path: "general/profile",  icon: Building2 },
+      { title: "Aspetto",         path: "general/aspetto",  icon: Palette   },
+      { title: "Accesso",         path: "general/accesso",  icon: Lock      },
+    ],
+  },
   {
     label: "FINANZA",
     items: [

@@ -104,6 +104,20 @@ export const useSocialPublishingRules = () => useSingleton<SocialPublishingRules
 export const usePortalProfile         = () => useSingleton<PortalProfile>("portal_profiles");
 export const useAppearanceSettings    = () => useSingleton<AppearanceSettings>("appearance_settings");
 
+export interface PortalSecuritySettings {
+  portal_id: string;
+  is_enabled: boolean;
+  password_hash: string | null;
+  updated_at: string;
+}
+
+export async function sha256hex(text: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export const usePortalSecurity = () => useSingleton<PortalSecuritySettings>("portal_security");
+
 // Notification channels (list but auto-seeded per portal)
 export const useNotificationChannels = () => usePortalData<NotificationChannel>("notification_channels", { orderBy: "channel_type" });
 
