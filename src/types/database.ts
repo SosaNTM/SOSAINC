@@ -55,6 +55,7 @@ export interface DbBudgetLimit {
   category: string;
   category_id: string | null;
   monthly_limit: number;
+  year_month: string;  // "YYYY-MM" — one row per category per month
   color: string | null;
   icon_name: string | null;
   created_at: string;

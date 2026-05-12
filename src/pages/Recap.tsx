@@ -439,6 +439,13 @@ export default function Recap() {
     dateFrom: range.from, dateTo: range.to,
   });
 
+  // Previous period transactions — needed for per-category income delta %
+  const { allTransactions: prevAllTransactions } = useTransactions(
+    compareOn
+      ? { dateFrom: prevRange.from, dateTo: prevRange.to }
+      : { dateFrom: range.from, dateTo: range.to },
+  );
+
   // Active filters for the bottom table
   const tableFilters = useMemo(() => {
     const f: Record<string, unknown> = { dateFrom: range.from, dateTo: range.to };
@@ -489,12 +496,13 @@ export default function Recap() {
   }, [prevSummary.categoryBreakdown]);
 
   const prevIncomeMap = useMemo(() => {
+    if (!compareOn) return {};
     const m: Record<string, number> = {};
-    // We'd need prevAllTransactions for this — for now derive from prevSummary totalIncome delta only
-    // A full prev income breakdown would require another useTransactions call for prevRange
-    // Simplified: we use prevSummary.categoryBreakdown for income delta approximation
+    prevAllTransactions.forEach(tx => {
+      if (tx.type === "income") m[tx.category] = (m[tx.category] ?? 0) + tx.amount;
+    });
     return m;
-  }, []);
+  }, [prevAllTransactions, compareOn]);
 
   // ── Pie data ────────────────────────────────────────────────────────────────
   const expensePieData: DonutSlice[] = useMemo(() => {

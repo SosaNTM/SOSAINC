@@ -44,7 +44,10 @@ export function useBudgetData(month: number, year: number): BudgetDataResult {
   const portalId = portal?.id ?? "sosa";
   const isBusinessPortal = portalId !== "sosa";
 
-  const [limits, setLimits]                 = useState<BudgetLimitMap>(() => loadBudgetLimits(portalId));
+  // "YYYY-MM" string identifying which month's limits to load/save
+  const yearMonth = `${year}-${String(month + 1).padStart(2, "0")}`;
+
+  const [limits, setLimits]                 = useState<BudgetLimitMap>(() => loadBudgetLimits(portalId, yearMonth));
   const [totalBudget, setTotalBudgetState]  = useState<number>(() => loadTotalBudget(portalId));
   const [spentMap, setSpentMap]             = useState<SpentMap>({});
   const [tick, setTick]                     = useState(0);
@@ -53,20 +56,20 @@ export function useBudgetData(month: number, year: number): BudgetDataResult {
   // Finance transaction categories (for business portals)
   const { categories: financeCategories } = useFinanceCategories();
 
-  // Reload limits and total when portal changes, then hydrate from Supabase
+  // Reload limits when portal or month changes, then hydrate from Supabase
   useEffect(() => {
-    setLimits(loadBudgetLimits(portalId));
+    setLimits(loadBudgetLimits(portalId, yearMonth));
     setTotalBudgetState(loadTotalBudget(portalId));
 
-    // Background Supabase hydration — updates local state if DB has data
-    fetchBudgetLimits(portalId).then((dbLimits) => {
+    // Background Supabase hydration — updates local state if DB has data for this month
+    fetchBudgetLimits(portalId, yearMonth).then((dbLimits) => {
       if (dbLimits.length === 0) return;
       const map: BudgetLimitMap = {};
       for (const b of dbLimits) map[b.category.toLowerCase()] = b.monthly_limit;
-      saveBudgetLimits(portalId, map);
+      saveBudgetLimits(portalId, yearMonth, map);
       setLimits(map);
     }).catch(() => { /* Supabase unavailable — localStorage cache is sufficient */ });
-  }, [portalId]);
+  }, [portalId, yearMonth]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Active expense categories from the unified category store
   const expenseCategories: FinanceCategory[] = useMemo(() => {
@@ -170,14 +173,15 @@ export function useBudgetData(month: number, year: number): BudgetDataResult {
 
   const updateBudgetLimit = useCallback((categoryName: string, limit: number) => {
     const updated = { ...limits, [categoryName.toLowerCase()]: limit };
-    saveBudgetLimits(portalId, updated);
+    saveBudgetLimits(portalId, yearMonth, updated);
     setLimits(updated);
     // Persist to Supabase (fire-and-forget)
     void upsertBudgetLimit(
-      { user_id: null, category: categoryName.toLowerCase(), category_id: null, monthly_limit: limit, color: null, icon_name: null },
+      { user_id: null, category: categoryName.toLowerCase(), category_id: null, monthly_limit: limit, year_month: yearMonth, color: null, icon_name: null },
       portalId,
+      yearMonth,
     );
-  }, [portalId, limits]);
+  }, [portalId, yearMonth, limits]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setTotalBudget = useCallback((amount: number) => {
     saveTotalBudget(portalId, amount);

@@ -44,7 +44,13 @@ const DEFAULT_LIMITS: BudgetLimitMap = {
 
 // ── Key helpers ───────────────────────────────────────────────────────────────
 
-function limitsKey(portalId: string): string {
+// Month-scoped key for per-month budget limits.
+function limitsKey(portalId: string, yearMonth: string): string {
+  return `${LIMITS_KEY_PREFIX}_${portalId}_${yearMonth}`;
+}
+
+// Legacy key (no month scope) — used as fallback for existing data.
+function limitsKeyLegacy(portalId: string): string {
   return `${LIMITS_KEY_PREFIX}_${portalId}`;
 }
 
@@ -96,40 +102,49 @@ function migrateFromLegacy(portalId: string): BudgetLimitMap | null {
   return null;
 }
 
-export function loadBudgetLimits(portalId: string): BudgetLimitMap {
+export function loadBudgetLimits(portalId: string, yearMonth: string): BudgetLimitMap {
   try {
-    const raw = localStorage.getItem(limitsKey(portalId));
+    const raw = localStorage.getItem(limitsKey(portalId, yearMonth));
     if (raw) {
       const parsed = JSON.parse(raw) as BudgetLimitMap;
       if (typeof parsed === "object" && parsed !== null) return parsed;
     }
+    // Fallback to legacy unscoped key (migration path for existing users)
+    const legacyRaw = localStorage.getItem(limitsKeyLegacy(portalId));
+    if (legacyRaw) {
+      const parsed = JSON.parse(legacyRaw) as BudgetLimitMap;
+      if (typeof parsed === "object" && parsed !== null) {
+        saveBudgetLimits(portalId, yearMonth, parsed);
+        return parsed;
+      }
+    }
   } catch { /* fallthrough */ }
 
-  // Try migrating from legacy
+  // Try migrating from legacy storage format
   const migrated = migrateFromLegacy(portalId);
   if (migrated) {
-    saveBudgetLimits(portalId, migrated);
+    saveBudgetLimits(portalId, yearMonth, migrated);
     return migrated;
   }
 
   // First load — use defaults
-  saveBudgetLimits(portalId, DEFAULT_LIMITS);
+  saveBudgetLimits(portalId, yearMonth, DEFAULT_LIMITS);
   return { ...DEFAULT_LIMITS };
 }
 
-export function saveBudgetLimits(portalId: string, limits: BudgetLimitMap): void {
-  localStorage.setItem(limitsKey(portalId), JSON.stringify(limits));
+export function saveBudgetLimits(portalId: string, yearMonth: string, limits: BudgetLimitMap): void {
+  localStorage.setItem(limitsKey(portalId, yearMonth), JSON.stringify(limits));
 }
 
-export function setBudgetLimit(portalId: string, categoryName: string, limit: number): BudgetLimitMap {
-  const limits = loadBudgetLimits(portalId);
+export function setBudgetLimit(portalId: string, yearMonth: string, categoryName: string, limit: number): BudgetLimitMap {
+  const limits = loadBudgetLimits(portalId, yearMonth);
   const updated = { ...limits, [categoryName.toLowerCase()]: limit };
-  saveBudgetLimits(portalId, updated);
+  saveBudgetLimits(portalId, yearMonth, updated);
   return updated;
 }
 
-export function getBudgetLimit(portalId: string, categoryName: string): number {
-  const limits = loadBudgetLimits(portalId);
+export function getBudgetLimit(portalId: string, yearMonth: string, categoryName: string): number {
+  const limits = loadBudgetLimits(portalId, yearMonth);
   return limits[categoryName.toLowerCase()] ?? 0;
 }
 
