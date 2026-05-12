@@ -1,15 +1,4 @@
-/**
- * REAL SUPABASE AUTH MODULE
- *
- * This module replaces the mock auth system in authContext.tsx.
- *
- * MIGRATION STEPS:
- * 1. Enable Email provider in Supabase Auth settings
- * 2. Set VITE_USE_REAL_AUTH=true in .env
- * 3. Create initial users via Supabase dashboard or seed script
- * 4. Update authContext.tsx to use these functions instead of MOCK_USERS lookup
- * 5. Remove mock user array and hardcoded portal fallbacks
- */
+// Supabase Auth module — used by authContext.tsx for all authentication.
 import { supabase } from "@/lib/supabase";
 import type { User, Session } from "@supabase/supabase-js";
 

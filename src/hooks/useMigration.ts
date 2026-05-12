@@ -1,23 +1,13 @@
-/**
- * useMigration — runs the one-time localStorage→Supabase migration for the current user+portal.
- * Only activates when VITE_USE_REAL_AUTH=true (real Supabase session available).
- * Safe to include in every app render — skips immediately if already done.
- */
-
 import { useEffect } from "react";
 import { usePortal } from "@/lib/portalContext";
 import { runMigration } from "@/lib/migration/migrateLocalToSupabase";
 import { supabase } from "@/lib/supabase";
-
-const USE_REAL_AUTH = import.meta.env.VITE_USE_REAL_AUTH === "true";
 
 export function useMigration(): void {
   const { portal } = usePortal();
   const portalId = portal?.id ?? "sosa";
 
   useEffect(() => {
-    if (!USE_REAL_AUTH) return; // Skip in mock auth mode
-
     supabase.auth.getUser().then(({ data, error }) => {
       if (error || !data.user) return;
       const userId = data.user.id;
