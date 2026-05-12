@@ -23,11 +23,21 @@ export const STORAGE_APP_RESET_VERSION = "app_reset_version";
 export const STORAGE_AUDIT_LOG = "SOSA INC_audit_log";
 
 // ── Tasks & Projects ─────────────────────────────────────────────────────────
+// Use tasksKey/projectsKey everywhere — portal-scoped to prevent cross-portal contamination.
+export const tasksKey = (portalId: string) => `SOSA INC_tasks_${portalId}`;
+export const projectsKey = (portalId: string) => `SOSA INC_projects_${portalId}`;
+/** @deprecated Use tasksKey(portalId) */
 export const STORAGE_TASKS = "SOSA INC_tasks";
+/** @deprecated Use projectsKey(portalId) */
 export const STORAGE_PROJECTS = "SOSA INC_projects";
 
 // ── Notes ────────────────────────────────────────────────────────────────────
+// Use notesKey/noteFoldersKey everywhere — scoped by portal+user.
+export const notesKey = (portalId: string, userId: string) => `SOSA INC_notes_${portalId}_${userId}`;
+export const noteFoldersKey = (portalId: string, userId: string) => `SOSA INC_note_folders_${portalId}_${userId}`;
+/** @deprecated Use notesKey(portalId, userId) */
 export const STORAGE_NOTES = "SOSA INC_notes";
+/** @deprecated Use noteFoldersKey(portalId, userId) */
 export const STORAGE_NOTE_FOLDERS = "SOSA INC_note_folders";
 
 // ── Vault ────────────────────────────────────────────────────────────────────

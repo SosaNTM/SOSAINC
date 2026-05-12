@@ -1,10 +1,9 @@
 ﻿import { useState, useCallback, useEffect, useRef } from "react";
 import { useAuth, ALL_USERS, getUserById } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
-import { STORAGE_TASKS, STORAGE_PROJECTS } from "@/constants/storageKeys";
+import { tasksKey, projectsKey } from "@/constants/storageKeys";
 import {
   getInitialIssues, getInitialProjects, ISSUE_STATUSES, ISSUE_PRIORITIES, ISSUE_LABELS, ESTIMATE_OPTIONS,
-  generateIssueId,
   type Issue, type IssueStatus, type IssuePriority, type Project, type ProjectStatus,
 } from "@/lib/linearStore";
 import {
@@ -27,7 +26,7 @@ const TasksPage = () => {
   const portalId = portal?.id ?? "sosa";
   const [issues, setIssues] = useState<Issue[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_TASKS);
+      const saved = localStorage.getItem(tasksKey(portalId));
       if (saved) {
         const parsed = JSON.parse(saved);
         return parsed.map((t: any) => ({
@@ -42,7 +41,7 @@ const TasksPage = () => {
   });
   const [projects, setProjects] = useState<Project[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_PROJECTS);
+      const saved = localStorage.getItem(projectsKey(portalId));
       if (saved) return JSON.parse(saved);
     } catch {}
     return getInitialProjects();
@@ -51,10 +50,10 @@ const TasksPage = () => {
 
   // Persist tasks & projects to localStorage on change; broadcast so ProfileTasksCard updates live
   useEffect(() => {
-    localStorage.setItem(STORAGE_TASKS, JSON.stringify(issues));
-    window.dispatchEvent(new CustomEvent("SOSA INC:tasks-changed"));
-  }, [issues]);
-  useEffect(() => { localStorage.setItem(STORAGE_PROJECTS, JSON.stringify(projects)); }, [projects]);
+    localStorage.setItem(tasksKey(portalId), JSON.stringify(issues));
+    window.dispatchEvent(new CustomEvent("SOSA INC:tasks-changed", { detail: { portalId } }));
+  }, [issues, portalId]);
+  useEffect(() => { localStorage.setItem(projectsKey(portalId), JSON.stringify(projects)); }, [projects, portalId]);
 
   // Load live data from Supabase on mount — replaces static seed
   useEffect(() => {
@@ -161,8 +160,7 @@ const TasksPage = () => {
   }, [syncReady, user, portalId]);
 
   const createIssue = useCallback((data: Omit<Issue, "id" | "createdAt" | "updatedAt" | "comments" | "subIssueIds">) => {
-    const prefix = data.projectId ? projects.find(p => p.id === data.projectId)?.name.substring(0, 3).toUpperCase() || "ISS" : "ISS";
-    const id = generateIssueId(prefix);
+    const id = crypto.randomUUID();
     const newIssue: Issue = { ...data, id, subIssueIds: [], comments: [], createdAt: new Date(), updatedAt: new Date() };
     setIssues(prev => {
       let updated = [newIssue, ...prev];
@@ -188,7 +186,7 @@ const TasksPage = () => {
   }, [issues, user, createIssue]);
 
   const createProject = useCallback((data: Omit<Project, "id" | "milestones">) => {
-    const id = `prj_${Date.now().toString(36)}`;
+    const id = crypto.randomUUID();
     const newProject: Project = { ...data, id, milestones: [] };
     setProjects(prev => [...prev, newProject]);
     if (syncReady) upsertProject(newProject, user?.id ?? "", portalId);

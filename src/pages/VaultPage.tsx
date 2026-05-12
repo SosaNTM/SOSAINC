@@ -4,8 +4,9 @@ import { useAuth } from "@/lib/authContext";
 import { addAuditEntry } from "@/lib/adminStore";
 import { usePermission } from "@/lib/permissions";
 import { usePortal } from "@/lib/portalContext";
-import { getVaultItems, LOCKED_FOLDER_PASSWORD, type VaultItem, type VaultItemType } from "@/lib/vaultStore";
-import { fetchVaultItems, createVaultItem } from "@/lib/services/vaultService";
+import { usePortalSecurity, sha256hex } from "@/hooks/settings";
+import { getVaultItems, type VaultItem, type VaultItemType } from "@/lib/vaultStore";
+import { fetchVaultItems, createVaultItem, deleteVaultItem } from "@/lib/services/vaultService";
 import { VaultFilesTab } from "@/components/vault/VaultFilesTab";
 import type { DbVaultItem } from "@/types/database";
 import { STORAGE_VAULT_ITEMS, SESSION_VAULT_UNLOCKED } from "@/constants/storageKeys";
@@ -180,7 +181,6 @@ function VaultCard({ item, onDelete, canManage }: { item: VaultItem; onDelete: (
 
   const menuItems: ActionMenuEntry[] = [
     ...(item.type === "credential" ? [{ id: "copyall", icon: <Copy className="w-3.5 h-3.5" />, label: "Copy all", onClick: copyAll }] : []),
-    { id: "details", icon: <Eye className="w-3.5 h-3.5" />, label: "View details", onClick: () => {} },
     ...(canManage ? [{ type: "divider" as const }, { id: "delete", icon: <Trash2 className="w-3.5 h-3.5" />, label: "Delete", onClick: () => onDelete(item.id), destructive: true }] : []),
   ];
 
@@ -606,6 +606,7 @@ const VaultPage = () => {
   const canView = usePermission("vault:view");
   const canManage = usePermission("vault:manage");
   const { toast } = useToast();
+  const { data: security } = usePortalSecurity();
 
   const portalId = portal?.id ?? "sosa";
 
@@ -683,12 +684,18 @@ const VaultPage = () => {
     return () => { if (autoLockTimerRef.current) clearTimeout(autoLockTimerRef.current); };
   }, [isUnlocked, resetAutoLock]);
 
-  const unlock = () => {
+  const unlock = async () => {
     if (lockedUntil && new Date() < lockedUntil) {
       setLockError("Too many attempts. Try again later.");
       return;
     }
-    if (lockPassword === LOCKED_FOLDER_PASSWORD) {
+    if (!security?.is_enabled || !security?.password_hash) {
+      setLockError("Nessuna password configurata. Impostala in Impostazioni → Accesso Vault.");
+      return;
+    }
+    const hash = await sha256hex(lockPassword);
+    const correct = hash === security.password_hash;
+    if (correct) {
       setIsUnlocked(true);
       setLockError("");
       setFailedAttempts(0);
@@ -730,7 +737,10 @@ const VaultPage = () => {
     return list;
   }, [items, category, searchQuery, isUnlocked]);
 
-  const deleteItem = (id: string) => setItems((prev) => prev.filter((i) => i.id !== id));
+  const deleteItem = (id: string) => {
+    deleteVaultItem(id, portalId);
+    setItems((prev) => prev.filter((i) => i.id !== id));
+  };
   const addItem = (item: VaultItem) => setItems((prev) => [item, ...prev]);
 
   // Keep legacy localStorage in sync for offline-only items
@@ -866,7 +876,7 @@ const VaultPage = () => {
                   </span>
                 </div>
                 {!isUnlocked ? (
-                  <LockedUI lockPassword={lockPassword} setLockPassword={setLockPassword} lockError={lockError} unlock={unlock} rememberSession={rememberSession} setRememberSession={setRememberSession} />
+                  <LockedUI lockPassword={lockPassword} setLockPassword={setLockPassword} lockError={lockError} unlock={() => { void unlock(); }} rememberSession={rememberSession} setRememberSession={setRememberSession} />
                 ) : (
                   <div>
                     <div className="flex items-center justify-between mb-3">
@@ -892,7 +902,7 @@ const VaultPage = () => {
         {category === "locked" && (
           <>
             {!isUnlocked ? (
-              <LockedUI lockPassword={lockPassword} setLockPassword={setLockPassword} lockError={lockError} unlock={unlock} rememberSession={rememberSession} setRememberSession={setRememberSession} />
+              <LockedUI lockPassword={lockPassword} setLockPassword={setLockPassword} lockError={lockError} unlock={() => { void unlock(); }} rememberSession={rememberSession} setRememberSession={setRememberSession} />
             ) : (
               <div>
                 <div className="flex items-center justify-between mb-4">

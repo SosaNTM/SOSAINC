@@ -21,8 +21,6 @@ function d(daysAgo: number, h = 10): Date {
   const dt = new Date(); dt.setDate(dt.getDate() - daysAgo); dt.setHours(h, 0, 0, 0); return dt;
 }
 
-export const LOCKED_FOLDER_PASSWORD = "vault2025";
-
 // ── SEED DATA PER PORTAL ─────────────────────────────────────────────────────
 
 const SEED_VAULT: Record<string, VaultItem[]> = {

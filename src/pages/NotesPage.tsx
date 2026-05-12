@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useAuth, ALL_USERS } from "@/lib/authContext";
-import { STORAGE_NOTES, STORAGE_NOTE_FOLDERS } from "@/constants/storageKeys";
+import { usePortalDB } from "@/lib/portalContextDB";
+import { notesKey, noteFoldersKey } from "@/constants/storageKeys";
 import { addAuditEntry } from "@/lib/adminStore";
 import { INITIAL_NOTES, INITIAL_FOLDERS, TAG_PRESETS, type Note, type NoteFolder, INITIAL_TELEGRAM_NOTES, telegramNoteToNote } from "@/lib/notesStore";
 import {
@@ -66,11 +67,13 @@ type ViewFilter =
 // ─── Main Page ───
 const NotesPage = () => {
   const { user } = useAuth();
-  const isOwner = user?.role === "owner";
+  const { currentPortalId, userRole } = usePortalDB();
+  const isOwner = userRole === "owner";
 
   const [notes, setNotes] = useState<Note[]>(() => {
+    if (!currentPortalId || !user?.id) return [...INITIAL_NOTES, ...INITIAL_TELEGRAM_NOTES.map(telegramNoteToNote)];
     try {
-      const saved = localStorage.getItem(STORAGE_NOTES);
+      const saved = localStorage.getItem(notesKey(currentPortalId, user.id));
       if (saved) {
         const parsed = JSON.parse(saved);
         return parsed.map((n: any) => ({ ...n, createdAt: new Date(n.createdAt), updatedAt: new Date(n.updatedAt) }));
@@ -79,8 +82,9 @@ const NotesPage = () => {
     return [...INITIAL_NOTES, ...INITIAL_TELEGRAM_NOTES.map(telegramNoteToNote)];
   });
   const [folders, setFolders] = useState<NoteFolder[]>(() => {
+    if (!currentPortalId || !user?.id) return INITIAL_FOLDERS;
     try {
-      const saved = localStorage.getItem(STORAGE_NOTE_FOLDERS);
+      const saved = localStorage.getItem(noteFoldersKey(currentPortalId, user.id));
       if (saved) {
         const parsed = JSON.parse(saved);
         return parsed.map((f: any) => ({ ...f, createdAt: new Date(f.createdAt), updatedAt: new Date(f.updatedAt) }));
@@ -90,8 +94,12 @@ const NotesPage = () => {
   });
 
   // Persist notes & folders to localStorage on change
-  useEffect(() => { localStorage.setItem(STORAGE_NOTES, JSON.stringify(notes)); }, [notes]);
-  useEffect(() => { localStorage.setItem(STORAGE_NOTE_FOLDERS, JSON.stringify(folders)); }, [folders]);
+  useEffect(() => {
+    if (currentPortalId && user?.id) localStorage.setItem(notesKey(currentPortalId, user.id), JSON.stringify(notes));
+  }, [notes, currentPortalId, user?.id]);
+  useEffect(() => {
+    if (currentPortalId && user?.id) localStorage.setItem(noteFoldersKey(currentPortalId, user.id), JSON.stringify(folders));
+  }, [folders, currentPortalId, user?.id]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [viewingUserId, setViewingUserId] = useState(user?.id || "");
