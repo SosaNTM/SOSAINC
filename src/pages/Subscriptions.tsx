@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { STORAGE_SUBSCRIPTIONS_PREFIX, STORAGE_SUBSCRIPTIONS_LEGACY } from "@/constants/storageKeys";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Pause, Play, Zap, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { LiquidGlassCard, LiquidGlassFilter } from "@/components/ui/liquid-glass-card";
@@ -19,6 +18,7 @@ import {
   toMonthlyAmount,
 } from "@/portals/finance/services/subscriptionCycles";
 import { useSubscriptionProcessor } from "@/portals/finance/hooks/useSubscriptionProcessor";
+import { useSubscriptions } from "@/hooks/useSubscriptions";
 import {
   NewSubscriptionModal,
   type NewSubFormData,
@@ -26,29 +26,6 @@ import {
 import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
 import { GlassTooltip } from "@/components/ui/GlassTooltip";
 import { EmptyState } from "@/components/ui/EmptyState";
-
-// ── Persistence ───────────────────────────────────────────────────────────────
-
-const STORAGE_KEY_PREFIX = STORAGE_SUBSCRIPTIONS_PREFIX;
-
-function subsStorageKey(portalId: string): string {
-  return `${STORAGE_KEY_PREFIX}_${portalId}`;
-}
-
-const INITIAL_SUBS: Subscription[] = [];
-
-function loadSubs(portalId: string): Subscription[] {
-  try {
-    const raw = localStorage.getItem(subsStorageKey(portalId));
-    if (raw) return JSON.parse(raw) as Subscription[];
-    // Legacy migration for sosa portal
-    if (portalId === "sosa") {
-      const legacy = localStorage.getItem(STORAGE_SUBSCRIPTIONS_LEGACY);
-      if (legacy) return JSON.parse(legacy) as Subscription[];
-    }
-  } catch {}
-  return INITIAL_SUBS;
-}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -88,23 +65,13 @@ export default function Subscriptions() {
   const { portal } = usePortal();
   const portalId = portal?.id ?? "sosa";
 
-  const [subs, setSubs] = useState<Subscription[]>(() => loadSubs(portalId));
+  const { subs, setSubs, syncSub, softDeleteSub } = useSubscriptions();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSub, setEditingSub] = useState<Subscription | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<{ id: string; msg: string }[]>([]);
-
-  // Reload when portal switches
-  useEffect(() => {
-    setSubs(loadSubs(portalId));
-  }, [portalId]);
-
-  // Persist to portal-scoped localStorage
-  useEffect(() => {
-    localStorage.setItem(subsStorageKey(portalId), JSON.stringify(subs));
-  }, [subs, portalId]);
 
   // Close context menu on outside click
   useEffect(() => {
@@ -171,13 +138,9 @@ export default function Subscriptions() {
   function handleSave(data: NewSubFormData) {
     if (editingSub) {
       // Update existing
-      setSubs((prev) =>
-        prev.map((s) =>
-          s.id === editingSub.id
-            ? { ...s, ...data, updated_at: new Date().toISOString() }
-            : s,
-        ),
-      );
+      const updated = { ...editingSub, ...data, updated_at: new Date().toISOString() };
+      setSubs((prev) => prev.map((s) => s.id === editingSub.id ? updated : s));
+      void syncSub(updated);
       addToast(`✓ ${data.name} updated`);
     } else {
       // Compute first billing date
@@ -199,6 +162,7 @@ export default function Subscriptions() {
       };
 
       setSubs((prev) => [...prev, newSub]);
+      void syncSub(newSub);
 
       // Process immediately if start_date is today or past
       if (startDate <= today && user) {
@@ -256,10 +220,13 @@ export default function Subscriptions() {
 
   function togglePause(id: string) {
     const sub = subs.find(s => s.id === id);
-    setSubs((prev) => prev.map((s) => (s.id === id ? { ...s, is_active: !s.is_active } : s)));
+    if (!sub) return;
+    const toggled = { ...sub, is_active: !sub.is_active, updated_at: new Date().toISOString() };
+    setSubs((prev) => prev.map((s) => (s.id === id ? toggled : s)));
+    void syncSub(toggled);
     setOpenMenuId(null);
     setMenuPos(null);
-    if (user && sub) addAuditEntry({ userId: user.id, action: `${sub.is_active ? "Paused" : "Resumed"} subscription "${sub.name}"`, category: "finance", details: "", icon: sub.is_active ? "⏸️" : "▶️", portalId });
+    if (user) addAuditEntry({ userId: user.id, action: `${sub.is_active ? "Paused" : "Resumed"} subscription "${sub.name}"`, category: "finance", details: "", icon: sub.is_active ? "⏸️" : "▶️", portalId });
   }
 
   function softDelete(id: string) {
@@ -269,6 +236,7 @@ export default function Subscriptions() {
         s.id === id ? { ...s, is_active: false, deleted_at: new Date().toISOString() } : s,
       ),
     );
+    void softDeleteSub(id);
     setDeleteConfirmId(null);
     setOpenMenuId(null);
     setMenuPos(null);
