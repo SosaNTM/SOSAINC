@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { usePortalDB } from "@/lib/portalContextDB";
 import type { LeadgenLead } from "@/types/leadgen";
@@ -27,6 +27,7 @@ export function useLeadgenAllLeads(filters: AllLeadsFilters) {
   const [total, setTotal] = useState(0);
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchTick, setFetchTick] = useState(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setCurrentUserId(user?.id ?? null));
@@ -52,34 +53,10 @@ export function useLeadgenAllLeads(filters: AllLeadsFilters) {
       });
   }, [currentPortalId]);
 
-  // Stable key to track filter changes without object identity issues
-  const filtersKey = useMemo(
-    () =>
-      [
-        filters.search,
-        filters.websiteFilter,
-        filters.hasEmail,
-        filters.hasPhone,
-        filters.reviewsFilter,
-        filters.ratingFilter,
-        filters.statusFilter,
-        filters.assignmentFilter,
-        [...filters.categories].sort().join(","),
-        filters.sortBy,
-        filters.sortDir,
-        filters.page,
-      ].join("|"),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      filters.search, filters.websiteFilter, filters.hasEmail, filters.hasPhone,
-      filters.reviewsFilter, filters.ratingFilter, filters.statusFilter,
-      filters.assignmentFilter, filters.categories, filters.sortBy, filters.sortDir, filters.page,
-    ]
-  );
+  const categoriesKey = filters.categories.slice().sort().join(",");
 
   useEffect(() => {
     if (!currentPortalId) { setLoading(false); return; }
-    // Wait for user ID when "assigned to me" is selected
     if (filters.assignmentFilter === "me" && currentUserId === null) return;
 
     let cancelled = false;
@@ -142,8 +119,15 @@ export function useLeadgenAllLeads(filters: AllLeadsFilters) {
     })();
 
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPortalId, currentUserId, filtersKey]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    currentPortalId, currentUserId, fetchTick,
+    filters.search, filters.websiteFilter, filters.hasEmail, filters.hasPhone,
+    filters.reviewsFilter, filters.ratingFilter, filters.statusFilter,
+    filters.assignmentFilter, categoriesKey, filters.sortBy, filters.sortDir, filters.page,
+  ]);
 
-  return { leads, total, categories, loading };
+  const refetch = useCallback(() => setFetchTick((t) => t + 1), []);
+
+  return { leads, total, categories, loading, refetch };
 }

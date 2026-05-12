@@ -124,7 +124,7 @@ export function useLeadgenOverviewDashboard(): OverviewDashboardData {
     const rawMembers = membersRes.data ?? [];
     const userIds = rawMembers.map((m) => m.user_id);
     const { data: profiles } = userIds.length
-      ? await supabase.from("user_profiles").select("id, email, avatar_url").in("id", userIds)
+      ? await supabase.from("user_profiles").select("id, display_name, avatar_url").in("id", userIds)
       : { data: [] };
     const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
 
@@ -134,7 +134,7 @@ export function useLeadgenOverviewDashboard(): OverviewDashboardData {
         const entry = assignedMap.get(m.user_id) ?? { assigned: 0, contacted: 0, converted: 0 };
         return {
           userId: m.user_id,
-          displayName: m.display_name ?? profile?.email ?? m.user_id,
+          displayName: m.display_name ?? profile?.display_name ?? m.user_id,
           role: m.role as string,
           assignedLeads: entry.assigned,
           contacted: entry.contacted,

@@ -53,7 +53,7 @@ export function useLeadgenMembers() {
     const { data: profiles } = userIds.length
       ? await supabase
           .from("user_profiles")
-          .select("id, email, avatar_url")
+          .select("id, display_name, avatar_url")
           .in("id", userIds)
       : { data: [] };
 
@@ -61,7 +61,7 @@ export function useLeadgenMembers() {
 
     const enriched: LeadgenMemberWithProfile[] = rawMembers.map((m) => ({
       ...m,
-      email: profileMap.get(m.user_id)?.email ?? m.user_id,
+      email: profileMap.get(m.user_id)?.display_name ?? m.user_id,
       avatar_url: profileMap.get(m.user_id)?.avatar_url ?? null,
     }));
 
@@ -103,12 +103,10 @@ export function useLeadgenMembers() {
 
   const searchByEmail = useCallback(async (email: string): Promise<{ user_id: string; display_name: string | null; email: string } | null> => {
     const { data } = await supabase
-      .from("user_profiles")
-      .select("id, display_name, email")
-      .eq("email", email.trim().toLowerCase())
+      .rpc("get_user_id_by_email", { search_email: email.trim() })
       .maybeSingle();
     if (!data) return null;
-    return { user_id: data.id, display_name: data.display_name ?? null, email: data.email };
+    return { user_id: data.user_id, display_name: data.display_name ?? null, email: data.email };
   }, []);
 
   const addMember = useCallback(async (params: {
