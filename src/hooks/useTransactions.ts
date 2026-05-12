@@ -173,7 +173,7 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
         return false;
       }
     }
-  }, [user, portalId]);
+  }, [user, portalId, currentPortalId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateTransaction = useCallback(async (id: string, changes: Partial<NewPersonalTransaction>): Promise<boolean> => {
     if (!user) return false;
@@ -213,7 +213,7 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
       toast.success("Transaction updated locally");
       return true;
     }
-  }, [user, portalId]);
+  }, [user, portalId, currentPortalId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const deleteTransaction = useCallback(async (id: string): Promise<boolean> => {
     if (!user) return false;
@@ -239,7 +239,7 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
       toast.success("Transaction deleted locally");
       return true;
     }
-  }, [user, portalId]);
+  }, [user, portalId, currentPortalId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refetch = useCallback(() => setTick((t) => t + 1), []);
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Target, Plus, Pencil, Trash2, Check } from "lucide-react";
+import { Target, Plus, Pencil, Trash2, Check, Loader2 } from "lucide-react";
 import { LiquidGlassCard, LiquidGlassFilter } from "@/components/ui/liquid-glass-card";
 import { NewGoalModal, type NewGoalData } from "@/components/NewGoalModal";
 import { usePortal } from "@/lib/portalContext";
@@ -49,13 +49,17 @@ export default function Goals() {
   const { netWorth } = useNetWorth();
 
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
 
   // Load from Supabase (falls back to localStorage cache inside service)
   useEffect(() => {
-    fetchGoals(portalId).then((data) => setGoals(data.map(dbToGoal)));
+    setIsLoading(true);
+    fetchGoals(portalId)
+      .then((data) => setGoals(data.map(dbToGoal)))
+      .finally(() => setIsLoading(false));
   }, [portalId]);
 
   function openCreate() {
@@ -135,7 +139,11 @@ export default function Goals() {
             </button>
           </div>
 
-          {goals.length === 0 ? (
+          {isLoading ? (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 0", color: "var(--text-quaternary)" }}>
+              <Loader2 style={{ width: 24, height: 24, animation: "spin 1s linear infinite" }} />
+            </div>
+          ) : goals.length === 0 ? (
             <EmptyState
               icon={<Target style={{ width: 48, height: 48 }} />}
               title="NO GOALS YET"
@@ -147,7 +155,7 @@ export default function Goals() {
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             <AnimatePresence>
               {goals.map((goal, i) => {
-                const pct = Math.min(100, Math.max(0, Math.round((netWorth / goal.target) * 100)));
+                const pct = goal.target > 0 ? Math.min(100, Math.max(0, Math.round((netWorth / goal.target) * 100))) : 0;
                 const isConfirm = deleteId === goal.id;
                 return (
                   <motion.div key={goal.id} layout

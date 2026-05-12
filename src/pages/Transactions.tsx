@@ -106,7 +106,7 @@ function TxRow({ tx, onRequestDelete, onRequestEdit, getCatColor, getCatIcon }: 
             {isIncome ? <ArrowUpRight style={{ width: 11, height: 11 }} /> : isTransfer ? <ArrowLeftRight style={{ width: 11, height: 11 }} /> : <ArrowDownRight style={{ width: 11, height: 11 }} />}
           </div>
           <p style={{ fontSize: 14, fontWeight: 700, color: amtColor, letterSpacing: "-0.3px" }}>
-            {isIncome ? "+" : "-"}€{fmtEur(tx.amount)}
+            {isIncome ? "+" : isTransfer ? "↔" : "-"}€{fmtEur(tx.amount)}
           </p>
           {expanded
             ? <ChevronUp style={{ width: 14, height: 14, color: "var(--text-quaternary)" }} />
