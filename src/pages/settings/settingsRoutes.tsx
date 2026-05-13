@@ -21,6 +21,7 @@ const TaskTemplates = React.lazy(() => import("./projects/TaskTemplates"));
 const SocialAccountsSettings = React.lazy(() => import("./social/SocialAccountsSettings"));
 const PublishingRules = React.lazy(() => import("./social/PublishingRules"));
 const ContentCategories = React.lazy(() => import("./social/ContentCategories"));
+const Members = React.lazy(() => import("./team/Members"));
 const RolesPermissions = React.lazy(() => import("./team/RolesPermissions"));
 const Departments = React.lazy(() => import("./team/Departments"));
 const NotificationChannels = React.lazy(() => import("./notifications/NotificationChannels"));
@@ -68,8 +69,9 @@ export function SettingsRoutes() {
         <Route path="social/regole-pubblicazione"   element={<SLazy><PublishingRules /></SLazy>} />
         <Route path="social/categorie-contenuti"    element={<SLazy><ContentCategories /></SLazy>} />
         {/* Team */}
+        <Route path="team/membri"                   element={<SLazy><Members /></SLazy>} />
+        <Route path="team/dipartimenti"             element={<SLazy><Departments /></SLazy>} />
         <Route path="team/ruoli-permessi"           element={<SLazy><RolesPermissions /></SLazy>} />
-        <Route path="team/reparti"                  element={<SLazy><Departments /></SLazy>} />
         {/* Notifiche */}
         <Route path="notifiche/canali"              element={<SLazy><NotificationChannels /></SLazy>} />
         <Route path="notifiche/regole-alert"        element={<SLazy><AlertRules /></SLazy>} />

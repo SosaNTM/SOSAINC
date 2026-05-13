@@ -4,7 +4,7 @@ import {
   TrendingUp, TrendingDown, RefreshCw, CreditCard,
   Repeat, Columns3, Tags, FileStack, Share2, CalendarClock,
   Layers, Bell, AlertTriangle, Trash2, Settings2, Crosshair, Users,
-  Building2, Palette, Lock,
+  Building2, Palette, Lock, UserCog,
 } from "lucide-react";
 import { usePortal } from "@/lib/portalContext";
 
@@ -44,6 +44,13 @@ const NAV_SECTIONS: { label: string; items: NavItemDef[] }[] = [
       { title: "Account Social",       path: "social/account-collegati",    icon: Share2        },
       { title: "Regole Pubblicazione",  path: "social/regole-pubblicazione", icon: CalendarClock },
       { title: "Categorie Contenuti",   path: "social/categorie-contenuti",  icon: Layers        },
+    ],
+  },
+  {
+    label: "TEAM",
+    items: [
+      { title: "Membri",              path: "team/membri",       icon: UserCog },
+      { title: "Dipartimenti",        path: "team/dipartimenti", icon: Users   },
     ],
   },
   {
