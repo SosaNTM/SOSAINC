@@ -1,123 +1,135 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import { usePortal } from "@/lib/portalContext";
+
+// Runs inside the OAuth popup. Exchanges code+state, then postMessages result
+// to the opener window and closes itself.
 
 export default function OAuthCallback() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const { portal } = usePortal();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     const code = searchParams.get("code");
-    const platform = searchParams.get("platform");
+    const state = searchParams.get("state");
+    const platform = searchParams.get("platform") ?? extractPlatformFromState(state);
     const oauthError = searchParams.get("error");
+    const oauthErrorDesc = searchParams.get("error_description");
 
     if (oauthError) {
+      const msg = oauthErrorDesc ?? oauthError;
       setStatus("error");
-      setMessage(`OAuth denied: ${oauthError}`);
+      setMessage(`Connessione negata: ${msg}`);
+      notifyOpener({ type: "oauth_error", platform: platform ?? "", error: msg });
       return;
     }
 
-    if (!code || !platform) {
+    if (!code || !state) {
+      const msg = "Parametri OAuth mancanti";
       setStatus("error");
-      setMessage("Missing OAuth parameters");
+      setMessage(msg);
+      notifyOpener({ type: "oauth_error", platform: platform ?? "", error: msg });
       return;
     }
 
     async function exchange() {
       try {
         const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string) ?? "";
-        const anonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) ?? "";
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (!token) throw new Error("Sessione scaduta — accedi di nuovo");
 
-        // Exchange the authorization code for tokens via the edge function
         const resp = await fetch(
           `${supabaseUrl}/functions/v1/social-oauth?action=callback&platform=${platform}`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "apikey": anonKey,
-              "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token ?? anonKey}`,
+              "Authorization": `Bearer ${token}`,
             },
-            body: JSON.stringify({
-              code,
-              portal_id: portal?.id ?? "sosa",
-            }),
+            body: JSON.stringify({ code, state }),
           },
         );
 
-        const result = (await resp.json()) as { success?: boolean; error?: string };
+        const result = await resp.json() as { ok?: boolean; error?: string };
 
         if (!resp.ok || result.error) {
-          throw new Error(result.error ?? "Token exchange failed");
+          throw new Error(result.error ?? "Token exchange fallito");
         }
 
         setStatus("success");
-        setMessage(`${platform} connected successfully!`);
-
-        // Redirect back to accounts page after a short delay
-        setTimeout(() => {
-          navigate(`/${portal?.id ?? "sosa"}/social/accounts`);
-        }, 1500);
+        setMessage("Account collegato");
+        notifyOpener({ type: "oauth_success", platform: platform ?? "" });
+        setTimeout(() => window.close(), 800);
       } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
         setStatus("error");
-        setMessage(err instanceof Error ? err.message : String(err));
+        setMessage(msg);
+        notifyOpener({ type: "oauth_error", platform: platform ?? "", error: msg });
       }
     }
 
-    exchange();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    void exchange();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        minHeight: "100vh",
-        background: "#0a0a0a",
-        fontFamily: "'Space Mono', monospace",
-        gap: 12,
-      }}
-    >
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center",
+      justifyContent: "center", minHeight: "100vh",
+      background: "#0a0a0a", fontFamily: "var(--font-mono, 'Space Mono', monospace)", gap: 12,
+    }}>
       {status === "loading" && (
-        <p style={{ color: "#e8ff00", fontSize: 14 }}>Connecting account...</p>
+        <p style={{ color: "var(--sosa-yellow, #d4ff00)", fontSize: 14 }}>Connessione in corso…</p>
       )}
-
       {status === "success" && (
-        <>
-          <p style={{ color: "#22c55e", fontSize: 14 }}>&#x2713; {message}</p>
-          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>Redirecting...</p>
-        </>
+        <p style={{ color: "#22c55e", fontSize: 14 }}>&#x2713; {message}</p>
       )}
-
       {status === "error" && (
         <>
           <p style={{ color: "#ef4444", fontSize: 14 }}>&#x2717; {message}</p>
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => window.close()}
             style={{
-              marginTop: 16,
-              background: "#e8ff00",
-              color: "#000",
-              border: "none",
-              borderRadius: 6,
-              padding: "8px 20px",
-              cursor: "pointer",
-              fontFamily: "'Space Mono', monospace",
-              fontSize: 11,
-              fontWeight: "bold",
+              marginTop: 16, background: "var(--sosa-yellow, #d4ff00)",
+              color: "#000", border: "none", padding: "8px 20px",
+              cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: "bold",
             }}
           >
-            GO BACK
+            CHIUDI
           </button>
         </>
       )}
     </div>
   );
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+type OAuthMessage =
+  | { type: "oauth_success"; platform: string }
+  | { type: "oauth_error"; platform: string; error: string };
+
+function notifyOpener(msg: OAuthMessage) {
+  try {
+    if (window.opener && !window.opener.closed) {
+      window.opener.postMessage(msg, window.location.origin);
+    }
+  } catch {
+    // Cross-origin opener — ignore
+  }
+}
+
+// The state payload (base64 JSON) contains the platform if the URL doesn't have it.
+function extractPlatformFromState(state: string | null): string | null {
+  if (!state) return null;
+  try {
+    const dot = state.lastIndexOf(".");
+    const encoded = dot !== -1 ? state.slice(0, dot) : state;
+    const payload = JSON.parse(atob(encoded)) as { platform?: string };
+    return payload.platform ?? null;
+  } catch {
+    return null;
+  }
 }

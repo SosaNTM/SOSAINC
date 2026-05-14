@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Check, XCircle, Zap } from "lucide-react";
 import { MorphingSquare } from "@/components/ui/morphing-square";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 export interface PlatformDef {
   id: string;
@@ -13,6 +14,7 @@ export interface PlatformDef {
 
 interface ConnectPlatformModalProps {
   platform: PlatformDef;
+  portalId: string;
   onClose: () => void;
   onConnected: (platformId: string) => void;
 }
@@ -30,95 +32,83 @@ const WONT_DO_LIST = [
   "Follow or unfollow accounts",
 ];
 
-// Platforms that have OAuth credentials wired up in the edge function
 const OAUTH_SUPPORTED_PLATFORMS = new Set([
-  "instagram",
-  "facebook",
-  "tiktok",
-  "youtube",
-  "linkedin",
-  "twitter",
+  "instagram", "facebook", "tiktok", "youtube", "linkedin", "twitter",
 ]);
 
-export function ConnectPlatformModal({ platform, onClose, onConnected }: ConnectPlatformModalProps) {
-  const [loading, setLoading] = useState(false);
+export function ConnectPlatformModal({ platform, portalId, onClose, onConnected }: ConnectPlatformModalProps) {
   const [oauthLoading, setOauthLoading] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval>>();
+  const [errorMsg, setErrorMsg] = useState("");
+  const popupRef = useRef<Window | null>(null);
+  const msgHandlerRef = useRef<((e: MessageEvent) => void) | null>(null);
 
+  // Cleanup on unmount
   useEffect(() => {
-    return () => clearInterval(pollRef.current);
+    return () => {
+      if (msgHandlerRef.current) window.removeEventListener("message", msgHandlerRef.current);
+      if (popupRef.current && !popupRef.current.closed) popupRef.current.close();
+    };
   }, []);
 
-  async function handleConnect() {
-    setLoading(true);
-    await new Promise((r) => setTimeout(r, 2000));
-    setLoading(false);
-    onConnected(platform.id);
-    onClose();
-  }
-
   async function handleOAuthConnect() {
+    setErrorMsg("");
     setOauthLoading(true);
+
     try {
       const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string) ?? "";
-      const anonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) ?? "";
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Sessione scaduta — effettua di nuovo il login");
 
-      // Request the OAuth authorization URL from the edge function
       const resp = await fetch(
-        `${supabaseUrl}/functions/v1/social-oauth?action=auth_url&platform=${platform.id}`,
-        { headers: { apikey: anonKey } },
+        `${supabaseUrl}/functions/v1/social-oauth?action=auth_url&platform=${platform.id}&portal_id=${portalId}`,
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
-      const result = (await resp.json()) as { auth_url?: string; error?: string };
+      const result = await resp.json() as { auth_url?: string; error?: string };
 
       if (!resp.ok || result.error) {
-        toast({
-          title: "Not configured",
-          description: result.error ?? "Could not get authorization URL",
-          variant: "destructive",
-        });
-        setOauthLoading(false);
-        return;
+        throw new Error(result.error ?? "Impossibile ottenere URL di autorizzazione");
       }
 
-      // Open the OAuth flow in a popup window
-      const popup = window.open(
-        result.auth_url,
-        "oauth_connect",
-        "width=600,height=700,scrollbars=yes,resizable=yes",
-      );
+      const popup = window.open(result.auth_url, "oauth_connect", "width=600,height=700,scrollbars=yes,resizable=yes");
 
       if (!popup) {
-        toast({
-          title: "Popup blocked",
-          description: "Please allow popups for this site, then try again.",
-          variant: "destructive",
-        });
-        setOauthLoading(false);
-        return;
+        throw new Error("Popup bloccato — abilita i popup per questo sito e riprova");
       }
 
-      // Poll until the popup is closed, then treat as connected
-      pollRef.current = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(pollRef.current);
-          setOauthLoading(false);
+      popupRef.current = popup;
+
+      // Listen for postMessage from OAuthCallback (runs in popup)
+      const handler = (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) return;
+
+        const msg = event.data as { type?: string; platform?: string; error?: string };
+        if (msg.type !== "oauth_success" && msg.type !== "oauth_error") return;
+        if (msg.platform !== platform.id) return;
+
+        window.removeEventListener("message", handler);
+        msgHandlerRef.current = null;
+        setOauthLoading(false);
+
+        if (msg.type === "oauth_success") {
           onConnected(platform.id);
           onClose();
+        } else {
+          setErrorMsg(msg.error ?? "Connessione fallita");
         }
-      }, 500);
+      };
+
+      msgHandlerRef.current = handler;
+      window.addEventListener("message", handler);
     } catch (err: unknown) {
-      toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : String(err),
-        variant: "destructive",
-      });
+      const msg = err instanceof Error ? err.message : String(err);
+      setErrorMsg(msg);
       setOauthLoading(false);
     }
   }
 
   const isOAuthSupported = OAUTH_SUPPORTED_PLATFORMS.has(platform.id);
-  const anyLoading = loading || oauthLoading;
 
   return (
     <div
@@ -127,19 +117,16 @@ export function ConnectPlatformModal({ platform, onClose, onConnected }: Connect
     >
       <div style={{ width: "min(480px, calc(100% - 2rem))", background: "var(--sosa-bg-3)", border: "1px solid var(--sosa-border)", borderLeft: `3px solid ${platform.color}`, borderRadius: 0, overflow: "hidden" }}>
 
-        {/* Branded header */}
-        <div style={{
-          padding: "24px 24px 20px",
-          borderBottom: "1px solid var(--sosa-border)",
-        }}>
+        {/* Header */}
+        <div style={{ padding: "24px 24px 20px", borderBottom: "1px solid var(--sosa-border)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <div style={{
                 width: 54, height: 54,
-                background: "var(--sosa-bg-2)",
-                border: `1px solid ${platform.color}`,
+                background: "var(--sosa-bg-2)", border: `1px solid ${platform.color}`,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontFamily: "var(--font-mono)", fontSize: 14, fontWeight: 700, color: platform.color, letterSpacing: "0.06em",
+                fontFamily: "var(--font-mono)", fontSize: 14, fontWeight: 700,
+                color: platform.color, letterSpacing: "0.06em",
               }}>
                 {platform.emoji}
               </div>
@@ -152,8 +139,7 @@ export function ConnectPlatformModal({ platform, onClose, onConnected }: Connect
                 </p>
               </div>
             </div>
-            <button type="button"
-              onClick={onClose}
+            <button type="button" onClick={onClose}
               style={{
                 width: 32, height: 32,
                 background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)",
@@ -169,13 +155,13 @@ export function ConnectPlatformModal({ platform, onClose, onConnected }: Connect
         {/* Body */}
         <div style={{ padding: "22px 24px 24px" }}>
           <p style={{ fontSize: 13, color: "rgba(255,255,255,0.42)", lineHeight: 1.65, marginBottom: 22 }}>
-            Connect your {platform.name} Business or Creator account to start tracking followers, engagement, and post performance in real time.
+            Collega il tuo account {platform.name} Business o Creator per tracciare follower, engagement e performance dei post in tempo reale.
           </p>
 
           {/* What we'll access */}
           <div style={{ marginBottom: 18 }}>
             <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "rgba(255,255,255,0.25)", marginBottom: 10 }}>
-              What we'll access
+              Cosa accediamo
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               {ACCESS_LIST.map((item) => (
@@ -194,14 +180,9 @@ export function ConnectPlatformModal({ platform, onClose, onConnected }: Connect
           </div>
 
           {/* What we won't do */}
-          <div style={{
-            marginBottom: 26,
-            background: "rgba(239,68,68,0.04)",
-            border: "1px solid rgba(239,68,68,0.1)",
-            borderRadius: 12, padding: "14px 16px",
-          }}>
+          <div style={{ marginBottom: 22, background: "rgba(239,68,68,0.04)", border: "1px solid rgba(239,68,68,0.1)", borderRadius: 12, padding: "14px 16px" }}>
             <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "rgba(239,68,68,0.5)", marginBottom: 10 }}>
-              We will NEVER
+              Non faremo MAI
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               {WONT_DO_LIST.map((item) => (
@@ -219,78 +200,47 @@ export function ConnectPlatformModal({ platform, onClose, onConnected }: Connect
             </div>
           </div>
 
-          {/* OAuth connect button (shown for supported platforms) */}
-          {isOAuthSupported && (
+          {/* Error */}
+          {errorMsg && (
+            <p style={{
+              fontSize: 12, color: "#ef4444",
+              background: "rgba(239,68,68,0.08)", border: "0.5px solid rgba(239,68,68,0.25)",
+              padding: "8px 12px", marginBottom: 14,
+            }}>
+              {errorMsg}
+            </p>
+          )}
+
+          {/* OAuth connect button */}
+          {isOAuthSupported ? (
             <button
               type="button"
-              onClick={handleOAuthConnect}
-              disabled={anyLoading}
+              onClick={() => void handleOAuthConnect()}
+              disabled={oauthLoading}
               style={{
-                width: "100%",
-                padding: "14px 20px",
-                background: "var(--sosa-yellow)",
-                border: "none",
-                color: "#000",
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: anyLoading ? "not-allowed" : "pointer",
-                fontFamily: "var(--font-mono)",
-                letterSpacing: "0.08em",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
+                width: "100%", padding: "14px 20px",
+                background: "var(--sosa-yellow)", border: "none",
+                color: "#000", fontSize: 14, fontWeight: 700,
+                cursor: oauthLoading ? "not-allowed" : "pointer",
+                fontFamily: "var(--font-mono)", letterSpacing: "0.08em",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 opacity: oauthLoading ? 0.6 : 1,
-                marginBottom: 10,
               }}
             >
               {oauthLoading ? (
-                <>
-                  <MorphingSquare size={16} className="bg-white" />
-                  Opening OAuth…
-                </>
+                <><MorphingSquare size={16} className="bg-white" /> Autorizzazione…</>
               ) : (
-                <>
-                  <Zap style={{ width: 15, height: 15 }} />
-                  {`Connect with ${platform.name} →`}
-                </>
+                <><Zap style={{ width: 15, height: 15 }} />{`Collega con ${platform.name} →`}</>
               )}
             </button>
+          ) : (
+            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", textAlign: "center", padding: "12px 0" }}>
+              {platform.name} non supporta ancora il collegamento automatico.
+            </p>
           )}
 
-          {/* Manual / demo connect button */}
-          <button type="button"
-            onClick={handleConnect}
-            disabled={anyLoading}
-            style={{
-              width: "100%",
-              padding: isOAuthSupported ? "10px 20px" : "14px 20px",
-              background: isOAuthSupported ? "var(--sosa-bg-2)" : "var(--sosa-yellow)",
-              border: isOAuthSupported ? "1px solid var(--sosa-border)" : "none",
-              color: isOAuthSupported ? "var(--sosa-white-40)" : "#000",
-              fontSize: isOAuthSupported ? 12 : 14,
-              fontWeight: 600,
-              cursor: anyLoading ? "not-allowed" : "pointer",
-              fontFamily: "var(--font-mono)", letterSpacing: "0.08em",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              opacity: anyLoading ? 0.6 : 1,
-            }}
-          >
-            {loading ? (
-              <>
-                <MorphingSquare size={16} className={isOAuthSupported ? "bg-white/40" : "bg-white"} />
-                Connecting…
-              </>
-            ) : (
-              isOAuthSupported ? "Add manually instead" : `Connect with ${platform.name} →`
-            )}
-          </button>
-
           <p style={{ fontSize: 11, color: "rgba(255,255,255,0.18)", textAlign: "center", marginTop: 12 }}>
-            By connecting you agree to our data policy.
+            Collegando accetti la nostra data policy.
           </p>
         </div>
       </div>
