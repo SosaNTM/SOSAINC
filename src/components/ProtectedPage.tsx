@@ -1,6 +1,7 @@
 import React from "react";
 import { ShieldX } from "lucide-react";
 import { usePermission } from "@/lib/permissions";
+import { usePortalDB } from "@/lib/portalContextDB";
 
 interface ProtectedPageProps {
   permission: string;
@@ -8,7 +9,10 @@ interface ProtectedPageProps {
 }
 
 export function ProtectedPage({ permission, children }: ProtectedPageProps) {
+  const { loadingRole, loadingPortals } = usePortalDB();
   const hasPermission = usePermission(permission);
+
+  if (loadingRole || loadingPortals) return null;
 
   if (!hasPermission) {
     return (
