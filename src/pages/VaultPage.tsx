@@ -7,6 +7,7 @@ import { usePortal } from "@/lib/portalContext";
 import { usePortalSecurity, sha256hex } from "@/hooks/settings";
 import { getVaultItems, type VaultItem, type VaultItemType } from "@/lib/vaultStore";
 import { fetchVaultItems, createVaultItem, deleteVaultItem } from "@/lib/services/vaultService";
+import { generateVaultPDF } from "@/lib/services/vaultPdfExport";
 import { VaultFilesTab } from "@/components/vault/VaultFilesTab";
 import type { DbVaultItem } from "@/types/database";
 import { STORAGE_VAULT_ITEMS, SESSION_VAULT_UNLOCKED } from "@/constants/storageKeys";
@@ -793,6 +794,22 @@ const VaultPage = () => {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: "var(--text-quaternary)" }} />
             <input className="glass-input" autoComplete="off" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search vault..." style={{ fontSize: 12, padding: "6px 10px 6px 28px", borderRadius: 8, width: 180 }} />
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                generateVaultPDF(items, portal?.name ?? "Vault");
+                toast({ title: "✓ PDF scaricato" });
+              } catch (err) {
+                toast({ title: "Errore esportazione", description: String(err), variant: "destructive" });
+              }
+            }}
+            className="glass-btn flex items-center gap-1.5"
+            style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8 }}
+            title="Esporta tutto come PDF categorizzato"
+          >
+            <Download className="w-4 h-4" /> Esporta PDF
+          </button>
           <button type="button" onClick={() => setShowNewModal(true)} className="glass-btn-primary flex items-center gap-1.5" style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8 }}>
             <Plus className="w-4 h-4" /> New Item
           </button>
