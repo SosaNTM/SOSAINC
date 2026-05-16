@@ -16,6 +16,7 @@ import {
 import { Download } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
+import { SocialBetaBanner } from "@/components/social/SocialBetaBanner";
 import { GlassTooltip } from "@/components/ui/GlassTooltip";
 
 // ── Period logic ──────────────────────────────────────────────────────────────
@@ -180,6 +181,7 @@ export default function SocialAnalytics() {
 
   return (
     <ModuleErrorBoundary moduleName="Social Analytics">
+      <SocialBetaBanner />
     <div style={{ maxWidth: 1400, margin: "0 auto", paddingBottom: 48 }}>
 
       {/* ── Header ── */}

@@ -3,12 +3,12 @@ import { toPortalUUID } from "@/lib/portalUUID";
 import { newVaultItemSchema, safeValidate } from "@/lib/validation/schemas";
 import { toast } from "sonner";
 import type { DbVaultItem, NewDbVaultItem } from "@/types/database";
+import { encryptVaultData, decryptVaultData } from "@/lib/vaultCrypto";
 
 /**
- * SECURITY NOTE:
- * encrypted_data must be encrypted client-side before calling createVaultItem/updateVaultItem.
- * Never pass plaintext credentials to this service.
- * Recommended: encrypt with AES-256-GCM using a user-derived key before storing.
+ * AES-256-GCM encryption applied to encrypted_data on every write and
+ * transparently decrypted on every read. Key derived from user_id + portal_id
+ * via PBKDF2 (200k iters). See src/lib/vaultCrypto.ts.
  */
 
 export async function fetchVaultItems(
@@ -29,7 +29,12 @@ export async function fetchVaultItems(
     toast.error(`Vault load failed: ${error.message}`);
     return [];
   }
-  return data ?? [];
+  const rows = (data ?? []) as DbVaultItem[];
+  // Decrypt encrypted_data on each row
+  return Promise.all(rows.map(async (r) => ({
+    ...r,
+    encrypted_data: await decryptVaultData(r.encrypted_data, r.user_id, portalId),
+  })));
 }
 
 export async function createVaultItem(
@@ -41,9 +46,11 @@ export async function createVaultItem(
     console.warn("createVaultItem validation failed:", validation.errors);
     return null;
   }
+  // Encrypt encrypted_data before insert
+  const ciphertext = await encryptVaultData(item.encrypted_data, item.user_id, portalId);
   const { data, error } = await supabase
     .from("vault_items")
-    .insert({ ...item, portal_id: toPortalUUID(portalId) })
+    .insert({ ...item, encrypted_data: ciphertext, portal_id: toPortalUUID(portalId) })
     .select()
     .single();
   if (error) {
@@ -51,7 +58,8 @@ export async function createVaultItem(
     return null;
   }
   await logVaultAccess(data.id, "created", portalId);
-  return data;
+  // Return with plaintext so caller's UI shows immediately
+  return { ...data, encrypted_data: item.encrypted_data };
 }
 
 export async function updateVaultItem(
@@ -59,9 +67,21 @@ export async function updateVaultItem(
   updates: Partial<DbVaultItem>,
   portalId: string,
 ): Promise<DbVaultItem | null> {
+  // Encrypt updated encrypted_data if present
+  const next = { ...updates };
+  if (typeof next.encrypted_data === "string" && next.user_id) {
+    next.encrypted_data = await encryptVaultData(next.encrypted_data, next.user_id, portalId);
+  } else if (typeof next.encrypted_data === "string") {
+    // Need user_id — fetch existing row
+    const { data: existing } = await supabase
+      .from("vault_items").select("user_id").eq("id", id).single();
+    if (existing) {
+      next.encrypted_data = await encryptVaultData(next.encrypted_data, (existing as DbVaultItem).user_id, portalId);
+    }
+  }
   const { data, error } = await supabase
     .from("vault_items")
-    .update(updates)
+    .update(next)
     .eq("id", id)
     .eq("portal_id", toPortalUUID(portalId))
     .select()
@@ -71,6 +91,10 @@ export async function updateVaultItem(
     return null;
   }
   await logVaultAccess(id, "updated", portalId);
+  // Decrypt for return
+  if (data) {
+    return { ...data, encrypted_data: await decryptVaultData(data.encrypted_data, data.user_id, portalId) };
+  }
   return data;
 }
 

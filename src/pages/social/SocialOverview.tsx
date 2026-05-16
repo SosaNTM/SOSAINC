@@ -17,6 +17,7 @@ import {
   ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
 import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
+import { SocialBetaBanner } from "@/components/social/SocialBetaBanner";
 
 // ── Period logic ──────────────────────────────────────────────────────────────
 
@@ -162,6 +163,8 @@ export default function SocialOverview() {
   return (
     <ModuleErrorBoundary moduleName="Social Overview">
     <div style={{ paddingBottom: 40, maxWidth: 1400, margin: "0 auto" }}>
+
+      <SocialBetaBanner />
 
       {/* ── Header ── */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 32 }}>

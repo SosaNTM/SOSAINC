@@ -421,6 +421,7 @@ export interface DbNoteFolder {
   id: string;
   portal_id: string;
   user_id: string;
+  parent_id: string | null;
   name: string;
   color: string | null;
   icon: string | null;
@@ -442,6 +443,11 @@ export interface DbNote {
   is_archived: boolean;
   color: string | null;
   tags: string[] | null;
+  source: string | null;
+  file_url: string | null;
+  file_name: string | null;
+  file_type: string | null;
+  transcription: string | null;
   created_at: string;
   updated_at: string;
   created_by: string | null;

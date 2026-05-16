@@ -9,6 +9,14 @@ window.addEventListener("unhandledrejection", (event) => {
   logError(event.reason, { module: "app", action: "unhandledrejection" });
 });
 
+window.addEventListener("error", (event) => {
+  logError(event.error ?? event.message, {
+    module: "app",
+    action: "window.error",
+    extra: { filename: event.filename, lineno: event.lineno, colno: event.colno },
+  });
+});
+
 createRoot(document.getElementById("root")!).render(
   <ErrorBoundary>
     <App />

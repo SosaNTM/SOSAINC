@@ -1,15 +1,18 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useAuth, ALL_USERS } from "@/lib/authContext";
-import {
-  STORAGE_CLOUD_FOLDERS, STORAGE_CLOUD_SECTIONS,
-  STORAGE_CLOUD_COLLAPSED_SECTIONS,
-} from "@/constants/storageKeys";
+import { STORAGE_CLOUD_COLLAPSED_SECTIONS } from "@/constants/storageKeys";
 import {
   INITIAL_FOLDERS, INITIAL_SECTIONS,
   TOTAL_STORAGE_GB, USED_STORAGE_GB, MOCK_FOLDER_PASSWORDS,
   getFileTypeIcon, formatFileSize, getUserPermission, getFolderPath,
   type CloudFolder, type CloudFile, type PermissionLevel, type FolderSection,
 } from "@/lib/cloudStore";
+import { fetchFolders as svcFetchFolders, createFolder as svcCreateFolder, renameFolder as svcRenameFolder, softDeleteFolder as svcSoftDeleteFolder } from "@/lib/services/cloudService";
+import { supabase as _cloudSupabase } from "@/lib/supabase";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const cloudSupabase = _cloudSupabase as any;
+import { toPortalUUID as toPortalUUIDCloud } from "@/lib/portalUUID";
+import type { DbCloudFolder } from "@/types/database";
 import { useCloudFiles } from "@/hooks/useCloudFiles";
 import { usePortalDB } from "@/lib/portalContextDB";
 import {
@@ -504,37 +507,50 @@ const CloudPage = () => {
   const { currentPortalId, isOwner: isPortalOwner, isAdmin: isPortalAdmin } = usePortalDB();
   const cloudFiles = useCloudFiles();
 
-  // ── State: Data ──
-  const [folders, setFolders] = useState<CloudFolder[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_CLOUD_FOLDERS);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id) {
-          return parsed.map((f: any) => ({
-            ...f,
-            createdAt: new Date(f.createdAt),
-            passwordSetAt: f.passwordSetAt ? new Date(f.passwordSetAt) : null,
-            lockedUntil: f.lockedUntil ? new Date(f.lockedUntil) : null,
-          }));
-        }
-      }
-    } catch { localStorage.removeItem(STORAGE_CLOUD_FOLDERS); }
-    return INITIAL_FOLDERS;
-  });
+  // ── State: Data (hydrated from Supabase) ──
+  const [folders, setFolders] = useState<CloudFolder[]>([]);
+  const [sections, setSections] = useState<FolderSection[]>([]);
+  const [hasHydrated, setHasHydrated] = useState(false);
 
   const files = cloudFiles.files;
 
-  const [sections, setSections] = useState<FolderSection[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_CLOUD_SECTIONS);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch { localStorage.removeItem(STORAGE_CLOUD_SECTIONS); }
-    return INITIAL_SECTIONS;
-  });
+  // Hydrate from Supabase on portal change
+  useEffect(() => {
+    if (!currentPortalId) return;
+    setHasHydrated(false);
+    void (async () => {
+      const dbFolders = await svcFetchFolders(currentPortalId);
+      const mapped: CloudFolder[] = dbFolders.map((r: DbCloudFolder) => ({
+        id: r.id,
+        name: r.name,
+        parentId: r.parent_id,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        permissions: (r as any).permissions ?? [],
+        inheritPermissions: true,
+        createdAt: new Date(r.created_at ?? Date.now()),
+        isDeleted: r.is_deleted ?? false,
+        isLocked: r.is_locked ?? false,
+        passwordHash: r.password_hash ?? null,
+        passwordSetBy: null,
+        passwordSetAt: r.password_set_at ? new Date(r.password_set_at) : null,
+        lockAutoTimeoutMinutes: r.lock_auto_timeout_minutes ?? 10,
+        failedAttempts: 0,
+        lockedUntil: null,
+      }));
+      setFolders(mapped.length > 0 ? mapped : INITIAL_FOLDERS);
+
+      // Sections from portal_settings JSONB (no dedicated table)
+      const { data: ps } = await cloudSupabase
+        .from("portal_settings")
+        .select("settings")
+        .eq("portal_id", toPortalUUIDCloud(currentPortalId))
+        .maybeSingle();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sec = (ps?.settings as any)?.cloud_sections;
+      setSections(Array.isArray(sec) && sec.length > 0 ? sec : INITIAL_SECTIONS);
+      setHasHydrated(true);
+    })();
+  }, [currentPortalId]);
 
   // ── State: UI ──
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -601,9 +617,70 @@ const CloudPage = () => {
   const isOwnerOrAdmin = isPortalOwner || isPortalAdmin || userRole === "owner" || userRole === "admin";
   const isOwner = isPortalOwner || userRole === "owner";
 
-  // ── Persist to localStorage ──
-  useEffect(() => { localStorage.setItem(STORAGE_CLOUD_FOLDERS, JSON.stringify(folders)); }, [folders]);
-  useEffect(() => { localStorage.setItem(STORAGE_CLOUD_SECTIONS, JSON.stringify(sections)); }, [sections]);
+  // ── Sync to Supabase (debounced, diff-based) ──
+  const lastSyncedFoldersRef = useRef<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    if (!currentPortalId || !hasHydrated) return;
+    const timeout = setTimeout(async () => {
+      const currentIds = new Set(folders.map((f) => f.id));
+      const lastIds = new Set(lastSyncedFoldersRef.current.keys());
+
+      // Upsert new + modified
+      for (const f of folders) {
+        const serialized = JSON.stringify(f);
+        if (lastSyncedFoldersRef.current.get(f.id) !== serialized) {
+          await cloudSupabase
+            .from("cloud_folders")
+            .upsert({
+              id: f.id,
+              portal_id: toPortalUUIDCloud(currentPortalId),
+              name: f.name,
+              parent_id: f.parentId,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              permissions: f.permissions as any,
+              is_locked: f.isLocked ?? false,
+              password_hash: f.passwordHash ?? null,
+              password_set_at: f.passwordSetAt ? f.passwordSetAt.toISOString() : null,
+              lock_auto_timeout_minutes: f.lockAutoTimeoutMinutes ?? 10,
+              is_deleted: f.isDeleted ?? false,
+              created_by: user?.id ?? null,
+            });
+          lastSyncedFoldersRef.current.set(f.id, serialized);
+        }
+      }
+      // Soft-delete removed
+      for (const id of lastIds) {
+        if (!currentIds.has(id)) {
+          await svcSoftDeleteFolder(id, currentPortalId);
+          lastSyncedFoldersRef.current.delete(id);
+        }
+      }
+    }, 600);
+    return () => clearTimeout(timeout);
+  }, [folders, currentPortalId, hasHydrated, user?.id]);
+
+  useEffect(() => {
+    if (!currentPortalId || !hasHydrated) return;
+    const timeout = setTimeout(async () => {
+      const { data } = await cloudSupabase
+        .from("portal_settings")
+        .select("settings")
+        .eq("portal_id", toPortalUUIDCloud(currentPortalId))
+        .maybeSingle();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const settings = (data?.settings ?? {}) as Record<string, any>;
+      settings.cloud_sections = sections;
+      await cloudSupabase
+        .from("portal_settings")
+        .upsert({
+          portal_id: toPortalUUIDCloud(currentPortalId),
+          settings,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "portal_id" });
+    }, 600);
+    return () => clearTimeout(timeout);
+  }, [sections, currentPortalId, hasHydrated]);
 
   // ── Lockout countdown timer ──
   useEffect(() => {

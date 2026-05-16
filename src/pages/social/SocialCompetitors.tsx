@@ -1,6 +1,7 @@
 ﻿import { Plus } from "lucide-react";
 import { mockCompetitors, mockSocialAccounts, formatSocialNumber } from "@/lib/socialStore";
 import { toast } from "@/hooks/use-toast";
+import { SocialBetaBanner } from "@/components/social/SocialBetaBanner";
 
 export default function SocialCompetitors() {
   const us = {
@@ -23,6 +24,7 @@ export default function SocialCompetitors() {
 
   return (
     <div className="p-6 max-w-[1200px] mx-auto space-y-8">
+      <SocialBetaBanner />
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.5px" }}>Competitors</h1>
