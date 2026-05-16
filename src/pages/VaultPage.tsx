@@ -10,7 +10,7 @@ import { fetchVaultItems, createVaultItem, deleteVaultItem } from "@/lib/service
 import { generateVaultPDF } from "@/lib/services/vaultPdfExport";
 import { VaultFilesTab } from "@/components/vault/VaultFilesTab";
 import type { DbVaultItem } from "@/types/database";
-import { STORAGE_VAULT_ITEMS, SESSION_VAULT_UNLOCKED } from "@/constants/storageKeys";
+import { SESSION_VAULT_UNLOCKED } from "@/constants/storageKeys";
 import { formatFileSize } from "@/lib/cloudStore";
 import { Lock, Unlock, Eye, EyeOff, Copy, Check, Search, Plus, MoreVertical, X, Key, Globe, FileText, StickyNote, Shield, Trash2, ExternalLink, Dice5, AlertTriangle, Link as LinkIcon, Download, Loader2, FolderOpen } from "lucide-react";
 import { ActionMenu, type ActionMenuEntry } from "@/components/ActionMenu";
@@ -611,53 +611,18 @@ const VaultPage = () => {
 
   const portalId = portal?.id ?? "sosa";
 
-  const [items, setItems] = useState<VaultItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_VAULT_ITEMS);
-      if (saved) {
-        const parsed = JSON.parse(saved) as any[];
-        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id) {
-          return parsed.map((v) => ({ ...v, createdAt: v.createdAt ? new Date(v.createdAt) : new Date(), expiresAt: v.expiresAt ? new Date(v.expiresAt) : null }));
-        }
-      }
-    } catch { /* ignore */ }
-    return [];
-  });
+  const [items, setItems] = useState<VaultItem[]>([]);
   const [category, setCategory] = useState<Category>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showNewModal, setShowNewModal] = useState(false);
-  const [isLoading, setIsLoading] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_VAULT_ITEMS);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return !(Array.isArray(parsed) && parsed.length > 0 && parsed[0]?.id);
-      }
-    } catch { /* ignore */ }
-    return true;
-  });
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load items from service (Supabase + localStorage fallback), keyed to active portal
+  // Load items from Supabase, keyed to active portal
   useEffect(() => {
-    if (items.length === 0) setIsLoading(true);
+    setIsLoading(true);
     fetchVaultItems(portalId)
       .then((dbItems) => {
-        if (dbItems.length > 0) {
-          setItems(dbItems.map(dbToVaultItem));
-        } else {
-          // Fall through to generic localStorage key for backward compatibility
-          try {
-            const saved = localStorage.getItem(STORAGE_VAULT_ITEMS);
-            if (saved) {
-              const parsed = JSON.parse(saved) as any[];
-              if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id) {
-                setItems(parsed.map((v) => ({ ...v, createdAt: v.createdAt ? new Date(v.createdAt) : new Date(), expiresAt: v.expiresAt ? new Date(v.expiresAt) : null })));
-                return;
-              }
-            }
-          } catch { /* ignore */ }
-          setItems([]);
-        }
+        setItems(dbItems.map(dbToVaultItem));
       })
       .finally(() => setIsLoading(false));
   }, [portalId]);
@@ -743,12 +708,6 @@ const VaultPage = () => {
     setItems((prev) => prev.filter((i) => i.id !== id));
   };
   const addItem = (item: VaultItem) => setItems((prev) => [item, ...prev]);
-
-  // Keep legacy localStorage in sync for offline-only items
-  useEffect(() => {
-    const localOnly = items.filter((i) => i.id.startsWith("local_"));
-    if (localOnly.length > 0) localStorage.setItem(STORAGE_VAULT_ITEMS, JSON.stringify(localOnly));
-  }, [items]);
 
   if (!canView) {
     return (
