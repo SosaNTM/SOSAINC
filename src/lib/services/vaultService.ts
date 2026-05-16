@@ -1,6 +1,7 @@
-﻿import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { toPortalUUID } from "@/lib/portalUUID";
 import { newVaultItemSchema, safeValidate } from "@/lib/validation/schemas";
+import { toast } from "sonner";
 import type { DbVaultItem, NewDbVaultItem } from "@/types/database";
 
 /**
@@ -10,37 +11,25 @@ import type { DbVaultItem, NewDbVaultItem } from "@/types/database";
  * Recommended: encrypt with AES-256-GCM using a user-derived key before storing.
  */
 
-const LS_KEY = (portalId: string) => `SOSA INC_vault_items_${portalId}`;
-
-function readLocal(portalId: string): DbVaultItem[] {
-  try { return JSON.parse(localStorage.getItem(LS_KEY(portalId)) ?? "[]"); }
-  catch { return []; }
-}
-function writeLocal(portalId: string, data: DbVaultItem[]): void {
-  localStorage.setItem(LS_KEY(portalId), JSON.stringify(data));
-}
-
 export async function fetchVaultItems(
   portalId: string,
   type?: DbVaultItem["type"],
 ): Promise<DbVaultItem[]> {
-  try {
-    let query = supabase
-      .from("vault_items")
-      .select("*")
-      .eq("portal_id", toPortalUUID(portalId))
-      .order("is_favorite", { ascending: false })
-      .order("name", { ascending: true })
-      .limit(1000);
-    if (type) query = query.eq("type", type);
-    const { data, error } = await query;
-    if (error) throw error;
-    const result = data ?? [];
-    writeLocal(portalId, result);
-    return result;
-  } catch {
-    return readLocal(portalId);
+  let query = supabase
+    .from("vault_items")
+    .select("*")
+    .eq("portal_id", toPortalUUID(portalId))
+    .order("is_favorite", { ascending: false })
+    .order("name", { ascending: true })
+    .limit(1000);
+  if (type) query = query.eq("type", type);
+  const { data, error } = await query;
+  if (error) {
+    console.error("fetchVaultItems:", error.message);
+    toast.error(`Vault load failed: ${error.message}`);
+    return [];
   }
+  return data ?? [];
 }
 
 export async function createVaultItem(
@@ -52,20 +41,17 @@ export async function createVaultItem(
     console.warn("createVaultItem validation failed:", validation.errors);
     return null;
   }
-  try {
-    const { data, error } = await supabase
-      .from("vault_items")
-      .insert({ ...item, portal_id: toPortalUUID(portalId) })
-      .select()
-      .single();
-    if (error) throw error;
-    writeLocal(portalId, [data, ...readLocal(portalId)]);
-    // Log access
-    await logVaultAccess(data.id, "created", portalId);
-    return data;
-  } catch {
+  const { data, error } = await supabase
+    .from("vault_items")
+    .insert({ ...item, portal_id: toPortalUUID(portalId) })
+    .select()
+    .single();
+  if (error) {
+    toast.error(`Vault item not saved: ${error.message}`);
     return null;
   }
+  await logVaultAccess(data.id, "created", portalId);
+  return data;
 }
 
 export async function updateVaultItem(
@@ -73,48 +59,42 @@ export async function updateVaultItem(
   updates: Partial<DbVaultItem>,
   portalId: string,
 ): Promise<DbVaultItem | null> {
-  try {
-    const { data, error } = await supabase
-      .from("vault_items")
-      .update(updates)
-      .eq("id", id)
-      .eq("portal_id", toPortalUUID(portalId))
-      .select()
-      .single();
-    if (error) throw error;
-    writeLocal(portalId, readLocal(portalId).map((v) => (v.id === id ? data : v)));
-    await logVaultAccess(id, "updated", portalId);
-    return data;
-  } catch {
+  const { data, error } = await supabase
+    .from("vault_items")
+    .update(updates)
+    .eq("id", id)
+    .eq("portal_id", toPortalUUID(portalId))
+    .select()
+    .single();
+  if (error) {
+    toast.error(`Vault item not updated: ${error.message}`);
     return null;
   }
+  await logVaultAccess(id, "updated", portalId);
+  return data;
 }
 
 export async function deleteVaultItem(id: string, portalId: string): Promise<boolean> {
-  const snapshot = readLocal(portalId);
-  writeLocal(portalId, snapshot.filter((v) => v.id !== id));
-  try {
-    const { error } = await supabase.from("vault_items").delete().eq("id", id).eq("portal_id", toPortalUUID(portalId));
-    if (error) throw error;
-    await logVaultAccess(id, "deleted", portalId); // log only after success
-    return true;
-  } catch {
-    writeLocal(portalId, snapshot); // rollback optimistic delete
+  const { error } = await supabase
+    .from("vault_items")
+    .delete()
+    .eq("id", id)
+    .eq("portal_id", toPortalUUID(portalId));
+  if (error) {
+    toast.error(`Vault item not deleted: ${error.message}`);
     return false;
   }
+  await logVaultAccess(id, "deleted", portalId);
+  return true;
 }
 
 export async function recordVaultAccess(id: string, portalId: string): Promise<void> {
-  try {
-    const { error } = await supabase
-      .from("vault_items")
-      .update({ last_accessed_at: new Date().toISOString() })
-      .eq("id", id)
-      .eq("portal_id", toPortalUUID(portalId));
-    if (!error) await logVaultAccess(id, "accessed", portalId);
-  } catch {
-    // non-critical — never throw
-  }
+  const { error } = await supabase
+    .from("vault_items")
+    .update({ last_accessed_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("portal_id", toPortalUUID(portalId));
+  if (!error) await logVaultAccess(id, "accessed", portalId);
 }
 
 async function logVaultAccess(
@@ -122,16 +102,12 @@ async function logVaultAccess(
   action: "created" | "updated" | "accessed" | "deleted" | "restored" | "shared",
   portalId: string,
 ): Promise<void> {
-  try {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data?.user) return;
-    await supabase.from("vault_item_history").insert({
-      item_id: itemId,
-      user_id: data.user.id,
-      portal_id: toPortalUUID(portalId),
-      action,
-    });
-  } catch {
-    // non-critical — never throw
-  }
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data?.user) return;
+  await supabase.from("vault_item_history").insert({
+    item_id: itemId,
+    user_id: data.user.id,
+    portal_id: toPortalUUID(portalId),
+    action,
+  });
 }
