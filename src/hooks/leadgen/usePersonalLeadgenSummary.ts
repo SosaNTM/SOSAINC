@@ -98,18 +98,6 @@ export function usePersonalLeadgenSummary(period: DashboardPeriod = "all") {
   const fetchSummary = useCallback(async () => {
     if (!currentPortalId || !currentUserId) return;
 
-    const cacheKey = `swr_personal_summary_${currentUserId}_${currentPortalId}_${period}`;
-    try {
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        const { ts, payload } = JSON.parse(cached) as { ts: number; payload: PersonalSummaryData };
-        if (Date.now() - ts < 60_000) {
-          setData(payload);
-          setLoading(false);
-        }
-      }
-    } catch { /**/ }
-
     const from = periodStart(period)?.toISOString();
 
     const [uncontacted, contacted, inProgress, completed, archived] = await Promise.all([
@@ -173,19 +161,15 @@ export function usePersonalLeadgenSummary(period: DashboardPeriod = "all") {
 
     setData(payload);
     setLoading(false);
-    try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), payload })); } catch { /**/ }
   }, [currentPortalId, currentUserId, period]);
 
   useEffect(() => { fetchSummary(); }, [fetchSummary]);
 
   useEffect(() => {
     return subscribeToLeadgenUpdates((event) => {
-      if (event === "lead_updated") {
-        try { localStorage.removeItem(`swr_personal_summary_${currentUserId}_${currentPortalId}_${period}`); } catch { /**/ }
-        fetchSummary();
-      }
+      if (event === "lead_updated") fetchSummary();
     });
-  }, [fetchSummary, currentUserId, currentPortalId, period]);
+  }, [fetchSummary]);
 
   return { ...data, loading };
 }

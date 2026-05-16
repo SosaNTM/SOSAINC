@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { usePortalDB } from "@/lib/portalContextDB";
 import { broadcastLeadgenUpdate } from "@/lib/leadgenRealtime";
 
 const AUTO_RELEASE_DAYS = 14;
 const NOTIFICATION_THROTTLE_MS = 60_000;
-const SEEN_KEY = (portalId: string) => `leadgen_autoreleased_seen_${portalId}`;
+
+// In-memory per-portal last-seen timestamp (ephemeral — resets on reload)
+const _lastSeenByPortal: Map<string, number> = new Map();
 
 export interface AutoReleaseNotification {
   count: number;
@@ -62,9 +64,9 @@ export function useAutoRelease() {
     // Notification: only for leads that were assigned to the current user
     const myReleased = staleLeads.filter((l) => l.assigned_to === user.id);
     if (myReleased.length > 0) {
-      const lastSeen = localStorage.getItem(SEEN_KEY(currentPortalId));
+      const lastSeen = _lastSeenByPortal.get(currentPortalId);
       // Only notify if we haven't notified for this batch
-      if (!lastSeen || new Date(lastSeen).getTime() < Date.now() - NOTIFICATION_THROTTLE_MS) {
+      if (!lastSeen || lastSeen < Date.now() - NOTIFICATION_THROTTLE_MS) {
         setNotification({
           count: myReleased.length,
           leadNames: myReleased.map((l) => l.name).slice(0, 3),
@@ -75,7 +77,7 @@ export function useAutoRelease() {
 
   const dismissNotification = useCallback(() => {
     if (!currentPortalId) return;
-    localStorage.setItem(SEEN_KEY(currentPortalId), new Date().toISOString());
+    _lastSeenByPortal.set(currentPortalId, Date.now());
     setNotification(null);
   }, [currentPortalId]);
 

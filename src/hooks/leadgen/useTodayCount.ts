@@ -3,15 +3,15 @@ import { supabase } from "@/lib/supabase";
 import { usePortalDB } from "@/lib/portalContextDB";
 import { subscribeToLeadgenUpdates } from "@/lib/leadgenRealtime";
 
+import { coldSkipKey, getSkipMap } from "@/lib/leadgenSkipTracking";
+
 const CACHE_TTL = 30_000;
 const SKIP_TTL = 24 * 60 * 60 * 1000;
 
 function getSkipCount(portalId: string): number {
-  try {
-    const map: Record<string, number> = JSON.parse(localStorage.getItem(`leadgen_skipped_${portalId}`) || "{}");
-    const now = Date.now();
-    return Object.values(map).filter((ts) => now - ts < SKIP_TTL).length;
-  } catch { return 0; }
+  const map = getSkipMap(coldSkipKey(portalId));
+  const now = Date.now();
+  return Object.values(map).filter((ts) => now - ts < SKIP_TTL).length;
 }
 
 export function useTodayCount() {

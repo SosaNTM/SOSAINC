@@ -3,21 +3,10 @@ import { supabase } from "@/lib/supabase";
 import { usePortalDB } from "@/lib/portalContextDB";
 import type { LeadgenSettings } from "@/types/leadgen";
 
-function cacheKey(portalId: string) {
-  return `swr_single_leadgen_settings_${portalId}`;
-}
-
 export function useLeadgenSettings() {
   const { currentPortalId } = usePortalDB();
 
-  const [data, setData] = useState<LeadgenSettings | null>(() => {
-    if (!currentPortalId) return null;
-    try {
-      const raw = localStorage.getItem(cacheKey(currentPortalId));
-      return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
-  });
-
+  const [data, setData] = useState<LeadgenSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -28,9 +17,6 @@ export function useLeadgenSettings() {
       .eq("portal_id", currentPortalId)
       .single();
     setData(row as LeadgenSettings | null);
-    if (row) {
-      try { localStorage.setItem(cacheKey(currentPortalId), JSON.stringify(row)); } catch { /**/ }
-    }
     setLoading(false);
   }, [currentPortalId]);
 
@@ -45,7 +31,6 @@ export function useLeadgenSettings() {
       .single();
     if (!error && row) {
       setData(row as LeadgenSettings);
-      try { localStorage.setItem(cacheKey(currentPortalId), JSON.stringify(row)); } catch { /**/ }
     }
     return { data: row as LeadgenSettings | null, error: error?.message ?? null };
   }, [currentPortalId]);

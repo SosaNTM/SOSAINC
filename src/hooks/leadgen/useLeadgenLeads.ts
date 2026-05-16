@@ -4,10 +4,6 @@ import { usePortalDB } from "@/lib/portalContextDB";
 import type { LeadgenLead, OutreachStatus } from "@/types/leadgen";
 import { subscribeToLeadgenUpdates } from "@/lib/leadgenRealtime";
 
-function cacheKey(portalId: string) {
-  return `swr_leadgen_leads_${portalId}`;
-}
-
 export interface LeadFilters {
   hasWebsite?: boolean;
   outreachStatus?: OutreachStatus | "all";
@@ -20,14 +16,7 @@ export interface LeadFilters {
 export function useLeadgenLeads(filters: LeadFilters = {}) {
   const { currentPortalId } = usePortalDB();
 
-  const [allLeads, setAllLeads] = useState<LeadgenLead[]>(() => {
-    if (!currentPortalId) return [];
-    try {
-      const raw = localStorage.getItem(cacheKey(currentPortalId));
-      return raw ? JSON.parse(raw) : [];
-    } catch { return []; }
-  });
-
+  const [allLeads, setAllLeads] = useState<LeadgenLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,11 +30,11 @@ export function useLeadgenLeads(filters: LeadFilters = {}) {
       .eq("portal_id", currentPortalId)
       .order("created_at", { ascending: false });
 
-    if (err) { setError(err.message); }
-    else {
-      const rows = (data ?? []) as LeadgenLead[];
-      setAllLeads(rows);
-      try { localStorage.setItem(cacheKey(currentPortalId), JSON.stringify(rows)); } catch { /**/ }
+    if (err) {
+      setError(err.message);
+      setAllLeads([]);
+    } else {
+      setAllLeads((data ?? []) as LeadgenLead[]);
     }
     setLoading(false);
   }, [currentPortalId]);
