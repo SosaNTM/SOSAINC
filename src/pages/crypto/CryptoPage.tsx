@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { STORAGE_CRYPTO_TX_HISTORY_PREFIX, STORAGE_CRYPTO_TX_HISTORY_LEGACY, STORAGE_CRYPTO_TX_MIGRATED_PREFIX } from "@/constants/storageKeys";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   RefreshCw, Plus, TrendingUp, TrendingDown,
@@ -19,7 +18,6 @@ import { CryptoHoldingModal } from "./CryptoHoldingModal";
 import { CryptoDeleteConfirm } from "./CryptoDeleteConfirm";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { CryptoDetailPopup } from "./CryptoDetailPopup";
-import { localGetAll, localAdd } from "@/lib/personalTransactionStore";
 import { addAuditEntry } from "@/lib/adminStore";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
@@ -128,43 +126,6 @@ export default function CryptoPage() {
       toast.error("Prezzi crypto non aggiornati — impossibile contattare CoinGecko.");
     }
   }, [isPriceStale]);
-
-  // ── Migrate old crypto_tx_history into personal transactions (once) ────────
-  React.useEffect(() => {
-    if (!user) return;
-    const MIGRATED_KEY = `${STORAGE_CRYPTO_TX_MIGRATED_PREFIX}${portalId}`;
-    if (localStorage.getItem(MIGRATED_KEY)) return;
-
-    try {
-      const raw = localStorage.getItem(`${STORAGE_CRYPTO_TX_HISTORY_PREFIX}_${portalId}`) || localStorage.getItem(STORAGE_CRYPTO_TX_HISTORY_LEGACY);
-      if (!raw) { localStorage.setItem(MIGRATED_KEY, "1"); return; }
-      const cryptoTxs: { id: string; coin_id: string; type: "buy" | "sell"; quantity: number; title?: string; date: string }[] = JSON.parse(raw);
-      if (cryptoTxs.length === 0) { localStorage.setItem(MIGRATED_KEY, "1"); return; }
-
-      // Check which crypto tx IDs already exist as personal transactions
-      const existing = localGetAll(portalId);
-      const existingDescriptions = new Set(existing.map((t) => t.description));
-
-      for (const tx of cryptoTxs) {
-        const desc = `${tx.title || (tx.type === "buy" ? "Acquisto" : "Vendita")} — ${tx.quantity.toFixed(tx.quantity < 1 ? 8 : 4)} ${tx.coin_id.toUpperCase()}`;
-        if (existingDescriptions.has(desc)) continue; // already migrated
-
-        localAdd({
-          user_id: user.id,
-          type: tx.type === "buy" ? "expense" : "income",
-          amount: 0, // we don't know EUR value at time of old tx
-          currency: "EUR",
-          category: "Crypto",
-          description: desc,
-          date: tx.date,
-          payment_method: "crypto",
-          is_recurring: false,
-          tags: ["crypto", tx.coin_id],
-        }, user.id, portalId);
-      }
-      localStorage.setItem(MIGRATED_KEY, "1");
-    } catch { /* ignore migration errors */ }
-  }, [user, portalId]);
 
   // Chart
   const [chartDays, setChartDays] = useState(30);

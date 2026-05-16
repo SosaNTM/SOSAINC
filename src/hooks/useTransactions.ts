@@ -1,8 +1,7 @@
 // ── useTransactions ────────────────────────────────────────────────────────────
 //
 // Portal-scoped: each portal has its own isolated transaction data.
-// Primary: portal-scoped localStorage store.
-// Secondary: Supabase personal_transactions filtered by portal_id.
+// Supabase only — no localStorage cache.
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
@@ -14,16 +13,9 @@ import { useAuth } from "@/lib/authContext";
 import { addAuditEntry } from "@/lib/adminStore";
 import { usePortal } from "@/lib/portalContext";
 import { usePortalDB } from "@/lib/portalContextDB";
-import {
-  localGetAll, localAdd, localUpdate, localDelete, applyFilters,
-} from "@/lib/personalTransactionStore";
 import type { PersonalTransaction, NewPersonalTransaction, TransactionFilters } from "@/types/finance";
 
-function isSupabaseConfigured(): boolean {
-  const url = (import.meta.env.VITE_SUPABASE_URL as string) ?? "";
-  return !!url && !url.includes("placeholder");
-}
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toPersonal(row: any): PersonalTransaction {
   return {
     id:                  row.id,
@@ -48,8 +40,8 @@ function toPersonal(row: any): PersonalTransaction {
 }
 
 export interface UseTransactionsResult {
-  transactions:       PersonalTransaction[];  // current page (PAGE_SIZE=20)
-  allTransactions:    PersonalTransaction[];  // full unfiltered array (up to 2000)
+  transactions:       PersonalTransaction[];
+  allTransactions:    PersonalTransaction[];
   isLoading:          boolean;
   error:              string | null;
   page:               number;
@@ -67,10 +59,10 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
   const { user } = useAuth();
   const { portal } = usePortal();
   const { currentPortalId } = usePortalDB();
-  const portalId = portal?.id ?? "sosa";  // slug — used for localStorage cache key
+  const portalId = portal?.id ?? "sosa";
 
-  const [all,       setAll]       = useState<PersonalTransaction[]>(() => { try { return localGetAll(portalId); } catch { return []; } });
-  const [isLoading, setIsLoading] = useState(() => { try { return localGetAll(portalId).length === 0; } catch { return true; } });
+  const [all,       setAll]       = useState<PersonalTransaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error,     setError]     = useState<string | null>(null);
   const [page,      setPage]      = useState(0);
   const [tick,      setTick]      = useState(0);
@@ -78,60 +70,41 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
   const filtersKey = useMemo(() => JSON.stringify(filters), [filters]);
 
   const load = useCallback(async () => {
-    if (!user) { setIsLoading(false); return; }
+    if (!user || !currentPortalId) { setIsLoading(false); return; }
     setError(null);
 
-    if (isSupabaseConfigured() && currentPortalId) {
-      const parsedFilters: TransactionFilters = JSON.parse(filtersKey);
-      let q = supabase
-        .from("personal_transactions")
-        .select("*")
-        .eq("portal_id", currentPortalId) // portal-shared: all members see all data
-        .order("date", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(2000);
+    const parsedFilters: TransactionFilters = JSON.parse(filtersKey);
+    let q = supabase
+      .from("personal_transactions")
+      .select("*")
+      .eq("portal_id", currentPortalId)
+      .order("date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(2000);
 
-      if (parsedFilters.type)               q = q.eq("type", parsedFilters.type);
-      if (parsedFilters.category)           q = q.eq("category", parsedFilters.category);
-      if (parsedFilters.costClassification) q = q.eq("cost_classification", parsedFilters.costClassification);
-      if (parsedFilters.categoryId)         q = q.eq("category_id", parsedFilters.categoryId);
-      if (parsedFilters.dateFrom)           q = q.gte("date", parsedFilters.dateFrom);
-      if (parsedFilters.dateTo)             q = q.lte("date", parsedFilters.dateTo);
-      if (parsedFilters.minAmount)          q = q.gte("amount", parsedFilters.minAmount);
-      if (parsedFilters.maxAmount)          q = q.lte("amount", parsedFilters.maxAmount);
-      if (parsedFilters.search) {
-        q = q.or(`description.ilike.%${parsedFilters.search}%,category.ilike.%${parsedFilters.search}%`);
-      }
-
-      const { data, error: err } = await q;
-      if (!err && data) {
-        // Merge Supabase data with localStorage data.
-        // Locally-created transactions (id starts with "local_") are kept so they
-        // remain visible even when Supabase has no matching records yet.
-        const remote = data.map(toPersonal);
-        const remoteIds = new Set(remote.map((t) => t.id));
-        const local = localGetAll(portalId);
-        const localOnly = applyFilters(
-          local.filter((t) => t.id.startsWith("local_") && !remoteIds.has(t.id)),
-          JSON.parse(filtersKey),
-        );
-        // Sort merged list by date desc
-        const merged = [...remote, ...localOnly].sort((a, b) =>
-          b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at),
-        );
-        setAll(merged);
-        setIsLoading(false);
-        return;
-      }
+    if (parsedFilters.type)               q = q.eq("type", parsedFilters.type);
+    if (parsedFilters.category)           q = q.eq("category", parsedFilters.category);
+    if (parsedFilters.costClassification) q = q.eq("cost_classification", parsedFilters.costClassification);
+    if (parsedFilters.categoryId)         q = q.eq("category_id", parsedFilters.categoryId);
+    if (parsedFilters.dateFrom)           q = q.gte("date", parsedFilters.dateFrom);
+    if (parsedFilters.dateTo)             q = q.lte("date", parsedFilters.dateTo);
+    if (parsedFilters.minAmount)          q = q.gte("amount", parsedFilters.minAmount);
+    if (parsedFilters.maxAmount)          q = q.lte("amount", parsedFilters.maxAmount);
+    if (parsedFilters.search) {
+      q = q.or(`description.ilike.%${parsedFilters.search}%,category.ilike.%${parsedFilters.search}%`);
     }
 
-    // Fallback: portal-scoped localStorage (all portal data, no user filter)
-    const local = localGetAll(portalId);
-    setAll(applyFilters(local, JSON.parse(filtersKey)));
+    const { data, error: err } = await q;
+    if (err) {
+      setError(err.message);
+      setAll([]);
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setAll((data as any[] | null ?? []).map(toPersonal));
+    }
     setIsLoading(false);
-  }, [user, portalId, currentPortalId, filtersKey, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user, currentPortalId, filtersKey, tick]);
 
-  // Reload when portal changes
   useEffect(() => { setPage(0); }, [portalId]);
   useEffect(() => { load(); }, [load]);
 
@@ -147,42 +120,32 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
   const hasMore = (page + 1) * PAGE_SIZE < all.length;
 
   const addTransaction = useCallback(async (data: NewPersonalTransaction): Promise<boolean> => {
-    if (!user) return false;
-    try {
-      if (isSupabaseConfigured() && currentPortalId) {
-        const { error: err } = await supabase
-          .from("personal_transactions")
-          .insert({ ...data, user_id: user.id, portal_id: currentPortalId });
-        if (err) throw err;
-      } else {
-        localAdd(data, user.id, portalId);
-      }
-      broadcastFinanceUpdate("transaction_added");
-      addAuditEntry({ userId: user.id, action: `Added ${data.type} — ${data.description || data.category} €${data.amount}`, category: "finance", details: "", icon: data.type === "income" ? "💰" : "💸", portalId });
-      toast.success("Transaction added");
-      return true;
-    } catch {
-      try {
-        localAdd(data, user.id, portalId);
-        broadcastFinanceUpdate("transaction_added");
-        addAuditEntry({ userId: user.id, action: `Added ${data.type} — ${data.description || data.category} €${data.amount}`, category: "finance", details: "", icon: data.type === "income" ? "💰" : "💸", portalId });
-        toast.success("Transaction saved locally");
-        return true;
-      } catch {
-        toast.error("Error: unable to save transaction");
-        return false;
-      }
+    if (!user || !currentPortalId) return false;
+    const { error: err } = await supabase
+      .from("personal_transactions")
+      .insert({ ...data, user_id: user.id, portal_id: currentPortalId });
+    if (err) {
+      toast.error("Error: unable to save transaction", { description: err.message });
+      return false;
     }
-  }, [user, portalId, currentPortalId]); // eslint-disable-line react-hooks/exhaustive-deps
+    broadcastFinanceUpdate("transaction_added");
+    addAuditEntry({
+      userId: user.id,
+      action: `Added ${data.type} — ${data.description || data.category} €${data.amount}`,
+      category: "finance", details: "",
+      icon: data.type === "income" ? "💰" : "💸",
+      portalId,
+    });
+    toast.success("Transaction added");
+    return true;
+  }, [user, portalId, currentPortalId]);
 
   const updateTransaction = useCallback(async (id: string, changes: Partial<NewPersonalTransaction>): Promise<boolean> => {
-    if (!user) return false;
+    if (!user || !currentPortalId) return false;
 
-    // Validate cost_classification against transaction type
     const effectiveType = changes.type ?? all.find((t) => t.id === id)?.type;
     const validCostClassifications = ["cogs", "opex"];
     if (effectiveType === "income") {
-      // Income transactions must not have a cost_classification
       changes = { ...changes, cost_classification: undefined };
     } else if (effectiveType === "expense" && changes.cost_classification != null) {
       if (!validCostClassifications.includes(changes.cost_classification)) {
@@ -191,55 +154,37 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
       }
     }
 
-    try {
-      if (isSupabaseConfigured() && currentPortalId) {
-        const { error: err } = await supabase
-          .from("personal_transactions")
-          .update(changes)
-          .eq("id", id)
-          .eq("portal_id", currentPortalId);
-        if (err) throw err;
-      } else {
-        localUpdate(id, changes, portalId);
-      }
-      broadcastFinanceUpdate("transaction_updated", { id });
-      addAuditEntry({ userId: user.id, action: `Updated transaction`, category: "finance", details: "", icon: "✏️", portalId });
-      toast.success("Transaction updated");
-      return true;
-    } catch {
-      localUpdate(id, changes, portalId);
-      broadcastFinanceUpdate("transaction_updated", { id });
-      addAuditEntry({ userId: user.id, action: `Updated transaction`, category: "finance", details: "", icon: "✏️", portalId });
-      toast.success("Transaction updated locally");
-      return true;
+    const { error: err } = await supabase
+      .from("personal_transactions")
+      .update(changes)
+      .eq("id", id)
+      .eq("portal_id", currentPortalId);
+    if (err) {
+      toast.error("Transaction not updated", { description: err.message });
+      return false;
     }
-  }, [user, portalId, currentPortalId]); // eslint-disable-line react-hooks/exhaustive-deps
+    broadcastFinanceUpdate("transaction_updated", { id });
+    addAuditEntry({ userId: user.id, action: `Updated transaction`, category: "finance", details: "", icon: "✏️", portalId });
+    toast.success("Transaction updated");
+    return true;
+  }, [user, portalId, currentPortalId, all]);
 
   const deleteTransaction = useCallback(async (id: string): Promise<boolean> => {
-    if (!user) return false;
-    try {
-      if (isSupabaseConfigured() && currentPortalId) {
-        const { error: err } = await supabase
-          .from("personal_transactions")
-          .delete()
-          .eq("id", id)
-          .eq("portal_id", currentPortalId);
-        if (err) throw err;
-      } else {
-        localDelete(id, portalId);
-      }
-      broadcastFinanceUpdate("transaction_deleted", { id });
-      addAuditEntry({ userId: user.id, action: `Deleted transaction`, category: "finance", details: "", icon: "🗑️", portalId });
-      toast.success("Transaction deleted");
-      return true;
-    } catch {
-      localDelete(id, portalId);
-      broadcastFinanceUpdate("transaction_deleted", { id });
-      addAuditEntry({ userId: user.id, action: `Deleted transaction`, category: "finance", details: "", icon: "🗑️", portalId });
-      toast.success("Transaction deleted locally");
-      return true;
+    if (!user || !currentPortalId) return false;
+    const { error: err } = await supabase
+      .from("personal_transactions")
+      .delete()
+      .eq("id", id)
+      .eq("portal_id", currentPortalId);
+    if (err) {
+      toast.error("Transaction not deleted", { description: err.message });
+      return false;
     }
-  }, [user, portalId, currentPortalId]); // eslint-disable-line react-hooks/exhaustive-deps
+    broadcastFinanceUpdate("transaction_deleted", { id });
+    addAuditEntry({ userId: user.id, action: `Deleted transaction`, category: "finance", details: "", icon: "🗑️", portalId });
+    toast.success("Transaction deleted");
+    return true;
+  }, [user, portalId, currentPortalId]);
 
   const refetch = useCallback(() => setTick((t) => t + 1), []);
 

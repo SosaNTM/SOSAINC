@@ -30,32 +30,7 @@ export const INVESTMENT_TYPE_EMOJIS: Record<InvestmentType, string> = {
   other:       "💼",
 };
 
-import { STORAGE_INVESTMENTS_PREFIX, STORAGE_INVESTMENTS_LEGACY } from "@/constants/storageKeys";
-
-const KEY_PREFIX  = STORAGE_INVESTMENTS_PREFIX;
-const LEGACY_KEY  = STORAGE_INVESTMENTS_LEGACY;
-
-function storageKey(portalId: string): string {
-  return `${KEY_PREFIX}_${portalId}`;
-}
-
-const INITIAL_INVESTMENTS: Investment[] = [];
-
-export function loadInvestments(portalId: string): Investment[] {
-  try {
-    const raw = localStorage.getItem(storageKey(portalId));
-    if (raw) return JSON.parse(raw) as Investment[];
-    if (portalId === "sosa") {
-      const legacy = localStorage.getItem(LEGACY_KEY);
-      if (legacy) return JSON.parse(legacy) as Investment[];
-    }
-  } catch {}
-  return INITIAL_INVESTMENTS;
-}
-
-export function saveInvestments(portalId: string, investments: Investment[]): void {
-  localStorage.setItem(storageKey(portalId), JSON.stringify(investments));
-}
+// ── Math helpers (pure functions) ────────────────────────────────────────────
 
 export function calcCurrentValue(inv: Investment): number {
   return inv.units * inv.currentPrice;

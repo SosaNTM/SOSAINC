@@ -6,8 +6,11 @@ import { LiquidGlassCard, LiquidGlassFilter } from "@/components/ui/liquid-glass
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
+import { usePortalDB } from "@/lib/portalContextDB";
 import { addAuditEntry } from "@/lib/adminStore";
-import { localAdd, localGetAll } from "@/lib/personalTransactionStore";
+import { supabase as _supabase } from "@/lib/supabase";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase = _supabase as any;
 import { broadcastFinanceUpdate } from "@/lib/financeRealtime";
 import {
   type Subscription,
@@ -63,9 +66,11 @@ function ToastList({ toasts }: { toasts: { id: string; msg: string }[] }) {
 export default function Subscriptions() {
   const { user } = useAuth();
   const { portal } = usePortal();
+  const { currentPortalId } = usePortalDB();
   const portalId = portal?.id ?? "sosa";
 
   const { subs, setSubs, syncSub, softDeleteSub } = useSubscriptions();
+  const [balance, setBalance] = useState<number>(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSub, setEditingSub] = useState<Subscription | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -99,13 +104,23 @@ export default function Subscriptions() {
   const totalMonthly = activeSubs.reduce((acc, s) => acc + toMonthlyAmount(s), 0);
   const totalAnnual  = totalMonthly * 12;
 
-  // Compute balance from personal transactions to detect insufficient funds
-  const balance = localGetAll(portalId)
-    .filter(() => true) // portal-shared: all portal transactions
-    .reduce(
-      (acc: number, t) => (t.type === "income" ? acc + Number(t.amount) : acc - Number(t.amount)),
-      0,
-    );
+  // Compute balance from personal transactions (Supabase) to detect insufficient funds
+  useEffect(() => {
+    if (!currentPortalId) return;
+    void (async () => {
+      const { data } = await supabase
+        .from("personal_transactions")
+        .select("type, amount")
+        .eq("portal_id", currentPortalId);
+      if (!data) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sum = (data as any[]).reduce(
+        (acc, t) => (t.type === "income" ? acc + Number(t.amount) : acc - Number(t.amount)),
+        0,
+      );
+      setBalance(sum);
+    })();
+  }, [currentPortalId, subs.length]);
 
   // Pie chart data
   const catMap: Record<string, { value: number; color: string }> = {};
@@ -172,22 +187,23 @@ export default function Subscriptions() {
             `⚠ ${data.name} added but first charge skipped — insufficient balance (€${balance.toFixed(2)})`,
           );
         } else {
-          localAdd(
-            {
-              user_id: user.id,
-              type: "expense",
-              amount: data.amount,
-              currency: data.currency ?? "EUR",
-              category: data.category,
-              description: `Subscription: ${data.name}`,
-              date: today.toISOString().slice(0, 10),
-              is_recurring: true,
-              recurring_interval: "monthly",
-            },
-            user.id,
-            portalId,
-          );
-          broadcastFinanceUpdate("transaction_added");
+          if (currentPortalId) {
+            void supabase
+              .from("personal_transactions")
+              .insert({
+                user_id: user.id,
+                portal_id: currentPortalId,
+                type: "expense",
+                amount: data.amount,
+                currency: data.currency ?? "EUR",
+                category: data.category,
+                description: `Subscription: ${data.name}`,
+                date: today.toISOString().slice(0, 10),
+                is_recurring: true,
+                recurring_interval: "monthly",
+              })
+              .then(() => broadcastFinanceUpdate("transaction_added"));
+          }
 
           // Advance next_billing_date past today
           const nextDate = calculateNextBillingDate(

@@ -1,7 +1,6 @@
 // ── useDashboardTransactions ──────────────────────────────────────────────────
 //
-// Portal-scoped: reads the active portal's transactions.
-// Same data source as useTransactions: Supabase primary, localStorage fallback.
+// Portal-scoped: reads the active portal's transactions from Supabase.
 // No pagination — dashboard needs the full set for period filtering.
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -10,24 +9,18 @@ import { supabase as _supabase } from "@/lib/supabase";
 const supabase = _supabase as any;
 import { subscribeToFinanceUpdates } from "@/lib/financeRealtime";
 import { useAuth } from "@/lib/authContext";
-import { usePortal } from "@/lib/portalContext";
 import { usePortalDB } from "@/lib/portalContextDB";
-import { localGetAll } from "@/lib/personalTransactionStore";
 import type { PersonalTransaction } from "@/types/finance";
 
 export interface DashboardTransaction {
   id: string;
   merchant: string;
-  amount: number;        // signed: positive = income, negative = expense
+  amount: number;
   date: Date;
   category: string;
 }
 
-function isSupabaseConfigured(): boolean {
-  const url = (import.meta.env.VITE_SUPABASE_URL as string) ?? "";
-  return !!url && !url.includes("placeholder");
-}
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toPersonal(row: any): PersonalTransaction {
   return {
     id:                  row.id,
@@ -64,55 +57,36 @@ function toDashboard(tx: PersonalTransaction): DashboardTransaction {
 
 export function useDashboardTransactions() {
   const { user } = useAuth();
-  const { portal } = usePortal();
   const { currentPortalId } = usePortalDB();
-  const portalId = portal?.id ?? "sosa";  // slug — used for localStorage cache
 
-  const [raw, setRaw] = useState<PersonalTransaction[]>(() => {
-    try { return localGetAll(portalId); } catch { return []; }
-  });
+  const [raw, setRaw] = useState<PersonalTransaction[]>([]);
   const [tick, setTick] = useState(0);
 
   const refresh = useCallback(async () => {
-    if (!user) { setRaw([]); return; }
+    if (!user || !currentPortalId) { setRaw([]); return; }
+    const { data, error: err } = await supabase
+      .from("personal_transactions")
+      .select("*")
+      .eq("portal_id", currentPortalId)
+      .order("date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(2000);
 
-    if (isSupabaseConfigured() && currentPortalId) {
-      const { data, error: err } = await supabase
-        .from("personal_transactions")
-        .select("*")
-        .eq("portal_id", currentPortalId)
-        .order("date", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(2000);
-
-      if (!err && data) {
-        const remote = data.map(toPersonal);
-        const remoteIds = new Set(remote.map((t) => t.id));
-        const local = localGetAll(portalId);
-        const localOnly = local.filter((t) => t.id.startsWith("local_") && !remoteIds.has(t.id));
-        const merged = [...remote, ...localOnly].sort((a, b) =>
-          b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at),
-        );
-        setRaw(merged);
-        return;
-      }
+    if (err) {
+      setRaw([]);
+      return;
     }
-
-    // Fallback: localStorage only
-    const local = localGetAll(portalId);
-    local.sort((a, b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : 0));
-    setRaw(local);
-  }, [user, portalId, currentPortalId]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setRaw((data as any[] | null ?? []).map(toPersonal));
+  }, [user, currentPortalId]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
-  // Listen to finance-updates broadcast (fires after addTransaction)
   useEffect(() => {
     return subscribeToFinanceUpdates(() => setTick((t) => t + 1));
   }, []);
   useEffect(() => { void refresh(); }, [tick, refresh]);
 
-  // Re-read on window focus
   useEffect(() => {
     window.addEventListener("focus", refresh);
     return () => window.removeEventListener("focus", refresh);
