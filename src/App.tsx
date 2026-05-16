@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { STORAGE_APP_RESET_VERSION, STORAGE_PROFILE_PREFIX, STORAGE_AUDIT_LOG, STORAGE_THEME, STORAGE_ACCENT, STORAGE_NUMBER_FORMAT, STORAGE_CURRENCY } from "@/constants/storageKeys";
+import { STORAGE_APP_RESET_VERSION, STORAGE_PROFILE_PREFIX, STORAGE_THEME, STORAGE_ACCENT, STORAGE_NUMBER_FORMAT, STORAGE_CURRENCY } from "@/constants/storageKeys";
 import { PortalLayout } from "./components/PortalLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AdminRoute } from "./components/AdminRoute";
@@ -70,7 +70,7 @@ const queryClient = new QueryClient();
 // Safe to increment whenever a clean slate is needed.
 const RESET_VERSION = "portal_shared_v6";
 if (typeof localStorage !== "undefined" && localStorage.getItem(STORAGE_APP_RESET_VERSION) !== RESET_VERSION) {
-  const KEEP_PREFIXES = [STORAGE_PROFILE_PREFIX, STORAGE_AUDIT_LOG, "sb-", STORAGE_APP_RESET_VERSION, STORAGE_THEME, STORAGE_ACCENT, STORAGE_NUMBER_FORMAT, STORAGE_CURRENCY, "period_"];
+  const KEEP_PREFIXES = [STORAGE_PROFILE_PREFIX, "sb-", STORAGE_APP_RESET_VERSION, STORAGE_THEME, STORAGE_ACCENT, STORAGE_NUMBER_FORMAT, STORAGE_CURRENCY, "period_"];
   Object.keys(localStorage).forEach((key) => {
     if (!KEEP_PREFIXES.some((p) => key.startsWith(p))) {
       localStorage.removeItem(key);
