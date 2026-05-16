@@ -493,7 +493,7 @@ Paged list (20 per page, 2000 max) with filters: type, category, costClassificat
 
 [src/pages/Subscriptions.tsx](src/pages/Subscriptions.tsx) + [useSubscriptions](src/hooks/useSubscriptions.ts)
 
-Recurring expense manager. Billing cycles: `weekly`, `biweekly`, `monthly`, `quarterly`, `yearly`. The processor ([useSubscriptionProcessor](src/portals/finance/hooks/useSubscriptionProcessor.ts)) runs once per page mount and catches up every overdue billing cycle, inserting one `personal_transactions` row per cycle plus a `subscription_transactions` ledger row. The DB UNIQUE on `(subscription_id, billing_date)` prevents duplicates across tabs / devices.
+Recurring expense manager. Billing cycles: `monthly`, `quarterly`, `quadrimestral` (every 4 months), `biannual` (every 6 months), `annual`. The processor ([useSubscriptionProcessor](src/portals/finance/hooks/useSubscriptionProcessor.ts)) runs once per page mount and catches up every overdue billing cycle, inserting one `personal_transactions` row per cycle plus a `subscription_transactions` ledger row. The DB UNIQUE on `(subscription_id, billing_date)` prevents duplicates across tabs / devices.
 
 ### 11.6 Analytics
 
