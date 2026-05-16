@@ -1,45 +1,15 @@
 // ── useSubscriptions ──────────────────────────────────────────────────────────
 //
-// Loads subscriptions from Supabase (primary) with localStorage merge fallback.
-// Exposes setSubs for the subscription processor's next_billing_date updates,
-// plus syncSub / softDeleteSub helpers for Supabase writes.
+// Loads subscriptions from Supabase. No localStorage cache.
+// Exposes syncSub / softDeleteSub helpers for Supabase writes.
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase as _supabase } from "@/lib/supabase";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase = _supabase as any;
 import { useAuth } from "@/lib/authContext";
-import { usePortal } from "@/lib/portalContext";
 import { usePortalDB } from "@/lib/portalContextDB";
-import { STORAGE_SUBSCRIPTIONS_PREFIX, STORAGE_SUBSCRIPTIONS_LEGACY } from "@/constants/storageKeys";
 import type { Subscription, BillingCycle } from "@/portals/finance/services/subscriptionCycles";
-
-function isSupabaseConfigured(): boolean {
-  const url = (import.meta.env.VITE_SUPABASE_URL as string) ?? "";
-  return !!url && !url.includes("placeholder");
-}
-
-function subsStorageKey(portalId: string): string {
-  return `${STORAGE_SUBSCRIPTIONS_PREFIX}_${portalId}`;
-}
-
-function loadLocal(portalId: string): Subscription[] {
-  try {
-    const raw = localStorage.getItem(subsStorageKey(portalId));
-    if (raw) return JSON.parse(raw) as Subscription[];
-    if (portalId === "sosa") {
-      const legacy = localStorage.getItem(STORAGE_SUBSCRIPTIONS_LEGACY);
-      if (legacy) return JSON.parse(legacy) as Subscription[];
-    }
-  } catch { /* ignore */ }
-  return [];
-}
-
-function saveLocal(portalId: string, subs: Subscription[]): void {
-  try {
-    localStorage.setItem(subsStorageKey(portalId), JSON.stringify(subs));
-  } catch { /* ignore */ }
-}
 
 function dbToSub(row: Record<string, unknown>): Subscription {
   return {
@@ -103,67 +73,41 @@ export interface UseSubscriptionsResult {
 
 export function useSubscriptions(): UseSubscriptionsResult {
   const { user } = useAuth();
-  const { portal } = usePortal();
   const { currentPortalId } = usePortalDB();
-  const portalId = portal?.id ?? "sosa";
 
-  const [subs,      setSubs]      = useState<Subscription[]>(() => loadLocal(portalId));
+  const [subs,      setSubs]      = useState<Subscription[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [tick,      setTick]      = useState(0);
 
-  // Reload localStorage when portal switches
-  useEffect(() => {
-    setSubs(loadLocal(portalId));
-  }, [portalId]);
-
-  // Persist to portal-scoped localStorage whenever subs change
-  useEffect(() => {
-    saveLocal(portalId, subs);
-  }, [subs, portalId]);
-
   const load = useCallback(async () => {
-    if (!user) { setIsLoading(false); return; }
+    if (!user || !currentPortalId) { setIsLoading(false); return; }
 
-    if (isSupabaseConfigured() && currentPortalId) {
-      const { data, error } = await supabase
-        .from("subscriptions")
-        .select("*")
-        .eq("portal_id", currentPortalId)
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("subscriptions")
+      .select("*")
+      .eq("portal_id", currentPortalId)
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
 
-      if (!error && data) {
-        const remote = (data as Record<string, unknown>[]).map(dbToSub);
-        const remoteIds = new Set(remote.map((s) => s.id));
-        const local = loadLocal(portalId);
-        // Keep local-only entries not yet synced to Supabase
-        const localOnly = local.filter(
-          (s) => s.id.startsWith("local_") && !remoteIds.has(s.id),
-        );
-        setSubs([...remote, ...localOnly]);
-        setIsLoading(false);
-        return;
-      }
+    if (!error && data) {
+      setSubs((data as Record<string, unknown>[]).map(dbToSub));
+    } else {
+      setSubs([]);
     }
-
-    // Fallback: localStorage
-    setSubs(loadLocal(portalId));
     setIsLoading(false);
-  }, [user, portalId, currentPortalId, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user, currentPortalId, tick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load(); }, [load]);
 
-  // Upsert a subscription to Supabase (best-effort — local state already updated by caller)
   const syncSub = useCallback(async (sub: Subscription): Promise<void> => {
-    if (!user || !isSupabaseConfigured() || !currentPortalId) return;
+    if (!user || !currentPortalId) return;
     await supabase
       .from("subscriptions")
       .upsert(subToDbRow(sub, user.id, currentPortalId), { onConflict: "id" });
   }, [user, currentPortalId]);
 
-  // Soft-delete: mark deleted_at + is_active=false in Supabase
   const softDeleteSub = useCallback(async (id: string): Promise<void> => {
-    if (!user || !isSupabaseConfigured() || !currentPortalId) return;
+    if (!user || !currentPortalId) return;
     await supabase
       .from("subscriptions")
       .update({ deleted_at: new Date().toISOString(), is_active: false, updated_at: new Date().toISOString() })

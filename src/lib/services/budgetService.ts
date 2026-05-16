@@ -52,3 +52,39 @@ export async function deleteBudgetLimit(id: string, portalId?: string): Promise<
   }
   return true;
 }
+
+// ── Total budget (stored in portal_settings.settings JSONB) ──────────────────
+
+export async function fetchTotalBudget(portalId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from("portal_settings")
+    .select("settings")
+    .eq("portal_id", toPortalUUID(portalId))
+    .maybeSingle();
+  if (error) {
+    console.error("fetchTotalBudget:", error.message);
+    return 0;
+  }
+  const settings = (data?.settings ?? {}) as Record<string, unknown>;
+  return Number(settings.total_budget_eur ?? 0);
+}
+
+export async function saveTotalBudget(portalId: string, amount: number): Promise<void> {
+  const { data } = await supabase
+    .from("portal_settings")
+    .select("settings")
+    .eq("portal_id", toPortalUUID(portalId))
+    .maybeSingle();
+  const settings = (data?.settings ?? {}) as Record<string, unknown>;
+  settings.total_budget_eur = amount;
+  const { error } = await supabase
+    .from("portal_settings")
+    .upsert(
+      { portal_id: toPortalUUID(portalId), settings, updated_at: new Date().toISOString() },
+      { onConflict: "portal_id" },
+    );
+  if (error) {
+    console.error("saveTotalBudget:", error.message);
+    toast.error(`Total budget not saved: ${error.message}`);
+  }
+}

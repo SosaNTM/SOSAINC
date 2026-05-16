@@ -1,11 +1,13 @@
 // ── useDashboardSubscriptions ────────────────────────────────────────────────
 //
-// Portal-scoped: reads subscriptions from the active portal's localStorage key.
+// Reads subscriptions from Supabase (no localStorage).
 // Maps the full Subscription type to the lighter DashboardSubscription shape.
-// Listens for storage events + window focus for cross-page sync.
 
-import { useState, useEffect, useCallback } from "react";
-import { usePortal } from "@/lib/portalContext";
+import { useCallback } from "react";
+import { supabase as _supabase } from "@/lib/supabase";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase = _supabase as any;
+import { useSubscriptions } from "./useSubscriptions";
 import type { Subscription } from "@/portals/finance/services/subscriptionCycles";
 
 export interface DashboardSubscription {
@@ -17,31 +19,6 @@ export interface DashboardSubscription {
   color: string;
   emoji: string;
   active: boolean;
-}
-
-import { STORAGE_SUBSCRIPTIONS_PREFIX, STORAGE_SUBSCRIPTIONS_LEGACY } from "@/constants/storageKeys";
-
-const KEY_PREFIX = STORAGE_SUBSCRIPTIONS_PREFIX;
-
-function storageKey(portalId: string): string {
-  return `${KEY_PREFIX}_${portalId}`;
-}
-
-/** Same initial subs used by Subscriptions.tsx */
-const INITIAL_SUBS: Subscription[] = [];
-
-function readFromStorage(portalId: string): Subscription[] {
-  try {
-    // Portal-scoped key
-    const raw = localStorage.getItem(storageKey(portalId));
-    if (raw) return JSON.parse(raw) as Subscription[];
-    // Legacy migration: sosa reads from old non-portal key
-    if (portalId === "sosa") {
-      const legacy = localStorage.getItem(STORAGE_SUBSCRIPTIONS_LEGACY);
-      if (legacy) return JSON.parse(legacy) as Subscription[];
-    }
-  } catch { /* corrupted */ }
-  return INITIAL_SUBS;
 }
 
 function mapToDashboard(sub: Subscription): DashboardSubscription {
@@ -58,49 +35,21 @@ function mapToDashboard(sub: Subscription): DashboardSubscription {
 }
 
 export function useDashboardSubscriptions() {
-  const { portal } = usePortal();
-  const portalId = portal?.id ?? "sosa";
+  const { subs: rawSubs, refetch } = useSubscriptions();
 
-  const [rawSubs, setRawSubs] = useState<Subscription[]>(() => readFromStorage(portalId));
-
-  const refresh = useCallback(() => {
-    setRawSubs(readFromStorage(portalId));
-  }, [portalId]);
-
-  // Re-load when portal switches
-  useEffect(() => { refresh(); }, [refresh]);
-
-  // Sync when another tab/page writes to portal-scoped localStorage
-  useEffect(() => {
-    const key = storageKey(portalId);
-    function onStorage(e: StorageEvent) {
-      if (e.key === key) refresh();
-    }
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, [portalId, refresh]);
-
-  // Re-read on mount and when navigating back to dashboard
-  useEffect(() => {
-    refresh();
-    function onFocus() { refresh(); }
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [refresh]);
+  const toggleSub = useCallback(async (id: string) => {
+    const sub = rawSubs.find((s) => s.id === id);
+    if (!sub) return;
+    await supabase
+      .from("subscriptions")
+      .update({ is_active: !sub.is_active, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    refetch();
+  }, [rawSubs, refetch]);
 
   const subs = rawSubs
     .filter((s) => !s.deleted_at)
     .map(mapToDashboard);
-
-  function toggleSub(id: string) {
-    setRawSubs((prev) => {
-      const updated = prev.map((s) =>
-        s.id === id ? { ...s, is_active: !s.is_active } : s,
-      );
-      localStorage.setItem(storageKey(portalId), JSON.stringify(updated));
-      return updated;
-    });
-  }
 
   const activeSubs = subs.filter((s) => s.active);
   const totalMonthly = activeSubs.reduce((acc, s) => acc + s.cost, 0);

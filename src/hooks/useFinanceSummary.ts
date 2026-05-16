@@ -1,7 +1,7 @@
 // ── useFinanceSummary ─────────────────────────────────────────────────────────
 //
 // Portal-scoped: aggregates personal_transactions for the active portal.
-// Used by Dashboard, Budget, and Analytics.
+// Supabase only — no localStorage cache.
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase as _supabase } from "@/lib/supabase";
@@ -12,7 +12,6 @@ import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
 import { usePortalDB } from "@/lib/portalContextDB";
 import { getAllCategories } from "@/lib/financeCategoryStore";
-import { localGetAll } from "@/lib/personalTransactionStore";
 import type { FinanceSummary, MonthlyBreakdown, CategoryBreakdown } from "@/types/finance";
 
 export interface DateRange {
@@ -65,11 +64,6 @@ export function lastNMonthsRange(n: number): DateRange {
   };
 }
 
-function isSupabaseConfigured(): boolean {
-  const url = (import.meta.env.VITE_SUPABASE_URL as string) ?? "";
-  return !!url && !url.includes("placeholder");
-}
-
 const EMPTY: FinanceSummary = {
   totalIncome: 0, totalExpenses: 0, netBalance: 0,
   transactionCount: 0, monthlyBreakdown: [], categoryBreakdown: [],
@@ -82,42 +76,25 @@ export function useFinanceSummary(dateRange: DateRange = currentMonthRange()): {
   const { user } = useAuth();
   const { portal } = usePortal();
   const { currentPortalId } = usePortalDB();
-  const portalId = portal?.id ?? "sosa";  // slug — used for localStorage cache
+  const portalId = portal?.id ?? "sosa";
 
-  const summarySwrKey = `swr_summary_${portalId}_${dateRange.from}_${dateRange.to}`;
-
-  const [summary, setSummary] = useState<FinanceSummary>(() => {
-    try { const raw = localStorage.getItem(summarySwrKey); if (raw) return JSON.parse(raw) as FinanceSummary; } catch { /* ignore */ }
-    return EMPTY;
-  });
-  const [isLoading, setIsLoading] = useState(() => !localStorage.getItem(summarySwrKey));
+  const [summary, setSummary] = useState<FinanceSummary>(EMPTY);
+  const [isLoading, setIsLoading] = useState(true);
   const [tick, setTick] = useState(0);
 
   const compute = useCallback(async () => {
-    if (!user) { setIsLoading(false); return; }
+    if (!user || !currentPortalId) { setIsLoading(false); return; }
 
-    // Try Supabase first, fall back to portal-scoped localStorage
-    let rows: { type: string; amount: number; category: string; date: string }[] = [];
+    const { data, error } = await supabase
+      .from("personal_transactions")
+      .select("type, amount, category, date")
+      .eq("portal_id", currentPortalId)
+      .gte("date", dateRange.from)
+      .lte("date", dateRange.to)
+      .order("date", { ascending: true });
 
-    if (isSupabaseConfigured() && currentPortalId) {
-      const { data, error } = await supabase
-        .from("personal_transactions")
-        .select("type, amount, category, date")
-        .eq("portal_id", currentPortalId)
-        .gte("date", dateRange.from)
-        .lte("date", dateRange.to)
-        .order("date", { ascending: true });
-
-      if (!error && data && data.length > 0) {
-        rows = data;
-      }
-    }
-
-    if (rows.length === 0) {
-      rows = localGetAll(portalId)
-        .filter((t) => t.date >= dateRange.from && t.date <= dateRange.to)
-        .sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
-    }
+    const rows: { type: string; amount: number; category: string; date: string }[] =
+      !error && data ? data : [];
 
     let totalIncome   = 0;
     let totalExpenses = 0;
@@ -146,6 +123,7 @@ export function useFinanceSummary(dateRange: DateRange = currentMonthRange()): {
       monthMap[key].net = monthMap[key].income - monthMap[key].expenses;
     }
 
+    const categoryColors = Object.fromEntries(getAllCategories(portalId).map((c) => [c.name, c.color]));
     const categoryBreakdown: CategoryBreakdown[] = Object.entries(catMap)
       .sort((a, b) => b[1].amount - a[1].amount)
       .map(([category, { amount, count }]) => ({
@@ -153,21 +131,19 @@ export function useFinanceSummary(dateRange: DateRange = currentMonthRange()): {
         amount,
         count,
         percentage: totalExpenses > 0 ? Math.round((amount / totalExpenses) * 100) : 0,
-        color: Object.fromEntries(getAllCategories(portalId).map((c) => [c.name, c.color]))[category] ?? "#6b7280",
+        color: categoryColors[category] ?? "#6b7280",
       }));
 
-    const result: FinanceSummary = {
+    setSummary({
       totalIncome,
       totalExpenses,
       netBalance:       totalIncome - totalExpenses,
       transactionCount: rows.length,
       monthlyBreakdown: Object.values(monthMap),
       categoryBreakdown,
-    };
-    setSummary(result);
-    try { localStorage.setItem(summarySwrKey, JSON.stringify(result)); } catch { /* quota exceeded */ }
+    });
     setIsLoading(false);
-  }, [user, portalId, currentPortalId, dateRange.from, dateRange.to, tick, summarySwrKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user, portalId, currentPortalId, dateRange.from, dateRange.to, tick]);
 
   useEffect(() => { compute(); }, [compute]);
 
