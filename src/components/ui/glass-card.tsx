@@ -81,7 +81,7 @@ export const GlassCard = React.memo(function GlassCard({
             {title}
           </span>
           {headerRight ?? (
-            <button type="button"
+            <button
               type="button"
               className="flex items-center justify-center rounded-md p-1 opacity-60 hover:opacity-100 transition-opacity"
               aria-label="More options"

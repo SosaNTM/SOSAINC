@@ -352,12 +352,12 @@ export default function SocialAccounts() {
   });
 
   const [profile, setProfile] = useState<Profile | null>(
-    () => user ? getProfile(user.id, user.email, user.name) : null
+    () => user ? getProfile(user.id, user.email, user.displayName) : null
   );
 
   useEffect(() => {
     const handler = () => {
-      if (user) setProfile(getProfile(user.id, user.email, user.name));
+      if (user) setProfile(getProfile(user.id, user.email, user.displayName));
     };
     window.addEventListener("profile-changed", handler);
     return () => window.removeEventListener("profile-changed", handler);

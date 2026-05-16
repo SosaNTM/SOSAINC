@@ -23,7 +23,7 @@ export async function createInvestment(
   portalId: string,
 ): Promise<DbInvestment | null> {
   const validation = safeValidate(newInvestmentSchema, investment);
-  if (!validation.success) {
+  if (validation.success === false) {
     console.warn("createInvestment validation failed:", validation.errors);
     return null;
   }

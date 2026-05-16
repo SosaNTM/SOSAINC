@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { useAuth, getUserById, deleteUser, resetUserPassword, type User, type PortalId, ALL_PORTAL_IDS } from "@/lib/authContext";
+import { useAuth, getUserById, deleteUser, resetUserPassword, type User, type PortalId, ALL_PORTAL_IDS, ALL_USERS } from "@/lib/authContext";
+import type { Role } from "@/lib/permissions";
 import { usePortalDB } from "@/lib/portalContextDB";
 import { supabase } from "@/lib/supabase";
 import { PORTALS, usePortal } from "@/lib/portalContext";
@@ -132,7 +133,7 @@ function UsersTab({ isOwner }: { isOwner: boolean }) {
                   <div>
                     <div className="flex items-center gap-2">
                       <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{u.display_name}</span>
-                      <RoleBadge role={u.top_role} />
+                      <RoleBadge role={u.top_role as Role} />
                       <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 99, background: "rgba(34,197,94,0.1)", color: "#22c55e" }}>Active</span>
                     </div>
                     <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>{u.email}</span>

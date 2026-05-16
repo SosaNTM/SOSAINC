@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 import {
   RefreshCw, Plus, TrendingUp, TrendingDown,
   Pencil, Trash2,
@@ -35,7 +35,7 @@ const COIN_COLORS = [
   "#f59e0b", "#ef4444", "#8b5cf6", "#0033ad", "#c3a634",
 ];
 
-const fadeUp = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
   visible: (delay = 0) => ({
     opacity: 1, y: 0, filter: "blur(0px)",

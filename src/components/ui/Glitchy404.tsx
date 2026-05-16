@@ -1,32 +1,32 @@
 import * as React from "react";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { useEffect, useRef } from "react";
 
-const shakeVariants1 = {
+const shakeVariants1: Variants = {
   shake: {
     x: [0, -2, 2, -1, 1, 0],
     transition: { duration: 0.8, repeat: Infinity, repeatType: "loop" as const, ease: "easeInOut" },
   },
 };
-const shakeVariants2 = {
+const shakeVariants2: Variants = {
   shake: {
     x: [0, 1.5, -1.5, 2, -2, 0],
     transition: { duration: 1.2, repeat: Infinity, repeatType: "loop" as const, ease: "easeInOut" },
   },
 };
-const shakeVariants3 = {
+const shakeVariants3: Variants = {
   shake: {
     x: [0, -1, 1, -2, 2, -1, 0],
     transition: { duration: 0.5, repeat: Infinity, repeatType: "loop" as const, ease: "easeInOut" },
   },
 };
-const shakeVariants4 = {
+const shakeVariants4: Variants = {
   shake: {
     x: [0, 2, -1, 1.5, -2, 0],
     transition: { duration: 1.5, repeat: Infinity, repeatType: "loop" as const, ease: "easeInOut" },
   },
 };
-const shakeVariants5 = {
+const shakeVariants5: Variants = {
   shake: {
     x: [0, -1.5, 1, -1, 2, -2, 0],
     transition: { duration: 0.7, repeat: Infinity, repeatType: "loop" as const, ease: "easeInOut" },

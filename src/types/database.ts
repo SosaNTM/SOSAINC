@@ -224,13 +224,17 @@ export interface DbSocialConnection {
   id: string;
   portal_id: string;
   user_id: string;
+  connected_by: string | null;
   platform: string;
   account_handle: string | null;
   account_name: string | null;
+  account_avatar_url: string | null;
   access_token: string | null;
   refresh_token: string | null;
   token_expires_at: string | null;
   is_active: boolean;
+  connected_at: string | null;
+  last_synced_at: string | null;
   created_at: string;
   updated_at: string;
 }

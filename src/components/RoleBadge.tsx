@@ -1,10 +1,11 @@
 import type { Role } from "@/lib/permissions";
 
 const ROLE_CONFIG: Record<Role, { bg: string; text: string; label: string; emoji: string }> = {
-  owner: { bg: "bg-amber-500/10", text: "text-amber-500", label: "Owner", emoji: "👑" },
-  admin: { bg: "bg-blue-500/10", text: "text-blue-500", label: "Admin", emoji: "🔧" },
-  manager: { bg: "bg-purple-500/10", text: "text-purple-500", label: "Manager", emoji: "👥" },
-  member: { bg: "bg-emerald-500/10", text: "text-emerald-500", label: "Member", emoji: "👤" },
+  owner:   { bg: "bg-amber-500/10",   text: "text-amber-500",   label: "Owner",   emoji: "👑" },
+  admin:   { bg: "bg-blue-500/10",    text: "text-blue-500",    label: "Admin",   emoji: "🔧" },
+  manager: { bg: "bg-purple-500/10",  text: "text-purple-500",  label: "Manager", emoji: "👥" },
+  member:  { bg: "bg-emerald-500/10", text: "text-emerald-500", label: "Member",  emoji: "👤" },
+  viewer:  { bg: "bg-slate-500/10",   text: "text-slate-500",   label: "Viewer",  emoji: "👀" },
 };
 
 export function RoleBadge({ role }: { role: Role }) {

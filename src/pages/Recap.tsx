@@ -1251,6 +1251,11 @@ export default function Recap() {
           open={!!editingTx}
           onClose={() => setEditingTx(null)}
           initialData={Object.keys(editingTx).length > 0 ? editingTx : undefined}
+          onSave={async (data) => {
+            const ok = await updateTransaction(editingTx.id, data);
+            if (ok) setEditingTx(null);
+            return ok;
+          }}
         />
       )}
     </div>

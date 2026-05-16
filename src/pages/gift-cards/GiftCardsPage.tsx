@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Gift, Plus, X, SlidersHorizontal, MoreHorizontal } from "lucide-react";
 import { LiquidGlassCard, LiquidGlassFilter } from "@/components/ui/liquid-glass-card";
 import { useGiftCards } from "@/portals/finance/hooks/useGiftCards";
@@ -34,7 +34,7 @@ const SORT_OPTIONS: { value: GiftCardSort; label: string }[] = [
   { value: "brand", label: "Brand A→Z" },
 ];
 
-const fadeUp = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 16 },
   visible: (d = 0) => ({
     opacity: 1, y: 0,

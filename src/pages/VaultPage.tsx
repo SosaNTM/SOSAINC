@@ -408,6 +408,7 @@ function NewItemModal({
         user_id: userId,
         created_by: userId,
         expires_at: expiry || null,
+        last_accessed_at: null,
       },
       portalId,
     );

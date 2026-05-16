@@ -439,17 +439,17 @@ function FollowUpPopover({ lead, onClose, onSaved }: {
     setSaving(true);
     const now = new Date().toISOString();
 
-    const eventInsert = supabase.from("leadgen_outreach_events").insert({
-      portal_id: currentPortalId, lead_id: lead.id, channel,
-      direction: "outbound" as OutreachDirection,
-      notes: notes.trim() || null, occurred_at: now,
-    });
-
-    const ops: Promise<unknown>[] = [eventInsert];
+    const ops: Promise<unknown>[] = [
+      Promise.resolve(supabase.from("leadgen_outreach_events").insert({
+        portal_id: currentPortalId, lead_id: lead.id, channel,
+        direction: "outbound" as OutreachDirection,
+        notes: notes.trim() || null, occurred_at: now,
+      })),
+    ];
     if (outcome === "rejected") {
-      ops.push(supabase.from("leadgen_leads")
+      ops.push(Promise.resolve(supabase.from("leadgen_leads")
         .update({ outreach_status: "rejected", updated_at: now })
-        .eq("portal_id", currentPortalId).eq("id", lead.id));
+        .eq("portal_id", currentPortalId).eq("id", lead.id)));
     }
 
     await Promise.all(ops);

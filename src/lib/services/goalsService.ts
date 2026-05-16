@@ -24,7 +24,7 @@ export async function createGoal(
 ): Promise<DbFinancialGoal | null> {
   const input = { ...goal, deadline: goal.deadline || undefined };
   const validation = safeValidate(newGoalSchema, input);
-  if (!validation.success) {
+  if (validation.success === false) {
     console.error("createGoal validation failed:", validation.errors);
     toast.error("Invalid goal data — please check the form");
     return null;

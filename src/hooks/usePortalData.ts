@@ -82,7 +82,7 @@ export function usePortalData<T extends { id: string }>(
 
   useEffect(() => { fetch(); }, [fetch]);
 
-  const create = async (payload: Omit<T, "id" | "created_at" | "updated_at">) => {
+  const create = async (payload: Omit<T, "id" | "portal_id" | "created_at" | "updated_at">) => {
     if (!currentPortalId) return { error: "Nessun portale selezionato" };
     const { data: row, error: err } = await supabase
       .from(tableName)

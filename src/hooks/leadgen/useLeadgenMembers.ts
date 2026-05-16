@@ -106,7 +106,8 @@ export function useLeadgenMembers() {
       .rpc("get_user_id_by_email", { search_email: email.trim() })
       .maybeSingle();
     if (!data) return null;
-    return { user_id: data.user_id, display_name: data.display_name ?? null, email: data.email };
+    const row = data as { user_id: string; display_name: string | null; email: string };
+    return { user_id: row.user_id, display_name: row.display_name ?? null, email: row.email };
   }, []);
 
   const addMember = useCallback(async (params: {

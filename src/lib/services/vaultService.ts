@@ -37,7 +37,7 @@ export async function createVaultItem(
   portalId: string,
 ): Promise<DbVaultItem | null> {
   const validation = safeValidate(newVaultItemSchema, item);
-  if (!validation.success) {
+  if (validation.success === false) {
     console.warn("createVaultItem validation failed:", validation.errors);
     return null;
   }

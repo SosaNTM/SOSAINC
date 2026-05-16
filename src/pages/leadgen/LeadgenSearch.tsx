@@ -408,7 +408,7 @@ export default function LeadgenSearch() {
               <div ref={dropdownRef} style={{ position: "relative", flexShrink: 0 }}>
                 <button
                   type="button"
-                  onClick={() => { setFlagOpen((p) => !p); setFilterOpen(false); }}
+                  onClick={() => { setFlagOpen((p) => !p); }}
                   disabled={running}
                   style={{
                     width: 56,

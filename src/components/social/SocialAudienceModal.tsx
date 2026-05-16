@@ -4,6 +4,7 @@ import {
   formatSocialNumber, PLATFORM_CONFIG,
 } from "@/lib/socialStore";
 import { PlatformIcon } from "@/components/social/PlatformIcon";
+import type { SocialPlatform } from "@/lib/socialStore";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -529,7 +530,7 @@ function DemographicsModal({ totalFollowers }: { totalFollowers: number }) {
             const ov = platformDemoOverrides[activePlatformTab];
             return (
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <PlatformIcon platform={activePlatformTab} size={16} />
+                <PlatformIcon platform={activePlatformTab as SocialPlatform} size={16} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: a.color }}>{PLATFORM_CONFIG[activePlatformTab].label}:</span>
                 <span style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>{ov.ageNote}</span>
                 <span style={{ color: "rgba(255,255,255,0.2)" }}>·</span>

@@ -54,7 +54,7 @@ export async function createTransaction(
   portalId: string,
 ): Promise<DbPersonalTransaction | null> {
   const validation = safeValidate(newTransactionSchema, tx);
-  if (!validation.success) {
+  if (validation.success === false) {
     console.warn("createTransaction validation failed:", validation.errors);
     return null;
   }

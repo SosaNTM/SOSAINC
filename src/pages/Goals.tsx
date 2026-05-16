@@ -83,7 +83,7 @@ export default function Goals() {
       await svcUpdate(editingGoal.id, data, portalId);
       if (user) addAuditEntry({ userId: user.id, action: `Updated goal "${data.name}"`, category: "finance", details: "", icon: "🎯", portalId });
     } else {
-      const created = await svcCreate({ ...data, saved: 0, user_id: user?.id ?? "" }, portalId);
+      const created = await svcCreate({ ...data, saved: 0, user_id: user?.id ?? "", is_achieved: false }, portalId);
       const newId = created?.id ?? crypto.randomUUID();
       setGoals(prev => [...prev, { ...data, id: newId }]);
       if (user) addAuditEntry({ userId: user.id, action: `Created goal "${data.name}" — €${data.target.toLocaleString()} target`, category: "finance", details: "", icon: "🎯", portalId });
