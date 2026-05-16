@@ -1,7 +1,6 @@
 ﻿import { useState, useCallback, useEffect, useRef } from "react";
 import { useAuth, ALL_USERS, getUserById } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
-import { tasksKey, projectsKey } from "@/constants/storageKeys";
 import {
   getInitialIssues, getInitialProjects, ISSUE_STATUSES, ISSUE_PRIORITIES, ISSUE_LABELS, ESTIMATE_OPTIONS,
   type Issue, type IssueStatus, type IssuePriority, type Project, type ProjectStatus,
@@ -24,45 +23,24 @@ const TasksPage = () => {
   const { user } = useAuth();
   const { portal } = usePortal();
   const portalId = portal?.id ?? "sosa";
-  const [issues, setIssues] = useState<Issue[]>(() => {
-    try {
-      const saved = localStorage.getItem(tasksKey(portalId));
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return parsed.map((t: any) => ({
-          ...t,
-          createdAt: new Date(t.createdAt),
-          updatedAt: new Date(t.updatedAt),
-          dueDate: t.dueDate ? new Date(t.dueDate) : null,
-        }));
-      }
-    } catch {}
-    return getInitialIssues();
-  });
-  const [projects, setProjects] = useState<Project[]>(() => {
-    try {
-      const saved = localStorage.getItem(projectsKey(portalId));
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return getInitialProjects();
-  });
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [syncReady, setSyncReady] = useState(false);
 
-  // Persist tasks & projects to localStorage on change; broadcast so ProfileTasksCard updates live
+  // Broadcast change event so ProfileTasksCard can react
   useEffect(() => {
-    localStorage.setItem(tasksKey(portalId), JSON.stringify(issues));
     window.dispatchEvent(new CustomEvent("SOSA INC:tasks-changed", { detail: { portalId } }));
   }, [issues, portalId]);
-  useEffect(() => { localStorage.setItem(projectsKey(portalId), JSON.stringify(projects)); }, [projects, portalId]);
 
-  // Load live data from Supabase on mount — replaces static seed
+  // Load live data from Supabase on mount
   useEffect(() => {
+    setSyncReady(false);
     Promise.all([loadTasksFromSupabase(portalId), loadProjectsFromSupabase(portalId)]).then(([sbTasks, sbProjects]) => {
-      if (sbTasks.length > 0) setIssues(sbTasks);
-      if (sbProjects.length > 0) setProjects(sbProjects);
+      setIssues(sbTasks.length > 0 ? sbTasks : getInitialIssues());
+      setProjects(sbProjects.length > 0 ? sbProjects : getInitialProjects());
       setSyncReady(true);
     });
-  }, [portalId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [portalId]);
   const [sidebarView, setSidebarView] = useState<SidebarView>("all");
   const [viewMode, setViewMode] = useState<"list" | "board">("list");
   const [groupBy, setGroupBy] = useState<"status" | "priority" | "assignee" | "project">("status");
