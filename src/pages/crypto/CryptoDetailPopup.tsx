@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { STORAGE_CRYPTO_TX_HISTORY_PREFIX, STORAGE_CRYPTO_TX_HISTORY_LEGACY } from "@/constants/storageKeys";
 import { X, Plus, Minus, TrendingUp, TrendingDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
@@ -12,6 +11,10 @@ import { toast } from "sonner";
 import { addAuditEntry } from "@/lib/adminStore";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
+import { usePortalDB } from "@/lib/portalContextDB";
+import { supabase as _supabase } from "@/lib/supabase";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase = _supabase as any;
 import { GlassTooltip } from "@/components/ui/GlassTooltip";
 
 const GOLD = "#e8ff00";
@@ -23,7 +26,7 @@ const PERIODS = [
   { label: "1A", days: 365 },
 ] as const;
 
-// ── Transaction history (localStorage) ────────────────────────────────────────
+// ── Transaction history (Supabase: personal_transactions filtered by tags) ──
 
 interface CryptoTx {
   id: string;
@@ -34,32 +37,28 @@ interface CryptoTx {
   date: string;
 }
 
-function txHistoryKey(portalId: string): string {
-  return `${STORAGE_CRYPTO_TX_HISTORY_PREFIX}_${portalId}`;
-}
-
-function readTxHistory(coinId: string, portalId: string): CryptoTx[] {
-  try {
-    const key = txHistoryKey(portalId);
-    let raw = localStorage.getItem(key);
-    // Migrate from old global key
-    if (!raw) {
-      const legacy = localStorage.getItem(STORAGE_CRYPTO_TX_HISTORY_LEGACY);
-      if (legacy) { localStorage.setItem(key, legacy); raw = legacy; }
-    }
-    const all: CryptoTx[] = raw ? JSON.parse(raw) : [];
-    return all.filter((t) => t.coin_id === coinId).sort((a, b) => b.date.localeCompare(a.date));
-  } catch { return []; }
-}
-
-function saveTx(tx: CryptoTx, portalId: string): void {
-  try {
-    const key = txHistoryKey(portalId);
-    const raw = localStorage.getItem(key);
-    const all: CryptoTx[] = raw ? JSON.parse(raw) : [];
-    all.push(tx);
-    localStorage.setItem(key, JSON.stringify(all));
-  } catch { /* noop */ }
+async function fetchCryptoTxHistory(
+  symbol: string,
+  currentPortalId: string,
+): Promise<CryptoTx[]> {
+  const { data, error } = await supabase
+    .from("personal_transactions")
+    .select("id, type, amount, description, date, tags")
+    .eq("portal_id", currentPortalId)
+    .eq("category", "Crypto")
+    .contains("tags", [symbol])
+    .order("date", { ascending: false })
+    .limit(100);
+  if (error || !data) return [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data as any[]).map((row) => ({
+    id: row.id,
+    coin_id: symbol.toLowerCase(),
+    type: row.type === "expense" ? "buy" : "sell",
+    quantity: 0, // not stored on personal_transactions — display title only
+    title: row.description ?? "",
+    date: row.date,
+  }));
 }
 
 const fmtCryptoTooltip = (v: number) => formatEUR(v);
@@ -75,6 +74,7 @@ interface Props {
 export function CryptoDetailPopup({ holding, onClose, onUpdateQuantity }: Props) {
   const { user } = useAuth();
   const { portal } = usePortal();
+  const { currentPortalId } = usePortalDB();
   const portalId = portal?.id ?? "sosa";
   const { addTransaction } = useTransactions();
 
@@ -110,10 +110,11 @@ export function CryptoDetailPopup({ holding, onClose, onUpdateQuantity }: Props)
 
   useEffect(() => { loadChart(); }, [loadChart]);
 
-  // Load tx history
+  // Load tx history from Supabase (personal_transactions filtered by tags)
   useEffect(() => {
-    setTxHistory(readTxHistory(holding.coin_id, portalId));
-  }, [holding.coin_id]);
+    if (!currentPortalId) return;
+    void fetchCryptoTxHistory(holding.symbol, currentPortalId).then(setTxHistory);
+  }, [holding.symbol, currentPortalId]);
 
   // ESC to close
   useEffect(() => {
@@ -141,15 +142,6 @@ export function CryptoDetailPopup({ holding, onClose, onUpdateQuantity }: Props)
       const txDate = new Date().toISOString().slice(0, 10);
       const txTitle = actionTitle.trim() || (actionMode === "buy" ? `Acquisto ${holding.symbol}` : `Vendita ${holding.symbol}`);
 
-      saveTx({
-        id: crypto.randomUUID(),
-        coin_id: holding.coin_id,
-        type: actionMode!,
-        quantity: qty,
-        title: txTitle,
-        date: txDate,
-      }, portalId);
-
       const eurValue = qty * holding.currentPrice;
       if (user) {
         addAuditEntry({
@@ -176,7 +168,9 @@ export function CryptoDetailPopup({ holding, onClose, onUpdateQuantity }: Props)
         broadcastFinanceUpdate("transaction_added");
       }
 
-      setTxHistory(readTxHistory(holding.coin_id, portalId));
+      if (currentPortalId) {
+        setTxHistory(await fetchCryptoTxHistory(holding.symbol, currentPortalId));
+      }
       setActionMode(null);
       setActionQty("");
       setActionTitle("");
