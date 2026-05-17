@@ -4,7 +4,7 @@ import {
   TrendingUp, TrendingDown, RefreshCw, CreditCard,
   Repeat, Columns3, Tags, FileStack, Share2, CalendarClock,
   Layers, Bell, AlertTriangle, Trash2, Settings2, Crosshair, Users,
-  Building2, Palette, Lock, UserCog,
+  Building2, Palette, Lock, UserCog, Shield,
 } from "lucide-react";
 import { usePortal } from "@/lib/portalContext";
 
@@ -60,6 +60,10 @@ const NAV_SECTIONS: { label: string; items: NavItemDef[] }[] = [
       { title: "Regole Avviso",   path: "notifiche/regole-alert", icon: AlertTriangle },
     ],
   },
+];
+
+const ACCOUNT_SECTION: NavItemDef[] = [
+  { title: "Privacy e Dati", path: "../../account/privacy", icon: Shield },
 ];
 
 const DANGER_SECTION: NavItemDef[] = [
@@ -203,6 +207,15 @@ export default function SettingsLayout() {
             <SidebarNavItem item={{ title: "Team",        path: "leadgen/team",         icon: Users      }} />
           </div>
         )}
+
+        {/* Divider + Account */}
+        <div style={{ height: 1, background: "var(--divider)", margin: "16px 8px" }} />
+        <p style={{
+          fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 500,
+          textTransform: "uppercase", letterSpacing: "0.08em",
+          color: "var(--text-tertiary)", padding: "0 8px 6px",
+        }}>ACCOUNT</p>
+        {ACCOUNT_SECTION.map((item) => <SidebarNavItem key={item.path} item={item} />)}
 
         {/* Divider + Danger Zone */}
         <div style={{

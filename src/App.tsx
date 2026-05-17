@@ -47,6 +47,7 @@ import SocialAudience from "./pages/social/SocialAudience";
 import SocialCompetitors from "./pages/social/SocialCompetitors";
 
 // ── Rarely-used pages stay lazy (auth flows, OAuth) ─────────────────────────
+const AccountPrivacy = React.lazy(() => import("./pages/settings/account/AccountPrivacy"));
 const ForgotPasswordPage = React.lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = React.lazy(() => import("./pages/ResetPasswordPage"));
 const OAuthCallback = React.lazy(() => import("./pages/social/OAuthCallback"));
@@ -120,6 +121,7 @@ function PortalRoutes() {
       <Route path="social/audience" element={<SocialAudience />} />
       <Route path="social/competitors" element={<SocialCompetitors />} />
       {SettingsRoutes()}
+      <Route path="account/privacy" element={<Lazy><AccountPrivacy /></Lazy>} />
       <Route path="leadgen" element={<Navigate to="dashboard" replace />} />
 <Route path="leadgen/dashboard" element={<Lazy><LeadgenDashboard /></Lazy>} />
       <Route path="leadgen/overview"  element={<Lazy><LeadgenOverview /></Lazy>} />
