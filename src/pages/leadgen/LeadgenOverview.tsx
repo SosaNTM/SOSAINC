@@ -121,7 +121,7 @@ function DrilldownModal({ config, portalId, prefix, onClose }: DrilldownModalPro
           .limit(100);
         if (!cancelled) {
           setOutreach(
-            (data ?? []).map((e: any) => ({
+            (data ?? []).map((e: { id: string; channel: string; direction: string; occurred_at: string; lead_id: string; leadgen_leads?: { name: string } | null }) => ({
               id: e.id,
               channel: e.channel,
               direction: e.direction,

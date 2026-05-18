@@ -323,7 +323,7 @@ export function EditProfileModal({ profile, open, onClose, onSaved }: Props) {
                   </div>
                 ) : (
                   <a
-                    href={`https://t.me/${(import.meta as any).env?.VITE_TELEGRAM_BOT_USERNAME || "SOSA INC_bot"}?start=${profile.id}`}
+                    href={`https://t.me/${import.meta.env.VITE_TELEGRAM_BOT_USERNAME || "SOSA INC_bot"}?start=${profile.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{

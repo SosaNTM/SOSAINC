@@ -1,13 +1,22 @@
-import { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { X, ChevronLeft, ChevronRight, Search, Upload, ImageIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { GiftCardBrand, EnrichedGiftCard, GiftCardCurrency, GiftCardCategory } from "@/portals/finance/types/giftCards";
 import { getCategoryLabel, getCategoryEmoji } from "@/portals/finance/utils/giftCardUtils";
 
+interface GiftCardSaveData {
+  brand: string;
+  brand_key: string;
+  initial_value: number;
+  remaining_value: number;
+  currency: GiftCardCurrency;
+  notes?: string;
+}
+
 interface GiftCardModalProps {
   brands: GiftCardBrand[];
   editingCard: EnrichedGiftCard | null;
-  onSave: (data: any) => Promise<void>;
+  onSave: (data: GiftCardSaveData) => Promise<void>;
   onClose: () => void;
 }
 
@@ -361,7 +370,7 @@ export function GiftCardModal({ brands, editingCard, onSave, onClose }: GiftCard
                 <label style={LABEL}>Note</label>
                 <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Dove hai comprato, come usarla..."
                   rows={2}
-                  style={{ ...INPUT, resize: "none", fontFamily: "inherit", lineHeight: 1.5 } as any} />
+                  style={{ ...INPUT, resize: "none", fontFamily: "inherit", lineHeight: 1.5 } as React.CSSProperties} />
               </div>
 
               {/* Error */}

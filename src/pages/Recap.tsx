@@ -84,7 +84,8 @@ function getPrevRange(range: DateRange): DateRange {
 
 // ── Shared glass tooltip ──────────────────────────────────────────────────────
 
-function GlassTip({ active, payload, label, fmt }: { active?: boolean; payload?: any[]; label?: string; fmt?: (v: number) => string }) {
+type RecapPayloadEntry = { name: string; value: number; color?: string; stroke?: string };
+function GlassTip({ active, payload, label, fmt }: { active?: boolean; payload?: RecapPayloadEntry[]; label?: string; fmt?: (v: number) => string }) {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
@@ -92,7 +93,7 @@ function GlassTip({ active, payload, label, fmt }: { active?: boolean; payload?:
       borderRadius: 10, padding: "8px 12px", fontFamily: "var(--font-mono)", fontSize: 12,
     }}>
       {label && <p style={{ color: "var(--text-tertiary)", margin: "0 0 4px", fontSize: 11 }}>{label}</p>}
-      {payload.map((p: any, i: number) => (
+      {payload.map((p, i) => (
         <p key={i} style={{ color: p.color ?? p.stroke ?? "var(--text-primary)", margin: "2px 0", fontWeight: 600 }}>
           {p.name}: {fmt ? fmt(p.value) : p.value}
         </p>
@@ -101,7 +102,8 @@ function GlassTip({ active, payload, label, fmt }: { active?: boolean; payload?:
   );
 }
 
-function PieTip({ active, payload }: any) {
+type RecapPieTipProps = { active?: boolean; payload?: Array<{ name: string; value: number; payload: { pct: number; fmtAmt: string } }> };
+function PieTip({ active, payload }: RecapPieTipProps) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
@@ -458,7 +460,7 @@ export default function Recap() {
     return f;
   }, [range, typeFilter, activeCatFilter, activeIncomeFilter, searchQuery, activeDateFilter]);
 
-  const { transactions: rawTableTxs, isLoading: tableLoading, deleteTransaction, updateTransaction } = useTransactions(tableFilters as any);
+  const { transactions: rawTableTxs, isLoading: tableLoading, deleteTransaction, updateTransaction } = useTransactions(tableFilters as TransactionFilters);
 
   // ── Category color map ──────────────────────────────────────────────────────
   const catColorMap = useMemo(() => {
@@ -972,7 +974,7 @@ export default function Recap() {
                   tickFormatter={v => v >= 1000 ? `${Math.round(v/1000)}k` : v >= -1000 ? `${v}` : `${Math.round(v/1000)}k`}
                 />
                 <Tooltip
-                  content={({ active, payload }: any) => {
+                  content={({ active, payload }: { active?: boolean; payload?: Array<{ payload: { label: string; net: number; cumulative: number } }> }) => {
                     if (!active || !payload?.length) return null;
                     const d = payload[0].payload;
                     return (
@@ -1080,7 +1082,7 @@ export default function Recap() {
               style={{ flex: "1 1 140px", minWidth: 100, fontSize: 12, padding: "5px 10px" }}
             />
             {/* Add transaction */}
-            <button onClick={() => setEditingTx({} as any)} style={{
+            <button onClick={() => setEditingTx({} as PersonalTransaction)} style={{
               padding: "5px 12px", borderRadius: 6, fontSize: 11, fontFamily: "var(--font-mono)", cursor: "pointer",
               background: accentColor, border: "none", color: "#000", display: "flex", alignItems: "center", gap: 4,
             }}>

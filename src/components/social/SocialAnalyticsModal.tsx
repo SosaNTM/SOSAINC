@@ -27,7 +27,7 @@ function genDaily(seed: number, base: number, amp: number, days = 30) {
 
 function genDailyMulti(seeds: number[], bases: number[], amps: number[], keys: string[], days = 30) {
   return Array.from({ length: days }, (_, i) => {
-    const point: Record<string, any> = { day: `Day ${i + 1}` };
+    const point: Record<string, number | string> = { day: `Day ${i + 1}` };
     keys.forEach((k, j) => {
       const v = bases[j] + (i / days) * amps[j] * 0.4 + Math.sin(seeds[j] * 2.3 + i * 0.71) * amps[j] * 0.6;
       point[k] = Math.max(0, Math.round(v * 100) / 100);
@@ -106,16 +106,17 @@ function PlatformRow({ platform, value, maxValue, change, changePct, index = 0, 
 }) {
   const [mounted, setMounted] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const meta = PLATFORM_META[platform];
-  if (!meta) return null;
-  const pct = maxValue > 0 ? (value / maxValue) * 100 : 0;
-  const isPos = change >= 0;
-  const changeColor = isPos ? "#10b981" : "#ef4444";
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), index * 60);
     return () => clearTimeout(t);
   }, [index]);
+
+  const meta = PLATFORM_META[platform];
+  if (!meta) return null;
+  const pct = maxValue > 0 ? (value / maxValue) * 100 : 0;
+  const isPos = change >= 0;
+  const changeColor = isPos ? "#10b981" : "#ef4444";
 
   const display = suffix
     ? `${value}${suffix}`
@@ -239,7 +240,7 @@ function ImpressionsModal() {
             contentStyle={tooltipContentStyle}
             labelStyle={tooltipLabelStyle}
             cursor={{ fill: "rgba(255,255,255,0.03)" }}
-            formatter={(v: any) => [formatSocialNumber(v as number), "Impressions"]}
+            formatter={(v: number) => [formatSocialNumber(v), "Impressions"]}
           />
           <ReferenceLine y={avg} stroke="#6366f1" strokeDasharray="4 4" strokeOpacity={0.4}
             label={{ value: `avg ${formatSocialNumber(avg)}`, position: "right", fill: "#6366f1", fontSize: 9, opacity: 0.5 }} />
@@ -318,7 +319,7 @@ function ReachModal() {
             contentStyle={tooltipContentStyle}
             labelStyle={tooltipLabelStyle}
             cursor={{ stroke: "rgba(255,255,255,0.1)", strokeDasharray: "4 4" }}
-            formatter={(v: any, name: string) => [formatSocialNumber(v as number), name === "reach" ? "Reach" : "Impressions"]}
+            formatter={(v: number, name: string) => [formatSocialNumber(v), name === "reach" ? "Reach" : "Impressions"]}
           />
           <ReferenceLine y={avgReach} stroke="#8b5cf6" strokeDasharray="4 4" strokeOpacity={0.4}
             label={{ value: `avg ${formatSocialNumber(avgReach)}`, position: "right", fill: "#8b5cf6", fontSize: 9, opacity: 0.5 }} />
@@ -392,7 +393,7 @@ function EngagementModal() {
           return (
             <button type="button"
               key={t.key}
-              onClick={() => setHidden(prev => { const n = new Set(prev); isHidden ? n.delete(t.key) : n.add(t.key); return n; })}
+              onClick={() => setHidden(prev => { const n = new Set(prev); if (isHidden) { n.delete(t.key); } else { n.add(t.key); } return n; })}
               style={{
                 display: "flex", alignItems: "center", gap: 6,
                 fontSize: 11, fontWeight: 600,
@@ -424,9 +425,9 @@ function EngagementModal() {
             contentStyle={tooltipContentStyle}
             labelStyle={tooltipLabelStyle}
             cursor={{ stroke: "rgba(255,255,255,0.1)", strokeDasharray: "4 4" }}
-            formatter={(v: any, name: string) => {
+            formatter={(v: number, name: string) => {
               const t = types.find(x => x.key === name);
-              return [formatSocialNumber(v as number), t?.label ?? name];
+              return [formatSocialNumber(v), t?.label ?? name];
             }}
           />
           {types.map(t => (
@@ -479,17 +480,17 @@ function EngagementModal() {
 function EngagementRateModal() {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
 
-  const ENG_SEEDS: Record<string, [number, number]> = {
+  const ENG_SEEDS: Record<string, [number, number, number]> = {
     tiktok:    [7, 430, 200],
     linkedin:  [6, 580, 150],
     instagram: [5, 490, 130],
     youtube:   [4, 390, 110],
     twitter:   [3, 360,  90],
-  } as any;
+  };
 
   // Build daily multi for all platforms (values as %, e.g. 7.8)
   const daily = Array.from({ length: 30 }, (_, i) => {
-    const point: Record<string, any> = { day: `Day ${i + 1}` };
+    const point: Record<string, number | string> = { day: `Day ${i + 1}` };
     const CONFIGS: Array<[string, number, number]> = [
       ["tiktok",    7.8, 1.2],
       ["linkedin",  6.1, 0.9],
@@ -533,7 +534,7 @@ function EngagementRateModal() {
           return (
             <button type="button"
               key={p.platform}
-              onClick={() => setHidden(prev => { const n = new Set(prev); isHidden ? n.delete(p.platform) : n.add(p.platform); return n; })}
+              onClick={() => setHidden(prev => { const n = new Set(prev); if (isHidden) { n.delete(p.platform); } else { n.add(p.platform); } return n; })}
               style={{
                 display: "flex", alignItems: "center", gap: 6,
                 fontSize: 11, fontWeight: 600,
@@ -557,9 +558,9 @@ function EngagementRateModal() {
             contentStyle={tooltipContentStyle}
             labelStyle={tooltipLabelStyle}
             cursor={{ stroke: "rgba(255,255,255,0.1)", strokeDasharray: "4 4" }}
-            formatter={(v: any, name: string) => {
+            formatter={(v: number, name: string) => {
               const meta = PLATFORM_META[name];
-              return [`${Number(v).toFixed(1)}%`, meta?.name ?? name];
+              return [`${v.toFixed(1)}%`, meta?.name ?? name];
             }}
           />
           <ReferenceLine y={4.7} stroke="rgba(255,255,255,0.15)" strokeDasharray="4 4"
@@ -643,7 +644,7 @@ function ProfileVisitsModal() {
             contentStyle={tooltipContentStyle}
             labelStyle={tooltipLabelStyle}
             cursor={{ stroke: "rgba(255,255,255,0.1)", strokeDasharray: "4 4" }}
-            formatter={(v: any) => [formatSocialNumber(v as number), "Profile Visits"]}
+            formatter={(v: number) => [formatSocialNumber(v), "Profile Visits"]}
           />
           <ReferenceLine y={avg} stroke="#a78bfa" strokeDasharray="4 4" strokeOpacity={0.4}
             label={{ value: `avg ${formatSocialNumber(avg)}`, position: "right", fill: "#a78bfa", fontSize: 9, opacity: 0.5 }} />
@@ -715,7 +716,7 @@ function WebsiteClicksModal() {
             contentStyle={tooltipContentStyle}
             labelStyle={tooltipLabelStyle}
             cursor={{ fill: "rgba(255,255,255,0.03)" }}
-            formatter={(v: any) => [formatSocialNumber(v as number), "Clicks"]}
+            formatter={(v: number) => [formatSocialNumber(v), "Clicks"]}
           />
           <ReferenceLine y={avg} stroke="#06b6d4" strokeDasharray="4 4" strokeOpacity={0.4}
             label={{ value: `avg ${avg}`, position: "right", fill: "#06b6d4", fontSize: 9, opacity: 0.5 }} />

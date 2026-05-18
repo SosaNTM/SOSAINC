@@ -11,7 +11,7 @@ import { usePortal } from "@/lib/portalContext";
 import { useFinanceCategories } from "@/hooks/useFinanceCategories";
 import type { CostClassification } from "@/types/finance";
 
-const iconMap: Record<string, React.FC<any>> = {
+const iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   Users, UserPlus, Package, Monitor, Server, Building2, Megaphone, Briefcase, Landmark, Shield, MoreHorizontal,
 };
 
@@ -70,14 +70,14 @@ export function NewTransactionModal({ open, onClose }: NewTransactionModalProps)
     if (!description || !amount || !selectedCategory) return;
     const catLabel = txType === "income" ? selectedCategory
       : [...directCostCategories, ...indirectCostCategories].find((c) => c.id === selectedCategory)?.label || selectedCategory;
-    const txData: Parameters<typeof addTransaction>[0] = {
+    const txData: Parameters<typeof addTransaction>[0] & { cost_classification?: string; category_id?: string } = {
       date: new Date().toISOString().slice(0, 10), type: txType, description,
       category: catLabel, costType: txType === "expense" ? costType : null,
       amount: parseFloat(amount),
     };
     if (isBusinessPortal) {
-      (txData as any).cost_classification = costClassification;
-      if (categoryId) (txData as any).category_id = categoryId;
+      txData.cost_classification = costClassification;
+      if (categoryId) txData.category_id = categoryId;
     }
     addTransaction(txData);
     setDescription(""); setAmount(""); setSelectedCategory(null);

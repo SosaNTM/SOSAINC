@@ -44,12 +44,13 @@ function timeSince(iso: string | null) {
 
 // NOTE: Custom tooltip — too specialized for GlassTooltip (extra color fallback prop + fmtN formatting)
 
-function GlassTooltip({ active, payload, label, color }: any) {
+type GlassTooltipProps = { active?: boolean; payload?: Array<{ name: string; value: number; color?: string }>; label?: string; color?: string };
+function GlassTooltip({ active, payload, label, color }: GlassTooltipProps) {
   if (!active || !payload?.length) return null;
   return (
     <div style={{ background: "rgba(8,12,24,0.96)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "10px 14px", boxShadow: "0 8px 32px rgba(0,0,0,0.5)", minWidth: 120 }}>
       <p style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>{label}</p>
-      {payload.map((entry: any, i: number) => (
+      {payload.map((entry, i) => (
         <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: i < payload.length - 1 ? 4 : 0 }}>
           <div style={{ width: 6, height: 6, borderRadius: "50%", background: entry.color ?? color }} />
           <span style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", fontWeight: 500 }}>{entry.name}:</span>

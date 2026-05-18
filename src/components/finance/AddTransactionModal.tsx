@@ -316,7 +316,7 @@ export function AddTransactionModal({ open, onClose, onSave, initialData, title 
               <div>
                 <Label>Metodo di Pagamento</Label>
                 <div style={{ position: "relative" }}>
-                  <select value={payMethod} onChange={(e) => setPayMethod(e.target.value as any)}
+                  <select value={payMethod} onChange={(e) => setPayMethod(e.target.value as NewPersonalTransaction["payment_method"])}
                     style={{ ...inputStyle, padding: "10px 32px 10px 12px", appearance: "none", cursor: "pointer" }}>
                     {Object.entries(PAYMENT_METHOD_LABELS).map(([v, l]) => (
                       <option key={v} value={v}>{l}</option>

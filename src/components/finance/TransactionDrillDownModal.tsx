@@ -177,7 +177,7 @@ export function TransactionDrillDownModal({
                       />
                       <YAxis hide />
                       <Tooltip
-                        content={({ active, payload }: any) => {
+                        content={({ active, payload }: { active?: boolean; payload?: Array<{ payload: { label: string; amount: number } }> }) => {
                           if (!active || !payload?.length) return null;
                           const d = payload[0].payload;
                           if (d.amount === 0) return null;

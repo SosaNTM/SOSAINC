@@ -16,7 +16,6 @@ import { formatEUR } from "@/portals/finance/utils/currency";
 import type { EnrichedHolding } from "@/portals/finance/types/crypto";
 import { CryptoHoldingModal } from "./CryptoHoldingModal";
 import { CryptoDeleteConfirm } from "./CryptoDeleteConfirm";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { CryptoDetailPopup } from "./CryptoDetailPopup";
 import { addAuditEntry } from "@/lib/adminStore";
 import { useAuth } from "@/lib/authContext";

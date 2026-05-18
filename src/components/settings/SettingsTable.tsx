@@ -197,7 +197,7 @@ function TableRow<T extends { id: string }>({
           color: "var(--text-secondary)",
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>
-          {col.render ? col.render(item) : String((item as any)[col.key] ?? "")}
+          {col.render ? col.render(item) : String((item as Record<string, unknown>)[col.key] ?? "")}
         </div>
       ))}
       <div style={{ flex: "0 0 80px", display: "flex", justifyContent: "flex-end", gap: 8 }}>

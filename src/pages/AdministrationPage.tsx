@@ -410,7 +410,7 @@ function EditUserModal({ user, onClose, onSave, onDeleted }: { user: User; onClo
           </div>
           <div className="flex flex-col gap-1.5">
             <label style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)" }}>Role</label>
-            <select className="glass-input w-full" value={role} onChange={(e) => setRole(e.target.value as any)} style={{ fontSize: 13, padding: "8px 12px" }} disabled={user.role === "owner"}>
+            <select className="glass-input w-full" value={role} onChange={(e) => setRole(e.target.value as Role)} style={{ fontSize: 13, padding: "8px 12px" }} disabled={user.role === "owner"}>
               <option value="member">Member</option>
               <option value="manager">Manager</option>
               <option value="admin">Admin</option>

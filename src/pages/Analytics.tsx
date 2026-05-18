@@ -17,7 +17,8 @@ import type { NewPersonalTransaction } from "@/types/finance";
 const fmtEurTooltip = (v: number) => `€${Number(v).toLocaleString("en-US")}`;
 
 // NOTE: Custom tooltip — too specialized for GlassTooltip (accesses payload[0].payload.percentage)
-function PieTip({ active, payload }: any) {
+type PieTipProps = { active?: boolean; payload?: Array<{ name: string; value: number; payload: { percentage: string } }> };
+function PieTip({ active, payload }: PieTipProps) {
   if (!active || !payload?.length) return null;
   return (
     <div style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: "7px 12px" }}>
@@ -31,7 +32,7 @@ function PieTip({ active, payload }: any) {
 
 // â”€â”€ CSV export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-function exportCSV(rows: any[], filename: string) {
+function exportCSV(rows: Record<string, unknown>[], filename: string) {
   if (!rows.length) return;
   const headers = Object.keys(rows[0]).join(",");
   const lines   = rows.map((r) => Object.values(r).map((v) => `"${v}"`).join(","));

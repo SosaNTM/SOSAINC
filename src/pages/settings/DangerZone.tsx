@@ -4,8 +4,8 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/authContext";
 import { usePortalDB } from "@/lib/portalContextDB";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { supabase as _supabase } from "@/lib/supabase";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase = _supabase as any;
 import { SettingsPageHeader, SettingsCard } from "@/components/settings";
 
@@ -44,7 +44,7 @@ export default function DangerZone() {
   const { currentPortal, currentPortalId, isOwner, refreshPortals } = usePortalDB();
   const navigate = useNavigate();
   const portalName = currentPortal?.name ?? "";
-  const portalSlug = (currentPortal as any)?.slug ?? "";
+  const portalSlug = (currentPortal as { slug?: string })?.slug ?? "";
 
   const [activeAction, setActiveAction] = useState<ActionKey | null>(null);
   const [confirmText, setConfirmText] = useState("");
@@ -73,7 +73,7 @@ export default function DangerZone() {
           p_portal_id: currentPortalId,
         });
         if (error) throw new Error(error.message);
-        const deleted = (data as any)?.deleted ?? {};
+        const deleted = (data as { deleted?: Record<string, number> })?.deleted ?? {};
         const totalDeleted = Object.values(deleted).reduce(
           (sum: number, n: unknown) => sum + (Number(n) || 0),
           0,

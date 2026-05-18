@@ -62,7 +62,7 @@ export default function SocialCompetitors() {
                     {row.accountName}
                   </span>
                   {!row.isUs && (
-                    <p style={{ fontSize: 11, color: "var(--text-quaternary)", marginTop: 2 }}>{(row as any).displayName}</p>
+                    <p style={{ fontSize: 11, color: "var(--text-quaternary)", marginTop: 2 }}>{row.displayName}</p>
                   )}
                 </td>
                 <td style={{ padding: "14px 16px", fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>

@@ -96,7 +96,7 @@ export default function GiftCardsPage() {
 
   async function handleArchive(id: string) {
     const card = cards.find((c) => c.id === id);
-    await updateCard(id, { status: "archived" } as any);
+    await updateCard(id, { status: "archived" });
     if (user && card) addAuditEntry({ userId: user.id, action: `Archived ${card.brand} gift card`, category: "finance", details: "", icon: "📦", portalId });
   }
 

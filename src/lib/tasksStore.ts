@@ -96,4 +96,4 @@ export const INITIAL_TASKS: Task[] = [
   { id: "TSK-013", title: "Set up CI/CD pipeline", description: "Configure automated testing and deployment pipeline.", status: "done", priority: "high", assigneeId: "usr_002", creatorId: "usr_001", watcherIds: [], labels: ["ops", "product"], dueDate: d(3), completedAt: d(2), comments: [], attachments: [], createdAt: d(14), updatedAt: d(2) },
   { id: "TSK-014", title: "Create brand style guide", description: "Document all brand assets, colors, typography, and usage guidelines.", status: "done", priority: "medium", assigneeId: "usr_004", creatorId: "usr_001", watcherIds: ["usr_003"], labels: ["design"], dueDate: d(1), completedAt: d(1), comments: [], attachments: [], createdAt: d(10), updatedAt: d(1) },
   { id: "TSK-015", title: "Tax filing preparation", description: "Gather all documents for Q4 tax filing.", status: "done", priority: "urgent", assigneeId: "usr_001", creatorId: "usr_001", watcherIds: ["usr_002"], labels: ["finance", "legal"], dueDate: d(5), completedAt: d(4), comments: [], attachments: [], createdAt: d(20), updatedAt: d(4) },
-]; // eslint-disable-line @typescript-eslint/no-unused-vars
+];

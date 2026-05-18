@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import type { DateRange } from "@/hooks/useFinanceSummary";
 
 interface DayData {
@@ -112,7 +112,7 @@ export function CalendarHeatmap({ data, range, formatAmount, onDayClick }: Props
       )}
 
       {/* Scroll wrapper for mobile */}
-      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" as any }}>
+      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
         <div style={{ display: "flex", gap: 0, minWidth: "max-content" }}>
           {/* Day-of-week labels column */}
           <div style={{ display: "flex", flexDirection: "column", gap: 2, paddingTop: 18, marginRight: 4 }}>

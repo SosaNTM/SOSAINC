@@ -42,7 +42,7 @@ function TagPill({ tag, onRemove }: { tag: string; onRemove?: () => void }) {
 }
 
 // ─── Toolbar Button ───
-function ToolBtn({ icon: Icon, active, onClick, title }: { icon: any; active?: boolean; onClick: () => void; title?: string }) {
+function ToolBtn({ icon: Icon, active, onClick, title }: { icon: React.ComponentType<{ size?: number; className?: string }>; active?: boolean; onClick: () => void; title?: string }) {
   return (
     <button type="button"
       onClick={onClick}
@@ -310,7 +310,7 @@ const NotesPage = () => {
   const toggleFolder = (folderId: string) => {
     setExpandedFolders((prev) => {
       const next = new Set(prev);
-      next.has(folderId) ? next.delete(folderId) : next.add(folderId);
+      if (next.has(folderId)) { next.delete(folderId); } else { next.add(folderId); }
       return next;
     });
   };
@@ -424,7 +424,7 @@ const NotesPage = () => {
           )}
         </div>
         <p className="truncate" style={{ fontSize: 11, color: "var(--text-quaternary)", marginTop: 2, paddingLeft: canDrag ? 15 : 0 }}>
-          {note.content.replace(/[#*\-\[\]>]/g, "").slice(0, 60)}
+          {note.content.replace(/[#*\-[\]>]/g, "").slice(0, 60)}
         </p>
       </button>
     );
@@ -575,7 +575,7 @@ const NotesPage = () => {
             >
               📌 Pinned ({pinnedNotes.length})
             </button>
-            {(viewFilter.type === "pinned" || true) && pinnedNotes.map((n) => renderNoteItem(n))}
+            {pinnedNotes.map((n) => renderNoteItem(n))}
           </div>
         )}
 
@@ -947,7 +947,7 @@ const NotesPage = () => {
               style={{
                 padding: "7px 12px", borderRadius: 6, fontSize: 13, border: "none", cursor: "pointer",
                 background: "transparent",
-                color: (item as any).danger ? "var(--color-error)" : "var(--text-secondary)",
+                color: (item as { danger?: boolean }).danger ? "var(--color-error)" : "var(--text-secondary)",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface-hover, var(--nav-hover-bg))"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
@@ -988,7 +988,7 @@ const NotesPage = () => {
               style={{
                 padding: "7px 12px", borderRadius: 6, fontSize: 13, border: "none", cursor: "pointer",
                 background: "transparent",
-                color: (item as any).danger ? "var(--color-error)" : "var(--text-secondary)",
+                color: (item as { danger?: boolean }).danger ? "var(--color-error)" : "var(--text-secondary)",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface-hover, var(--nav-hover-bg))"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}

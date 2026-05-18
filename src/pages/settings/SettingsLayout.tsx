@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { usePortal } from "@/lib/portalContext";
 
-interface NavItemDef { title: string; path: string; icon: React.FC<any>; danger?: boolean }
+interface NavItemDef { title: string; path: string; icon: React.ComponentType<{ size?: number; className?: string }>; danger?: boolean }
 
 const NAV_SECTIONS: { label: string; items: NavItemDef[] }[] = [
   {

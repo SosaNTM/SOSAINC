@@ -209,7 +209,7 @@ const TasksPage = () => {
   const toggleGroup = (key: string) => {
     setCollapsedGroups(prev => {
       const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
+      if (next.has(key)) { next.delete(key); } else { next.add(key); }
       return next;
     });
   };
@@ -343,7 +343,7 @@ const TasksPage = () => {
             </select>
 
             {viewMode === "list" && (
-              <select value={groupBy} onChange={e => setGroupBy(e.target.value as any)} style={{ fontSize: 11, padding: "5px 7px", borderRadius: 6, background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", color: "var(--text-tertiary)", cursor: "pointer" }}>
+              <select value={groupBy} onChange={e => setGroupBy(e.target.value as "status" | "priority" | "assignee" | "project")} style={{ fontSize: 11, padding: "5px 7px", borderRadius: 6, background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", color: "var(--text-tertiary)", cursor: "pointer" }}>
                 <option value="status">Group: Status</option>
                 <option value="priority">Group: Priority</option>
                 <option value="assignee">Group: Assignee</option>
