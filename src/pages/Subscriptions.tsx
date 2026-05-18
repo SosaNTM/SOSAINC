@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Pause, Play, Zap, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
@@ -274,9 +274,9 @@ export default function Subscriptions() {
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       >
         {[
-          { label: "Active",           value: String(activeSubs.length),                                        color: "#4A9EFF" },
-          { label: "Monthly Total",   value: `€${totalMonthly.toFixed(2)}`,                                    color: "#e8ff00" },
-          { label: "Annual Cost",     value: `€${totalAnnual.toLocaleString("en-US", { minimumFractionDigits: 2 })}`, color: "#FF5A5A" },
+          { label: "Active",           value: String(activeSubs.length),                                        color: "var(--color-info)" },
+          { label: "Monthly Total",   value: `€${totalMonthly.toFixed(2)}`,                                    color: "var(--sosa-yellow)" },
+          { label: "Annual Cost",     value: `€${totalAnnual.toLocaleString("en-US", { minimumFractionDigits: 2 })}`, color: "var(--color-error)" },
         ].map((s) => (
           <div key={s.label} style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 14, padding: "14px 18px" }}>
             <p style={{ fontSize: 11, color: "var(--text-quaternary)", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" }}>{s.label}</p>
@@ -381,17 +381,17 @@ export default function Subscriptions() {
 
                           {/* Status badge */}
                           {status === "active" && (
-                            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: "rgba(46,204,113,0.12)", color: "#2ECC71", whiteSpace: "nowrap" }}>
+                            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: "rgba(46,204,113,0.12)", color: "var(--color-success)", whiteSpace: "nowrap" }}>
                               Active
                             </span>
                           )}
                           {status === "due_soon" && (
-                            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: "rgba(245,158,11,0.15)", color: "#f59e0b", whiteSpace: "nowrap" }}>
+                            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: "rgba(245,158,11,0.15)", color: "var(--color-warning)", whiteSpace: "nowrap" }}>
                               {days === 0 ? "Today" : `In ${days}d`}
                             </span>
                           )}
                           {status === "overdue" && (
-                            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: "rgba(255,90,90,0.12)", color: "#FF5A5A", whiteSpace: "nowrap" }}>
+                            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: "rgba(255,90,90,0.12)", color: "var(--color-error)", whiteSpace: "nowrap" }}>
                               Overdue
                             </span>
                           )}
@@ -404,9 +404,9 @@ export default function Subscriptions() {
                           {/* Context menu button */}
                           {isDeleteConfirm ? (
                             <div className="flex items-center gap-1">
-                              <span style={{ fontSize: 10, color: "#FF5A5A" }}>Delete?</span>
+                              <span style={{ fontSize: 10, color: "var(--color-error)" }}>Delete?</span>
                               <button type="button" onClick={() => softDelete(sub.id)}
-                                style={{ padding: "3px 8px", fontSize: 10, borderRadius: 6, border: "none", background: "rgba(255,90,90,0.2)", color: "#FF5A5A", cursor: "pointer" }}>
+                                style={{ padding: "3px 8px", fontSize: 10, borderRadius: 6, border: "none", background: "rgba(255,90,90,0.2)", color: "var(--color-error)", cursor: "pointer" }}>
                                 Yes
                               </button>
                               <button type="button" onClick={() => setDeleteConfirmId(null)}
@@ -434,7 +434,7 @@ export default function Subscriptions() {
 
                       {/* Insufficient balance warning */}
                       {insufficientBalance && (
-                        <p style={{ fontSize: 10.5, color: "#f59e0b", marginTop: 8, paddingTop: 8, borderTop: "0.5px solid rgba(245,158,11,0.15)" }}>
+                        <p style={{ fontSize: 10.5, color: "var(--color-warning)", marginTop: 8, paddingTop: 8, borderTop: "0.5px solid rgba(245,158,11,0.15)" }}>
                           ⚠ Insufficient balance at charge time (balance: €{balance.toFixed(2)})
                         </p>
                       )}
@@ -457,7 +457,7 @@ export default function Subscriptions() {
         </div>
 
         {/* ── Pie chart ── */}
-        <LiquidGlassCard accentColor="#e8ff00" hover={false}>
+        <LiquidGlassCard accentColor="var(--sosa-yellow)" hover={false}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>By Category</h3>
           {catData.length > 0 ? (
             <ResponsiveContainer width="100%" height={160}>
@@ -487,7 +487,7 @@ export default function Subscriptions() {
           <div style={{ marginTop: 14, paddingTop: 12, borderTop: "0.5px solid var(--glass-border)" }}>
             <div className="flex justify-between">
               <span style={{ fontSize: 12, color: "var(--text-quaternary)" }}>Monthly (norm.)</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#e8ff00" }}>€{totalMonthly.toFixed(2)}/mo</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--sosa-yellow)" }}>€{totalMonthly.toFixed(2)}/mo</span>
             </div>
             <div className="flex justify-between mt-1">
               <span style={{ fontSize: 12, color: "var(--text-quaternary)" }}>Annual</span>
@@ -514,7 +514,7 @@ export default function Subscriptions() {
                 start_date: editingSub.start_date,
                 category: editingSub.category,
                 description: editingSub.description ?? "",
-                color: editingSub.color ?? "#e8ff00",
+                color: editingSub.color ?? "var(--sosa-yellow)",
                 is_active: editingSub.is_active,
               }
             : undefined
@@ -558,7 +558,7 @@ export default function Subscriptions() {
             </button>
             <div style={{ height: "0.5px", background: "var(--glass-border)", margin: "3px 8px" }} />
             <button type="button" onClick={() => { setDeleteConfirmId(sub.id); setOpenMenuId(null); setMenuPos(null); }}
-              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 7, border: "none", background: "transparent", color: "#FF5A5A", cursor: "pointer", fontSize: 12, textAlign: "left" }}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 7, border: "none", background: "transparent", color: "var(--color-error)", cursor: "pointer", fontSize: 12, textAlign: "left" }}
               onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,90,90,0.08)")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
               <Trash2 style={{ width: 12, height: 12 }} /> Delete

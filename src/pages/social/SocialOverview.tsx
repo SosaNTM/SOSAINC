@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   mockSocialAccounts, mockSocialPosts, mockSocialGoals,
@@ -192,7 +192,7 @@ export default function SocialOverview() {
           changePercent={agg.followerChangePct}
           sparkline={getAllSparklineData(accountIds, days, "followers")}
           accentColor="#10b981"
-          icon="👥"
+          icon="●"
           onClick={() => setActiveKpi("followers")}
         />
         <SocialKpiCard
@@ -202,7 +202,7 @@ export default function SocialOverview() {
           changePercent={agg.impressionChangePct}
           sparkline={getAllSparklineData(accountIds, days, "impressions")}
           accentColor="#6366f1"
-          icon="👁"
+          icon="○"
           onClick={() => setActiveKpi("impressions")}
         />
         <SocialKpiCard
@@ -212,7 +212,7 @@ export default function SocialOverview() {
           changePercent={12.3}
           sparkline={getAllSparklineData(accountIds, days, "reach")}
           accentColor="#3b82f6"
-          icon="📡"
+          icon="→"
           onClick={() => setActiveKpi("reach")}
         />
         <SocialKpiCard
@@ -222,7 +222,7 @@ export default function SocialOverview() {
           changePercent={agg.postsChange > 0 ? Number(((agg.postsChange / Math.max(agg.totalPosts - agg.postsChange, 1)) * 100).toFixed(1)) : 0}
           sparkline={getAllSparklineData(accountIds, days, "postsPublished")}
           accentColor="#e879f9"
-          icon="📝"
+          icon="◆"
           onClick={() => setActiveKpi("posts")}
         />
       </div>
@@ -237,7 +237,7 @@ export default function SocialOverview() {
           changePercent={pct(avgLikes, prevAvgLikes)}
           sparkline={getAllSparklineData(accountIds, days, "likes")}
           accentColor="#f43f5e"
-          icon="❤️"
+          icon="●"
           onClick={() => setActiveKpi("likes")}
         />
         <SocialKpiCard
@@ -248,7 +248,7 @@ export default function SocialOverview() {
           changePercent={pct(avgComments, prevAvgComments)}
           sparkline={getAllSparklineData(accountIds, days, "comments")}
           accentColor="#3b82f6"
-          icon="💬"
+          icon="◆"
           onClick={() => setActiveKpi("comments")}
         />
         <SocialKpiCard
@@ -260,7 +260,7 @@ export default function SocialOverview() {
           changeSuffix=" pts"
           sparkline={getAllSparklineData(accountIds, days, "engagementRate")}
           accentColor="#f59e0b"
-          icon="⚡"
+          icon="↑"
           onClick={() => setActiveKpi("engagementRate")}
         />
         <SocialKpiCard
@@ -271,7 +271,7 @@ export default function SocialOverview() {
           changePercent={pct(avgShares, prevAvgShares)}
           sparkline={getAllSparklineData(accountIds, days, "shares")}
           accentColor="#10b981"
-          icon="🔄"
+          icon="→"
           onClick={() => setActiveKpi("shares")}
         />
       </div>
@@ -285,7 +285,7 @@ export default function SocialOverview() {
           changePercent={8.9}
           sparkline={getAllSparklineData(accountIds, days, "profileVisits")}
           accentColor="#a78bfa"
-          icon="🧑"
+          icon="○"
           onClick={() => setActiveKpi("profileVisits")}
         />
         <SocialKpiCard
@@ -295,7 +295,7 @@ export default function SocialOverview() {
           changePercent={15.0}
           sparkline={getAllSparklineData(accountIds, days, "websiteClicks")}
           accentColor="#06b6d4"
-          icon="🔗"
+          icon="→"
           onClick={() => setActiveKpi("websiteClicks")}
         />
         <SocialKpiCard
@@ -306,7 +306,7 @@ export default function SocialOverview() {
           changePercent={pct(avgSaves, prevAvgSaves)}
           sparkline={getAllSparklineData(accountIds, days, "saves")}
           accentColor="#f59e0b"
-          icon="🔖"
+          icon="◆"
           onClick={() => setActiveKpi("saves")}
         />
       </div>

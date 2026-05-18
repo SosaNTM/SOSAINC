@@ -1,4 +1,4 @@
-/**
+﻿/**
  * InventoryPage — Digital Stock Manager
  *
  * Fields per item: Name · Description · Amount · Value (€)
@@ -165,7 +165,7 @@ function AttachmentsPanel({ item, portalId, userId }: { item: InventoryItem; por
           )}
           <button type="button" title="Delete" onClick={() => remove(att)}
             style={{ width: 24, height: 24, borderRadius: 5, border: "none", background: "transparent", color: "var(--text-quaternary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-            onMouseEnter={e => { e.currentTarget.style.color = "#ef4444"; e.currentTarget.style.background = "rgba(239,68,68,0.1)"; }}
+            onMouseEnter={e => { e.currentTarget.style.color = "var(--color-error)"; e.currentTarget.style.background = "rgba(239,68,68,0.1)"; }}
             onMouseLeave={e => { e.currentTarget.style.color = "var(--text-quaternary)"; e.currentTarget.style.background = "transparent"; }}>
             <X className="w-3.5 h-3.5" />
           </button>
@@ -249,7 +249,7 @@ function ItemFormModal({
               placeholder="e.g. Adobe Photoshop License"
               style={{ fontSize: 14, padding: "10px 14px", border: errors.name ? "1px solid #ef4444" : undefined }}
               autoFocus />
-            {errors.name && <span style={{ fontSize: 11, color: "#ef4444" }}>{errors.name}</span>}
+            {errors.name && <span style={{ fontSize: 11, color: "var(--color-error)" }}>{errors.name}</span>}
           </div>
 
           {/* Description */}
@@ -382,7 +382,7 @@ function ItemRow({
             </button>
             <button type="button" title="Delete" onClick={() => onDelete(item)}
               style={{ width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent", color: "var(--text-quaternary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-              onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.1)"; e.currentTarget.style.color = "#ef4444"; }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.1)"; e.currentTarget.style.color = "var(--color-error)"; }}
               onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-quaternary)"; }}>
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -580,7 +580,7 @@ export default function InventoryPage() {
           <div className="fixed z-[9999] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
             style={{ width: "min(90vw,380px)", background: "var(--sosa-bg-3)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: 24 }}>
             <div className="flex items-start gap-3 mb-4">
-              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "#f59e0b" }} />
+              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "var(--color-warning)" }} />
               <div>
                 <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Delete item?</p>
                 <p style={{ fontSize: 13, color: "var(--text-tertiary)", marginTop: 4 }}>
@@ -594,7 +594,7 @@ export default function InventoryPage() {
                 Cancel
               </button>
               <button type="button" onClick={handleDelete} disabled={deleting}
-                style={{ fontSize: 13, padding: "7px 16px", borderRadius: 0, border: "none", background: "#ef4444", color: "#fff", cursor: deleting ? "wait" : "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                style={{ fontSize: 13, padding: "7px 16px", borderRadius: 0, border: "none", background: "var(--color-error)", color: "#fff", cursor: deleting ? "wait" : "pointer", display: "flex", alignItems: "center", gap: 6 }}>
                 {deleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Delete
               </button>

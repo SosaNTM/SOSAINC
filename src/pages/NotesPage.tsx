@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import { useAuth, ALL_USERS } from "@/lib/authContext";
+﻿import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useAuth } from "@/lib/authContext";
+import { usePortalUsers } from "@/hooks/usePortalUsers";
 import { usePortalDB } from "@/lib/portalContextDB";
 import { addAuditEntry } from "@/lib/adminStore";
 import { TAG_PRESETS, type Note, type NoteFolder } from "@/lib/notesStore";
@@ -107,6 +108,7 @@ function dbToFolder(r: DbNoteFolder): NoteFolder {
 
 const NotesPage = () => {
   const { user } = useAuth();
+  const { users: portalUsers } = usePortalUsers();
   const { currentPortalId, userRole } = usePortalDB();
   const isOwner = userRole === "owner";
 
@@ -538,7 +540,7 @@ const NotesPage = () => {
               style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, flex: 1 }}
             >
               <option value={user?.id || ""}>My Notes</option>
-              {ALL_USERS.filter((u) => u.id !== user?.id).map((u) => (
+              {portalUsers.filter((u) => u.id !== user?.id).map((u) => (
                 <option key={u.id} value={u.id}>{u.displayName}'s Notes</option>
               ))}
             </select>
@@ -945,7 +947,7 @@ const NotesPage = () => {
               style={{
                 padding: "7px 12px", borderRadius: 6, fontSize: 13, border: "none", cursor: "pointer",
                 background: "transparent",
-                color: (item as any).danger ? "#ef4444" : "var(--text-secondary)",
+                color: (item as any).danger ? "var(--color-error)" : "var(--text-secondary)",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface-hover, var(--nav-hover-bg))"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
@@ -986,7 +988,7 @@ const NotesPage = () => {
               style={{
                 padding: "7px 12px", borderRadius: 6, fontSize: 13, border: "none", cursor: "pointer",
                 background: "transparent",
-                color: (item as any).danger ? "#ef4444" : "var(--text-secondary)",
+                color: (item as any).danger ? "var(--color-error)" : "var(--text-secondary)",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface-hover, var(--nav-hover-bg))"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
@@ -1063,7 +1065,7 @@ const NotesPage = () => {
             <p style={{ fontSize: 13, color: "var(--text-tertiary)", marginBottom: 20 }}>This action cannot be undone.</p>
             <div className="flex gap-2 justify-end">
               <button type="button" onClick={() => setDeleteConfirm(null)} className="glass-btn" style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8 }}>Cancel</button>
-              <button type="button" onClick={confirmDelete} style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8, background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: 600 }}>Delete</button>
+              <button type="button" onClick={confirmDelete} style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8, background: "var(--color-error)", color: "white", border: "none", cursor: "pointer", fontWeight: 600 }}>Delete</button>
             </div>
           </div>
         </>
@@ -1090,7 +1092,7 @@ const NotesPage = () => {
             </p>
             <div className="flex gap-2 justify-end">
               <button type="button" onClick={() => setDeleteFolderConfirm(null)} className="glass-btn" style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8 }}>Cancel</button>
-              <button type="button" onClick={confirmDeleteFolder} style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8, background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: 600 }}>Delete</button>
+              <button type="button" onClick={confirmDeleteFolder} style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8, background: "var(--color-error)", color: "white", border: "none", cursor: "pointer", fontWeight: 600 }}>Delete</button>
             </div>
           </div>
         </>

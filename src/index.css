@@ -623,7 +623,7 @@
   .glass-btn {
     background: var(--sosa-bg-2);
     border: 1px solid var(--sosa-border);
-    border-radius: 0;
+    border-radius: 0 !important;
     transition: background 0.15s;
     cursor: pointer;
     font-size: 13px;
@@ -651,7 +651,7 @@
   .glass-btn-primary {
     background: var(--sosa-yellow);
     border: none;
-    border-radius: 0;
+    border-radius: 0 !important;
     transition: opacity 0.15s;
     cursor: pointer;
     color: #000000;
@@ -678,7 +678,7 @@
   .glass-input {
     background: var(--sosa-bg-2);
     border: 1px solid var(--sosa-border);
-    border-radius: 0;
+    border-radius: 0 !important;
     transition: border-color 0.15s;
     font-size: 14px;
     color: var(--text-primary);
@@ -1381,4 +1381,42 @@ select option {
   [data-sosa-grain] {
     opacity: 0 !important;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DESIGN SYSTEM ENFORCEMENT — §13 Anti-patterns global reset
+   ═══════════════════════════════════════════════════════════ */
+
+/* Modal containers that use class-based patterns */
+.modal-overlay,
+[data-modal],
+.glass-modal {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Focus rings: yellow outline, no box-shadow glow */
+:focus-visible {
+  outline: 1px solid var(--sosa-yellow) !important;
+  outline-offset: 2px;
+  box-shadow: none !important;
+}
+
+/* Form label mono enforcement — design system §3 */
+[data-portal] label,
+[data-portal] .settings-label,
+[data-portal] .form-label {
+  font-family: var(--font-mono) !important;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Colored glow box-shadows violate design system — remove from non-modal contexts */
+[data-portal] .glass-card,
+[data-portal] .liquid-glass-card,
+[data-portal] .kpi-card,
+[data-portal] .settings-card {
+  box-shadow: none !important;
 }

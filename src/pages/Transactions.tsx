@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, ChevronLeft, ChevronRight, Plus,
@@ -46,7 +46,7 @@ function TxRow({ tx, onRequestDelete, onRequestEdit, getCatColor, getCatIcon }: 
   const isTransfer  = tx.type === "transfer";
   const color       = getCatColor(tx.category);
   const icon        = getCatIcon(tx.category);
-  const amtColor    = isIncome ? "#4ade80" : isTransfer ? "#e8ff00" : "#FF5A5A";
+  const amtColor    = isIncome ? "#4ade80" : isTransfer ? "var(--sosa-yellow)" : "var(--color-error)";
 
   return (
     <motion.div layout key={tx.id}>
@@ -144,19 +144,19 @@ function TxRow({ tx, onRequestDelete, onRequestEdit, getCatColor, getCatIcon }: 
               {tx.tags && tx.tags.length > 0 && (
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 }}>
                   {tx.tags.map((t) => (
-                    <span key={t} style={{ fontSize: 10, padding: "1px 7px", borderRadius: 99, background: "rgba(232,255,0,0.12)", color: "#e8ff00", fontWeight: 600 }}>{t}</span>
+                    <span key={t} style={{ fontSize: 10, padding: "1px 7px", borderRadius: 99, background: "rgba(232,255,0,0.12)", color: "var(--sosa-yellow)", fontWeight: 600 }}>{t}</span>
                   ))}
                 </div>
               )}
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <button
                   onClick={(e) => { e.stopPropagation(); onRequestEdit(tx); }}
-                  style={{ padding: "4px 10px", borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: "pointer", background: "rgba(232,255,0,0.08)", border: "1px solid rgba(232,255,0,0.18)", color: "#e8ff00", display: "flex", alignItems: "center", gap: 4 }}>
+                  style={{ padding: "4px 10px", borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: "pointer", background: "rgba(232,255,0,0.08)", border: "1px solid rgba(232,255,0,0.18)", color: "var(--sosa-yellow)", display: "flex", alignItems: "center", gap: 4 }}>
                   <Pencil style={{ width: 11, height: 11 }} />Edit
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onRequestDelete(tx.id); }}
-                  style={{ padding: "4px 10px", borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: "pointer", background: "rgba(255,90,90,0.08)", border: "1px solid rgba(255,90,90,0.18)", color: "#FF5A5A", display: "flex", alignItems: "center", gap: 4 }}>
+                  style={{ padding: "4px 10px", borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: "pointer", background: "rgba(255,90,90,0.08)", border: "1px solid rgba(255,90,90,0.18)", color: "var(--color-error)", display: "flex", alignItems: "center", gap: 4 }}>
                   <Trash2 style={{ width: 11, height: 11 }} />Delete
                 </button>
               </div>
@@ -230,8 +230,8 @@ export default function Transactions() {
       >
         {[
           { label: "Monthly income",     value: `+€${fmtEur(summary.totalIncome)}`,    color: "#4ade80" },
-          { label: "Monthly expenses",   value: `-€${fmtEur(summary.totalExpenses)}`,  color: "#FF5A5A" },
-          { label: "Net balance",        value: `${summary.netBalance >= 0 ? "+" : ""}€${fmtEur(summary.netBalance)}`, color: summary.netBalance >= 0 ? "#4ade80" : "#FF5A5A" },
+          { label: "Monthly expenses",   value: `-€${fmtEur(summary.totalExpenses)}`,  color: "var(--color-error)" },
+          { label: "Net balance",        value: `${summary.netBalance >= 0 ? "+" : ""}€${fmtEur(summary.netBalance)}`, color: summary.netBalance >= 0 ? "#4ade80" : "var(--color-error)" },
           { label: "Total transactions", value: String(summary.transactionCount),      color: "var(--text-primary)" },
         ].map((s) => (
           <div key={s.label} style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 14, padding: "14px 18px" }}>
@@ -246,7 +246,7 @@ export default function Transactions() {
         initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
       >
-        <LiquidGlassCard accentColor="#e8ff00" hover={false}>
+        <LiquidGlassCard accentColor="var(--sosa-yellow)" hover={false}>
           {/* Header */}
           <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
             <div className="flex items-center gap-2">
@@ -334,7 +334,7 @@ export default function Transactions() {
                 ))}
               </div>
             ) : error ? (
-              <p style={{ fontSize: 13, color: "#FF5A5A", textAlign: "center", padding: "28px 0" }}>{error}</p>
+              <p style={{ fontSize: 13, color: "var(--color-error)", textAlign: "center", padding: "28px 0" }}>{error}</p>
             ) : transactions.length === 0 ? (
               <EmptyState
                 icon={<Receipt style={{ width: 48, height: 48 }} />}

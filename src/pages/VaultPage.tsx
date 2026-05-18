@@ -192,8 +192,8 @@ function VaultCard({ item, onDelete, canManage }: { item: VaultItem; onDelete: (
         background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 12,
         padding: "18px 20px",
       }}
-      onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.12)"; e.currentTarget.style.borderColor = "var(--glass-border-hover, var(--glass-border))"; }}
-      onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderColor = "var(--glass-border)"; }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--portal-accent)"; e.currentTarget.style.background = "var(--glass-bg-hover)"; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--glass-border)"; e.currentTarget.style.background = "var(--glass-bg)"; }}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-3">

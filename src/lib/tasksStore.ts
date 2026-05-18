@@ -1,5 +1,3 @@
-import { ALL_USERS } from "@/lib/authContext";
-
 export type TaskStatus = "backlog" | "todo" | "in_progress" | "done";
 export type TaskPriority = "urgent" | "high" | "medium" | "low";
 
@@ -37,17 +35,17 @@ export interface Task {
 }
 
 export const STATUSES: { key: TaskStatus; label: string; icon: string }[] = [
-  { key: "backlog", label: "Backlog", icon: "⚪" },
-  { key: "todo", label: "To Do", icon: "🔵" },
-  { key: "in_progress", label: "In Progress", icon: "🟡" },
-  { key: "done", label: "Done", icon: "🟢" },
+  { key: "backlog", label: "Backlog", icon: "○" },
+  { key: "todo", label: "To Do", icon: "●" },
+  { key: "in_progress", label: "In Progress", icon: "◆" },
+  { key: "done", label: "Done", icon: "✓" },
 ];
 
 export const PRIORITIES: { key: TaskPriority; label: string; emoji: string; color: string; bg: string }[] = [
-  { key: "urgent", label: "Urgent", emoji: "🔴", color: "#dc2626", bg: "rgba(220,38,38,0.10)" },
-  { key: "high", label: "High", emoji: "🟠", color: "#ea580c", bg: "rgba(234,88,12,0.10)" },
-  { key: "medium", label: "Medium", emoji: "🟡", color: "#ca8a04", bg: "rgba(202,138,4,0.10)" },
-  { key: "low", label: "Low", emoji: "🟢", color: "#16a34a", bg: "rgba(22,163,74,0.10)" },
+  { key: "urgent", label: "Urgent", emoji: "↑↑", color: "#dc2626", bg: "rgba(220,38,38,0.10)" },
+  { key: "high", label: "High", emoji: "↑", color: "#ea580c", bg: "rgba(234,88,12,0.10)" },
+  { key: "medium", label: "Medium", emoji: "→", color: "#ca8a04", bg: "rgba(202,138,4,0.10)" },
+  { key: "low", label: "Low", emoji: "↓", color: "#16a34a", bg: "rgba(22,163,74,0.10)" },
 ];
 
 export const LABEL_OPTIONS = ["finance", "marketing", "ops", "legal", "product", "design", "hr", "other"];

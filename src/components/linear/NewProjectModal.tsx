@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ALL_USERS } from "@/lib/authContext";
+import { usePortalUsers } from "@/hooks/usePortalUsers";
 import { PROJECT_STATUSES, type Project, type ProjectStatus } from "@/lib/linearStore";
 import { X } from "lucide-react";
 
@@ -12,11 +12,12 @@ const EMOJIS = ["🎨", "📢", "⚙️", "🚀", "📊", "🔒", "💡", "🎯"
 const COLORS = ["#8b5cf6", "#f97316", "#22c55e", "#3b82f6", "#ef4444", "#ec4899", "#14b8a6", "#eab308"];
 
 export function NewProjectModal({ onClose, onCreate }: Props) {
+  const { users: portalUsers } = usePortalUsers();
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState("🚀");
   const [color, setColor] = useState("#3b82f6");
   const [status, setStatus] = useState<ProjectStatus>("planning");
-  const [leadId, setLeadId] = useState(ALL_USERS[0]?.id || "");
+  const [leadId, setLeadId] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [description, setDescription] = useState("");
 
@@ -90,7 +91,7 @@ export function NewProjectModal({ onClose, onCreate }: Props) {
             <div className="flex flex-col gap-1.5">
               <span style={{ fontSize: 11, color: "var(--text-quaternary)" }}>Lead</span>
               <select className="glass-input w-full" value={leadId} onChange={e => setLeadId(e.target.value)} style={{ fontSize: 12, padding: "6px 8px" }}>
-                {ALL_USERS.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+                {portalUsers.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
               </select>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ALL_USERS } from "@/lib/authContext";
+import { usePortalUsers } from "@/hooks/usePortalUsers";
 import {
   ISSUE_STATUSES, ISSUE_PRIORITIES, ISSUE_LABELS, ESTIMATE_OPTIONS,
   type Issue, type IssueStatus, type IssuePriority, type Project,
@@ -18,6 +18,7 @@ interface Props {
 }
 
 export function NewIssueModal({ onClose, onCreate, projects, creatorId, defaultProjectId, defaultStatus }: Props) {
+  const { users: portalUsers } = usePortalUsers();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<IssueStatus>(defaultStatus || "todo");
@@ -120,7 +121,7 @@ export function NewIssueModal({ onClose, onCreate, projects, creatorId, defaultP
             <div className="flex items-center gap-1.5" style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 6, padding: "4px 8px" }}>
               <select value={assigneeId} onChange={e => setAssigneeId(e.target.value)} style={{ fontSize: 12, background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", outline: "none" }}>
                 <option value="">Assignee</option>
-                {ALL_USERS.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+                {portalUsers.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
               </select>
             </div>
 

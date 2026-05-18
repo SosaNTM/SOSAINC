@@ -22,14 +22,6 @@ export function LiquidGlassFilter() {
   );
 }
 
-const INSET_SHADOW = [
-  "0 8px 32px rgba(0,0,0,0.12)",
-  "0 2px 8px rgba(0,0,0,0.08)",
-  "inset 0 1px 0 rgba(255,255,255,0.06)",
-  "inset 0 -1px 0 rgba(0,0,0,0.15)",
-  "inset 1px 0 0 rgba(255,255,255,0.02)",
-  "inset -1px 0 0 rgba(255,255,255,0.02)",
-].join(", ");
 
 interface LiquidGlassCardProps extends HTMLMotionProps<"div"> {
   /** Accent color for the ambient glow (CSS color value). Falls back to accent-color var. */
@@ -65,9 +57,7 @@ export function LiquidGlassCard({
       {/* Outer gradient border wrapper */}
       <div
         className="relative rounded-2xl p-[0.5px] overflow-hidden"
-        style={{
-          background: "linear-gradient(to bottom, rgba(255,255,255,0.09), rgba(255,255,255,0.02) 40%, transparent 60%, rgba(255,255,255,0.04))",
-        }}
+        style={{ background: "var(--sosa-border)" }}
       >
         {/* Inner card body */}
         <div
@@ -76,7 +66,6 @@ export function LiquidGlassCard({
             background: "var(--glass-bg)",
             backdropFilter: "blur(40px) saturate(180%)",
             WebkitBackdropFilter: "blur(40px) saturate(180%)",
-            boxShadow: INSET_SHADOW,
           }}
         >
           {/* Liquid glass distortion layer */}

@@ -1,5 +1,6 @@
 ﻿import { useState, useCallback, useEffect, useRef } from "react";
-import { useAuth, ALL_USERS, getUserById } from "@/lib/authContext";
+import { useAuth } from "@/lib/authContext";
+import { usePortalUsers } from "@/hooks/usePortalUsers";
 import { usePortal } from "@/lib/portalContext";
 import {
   getInitialIssues, getInitialProjects, ISSUE_STATUSES, ISSUE_PRIORITIES, ISSUE_LABELS, ESTIMATE_OPTIONS,
@@ -21,6 +22,7 @@ import { Plus, LayoutGrid, List, Filter, ChevronDown, ChevronRight, SlidersHoriz
 
 const TasksPage = () => {
   const { user } = useAuth();
+  const { users: portalUsers } = usePortalUsers();
   const { portal } = usePortal();
   const portalId = portal?.id ?? "sosa";
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -102,7 +104,7 @@ const TasksPage = () => {
           addAuditEntry({ userId: uid, action: `Changed priority of "${original.title}" to ${updates.priority}`, category: "tasks", details: `Issue ${original.id}`, icon: "🚩" });
         }
         if ("assigneeId" in updates && updates.assigneeId !== original.assigneeId) {
-          const assigneeName = ALL_USERS.find(u => u.id === updates.assigneeId)?.displayName || "Unassigned";
+          const assigneeName = portalUsers.find(u => u.id === updates.assigneeId)?.displayName || "Unassigned";
           addAuditEntry({ userId: uid, action: `Assigned "${original.title}" to ${assigneeName}`, category: "tasks", details: `Issue ${original.id}`, icon: "👤" });
         }
         if (updates.title && updates.title !== original.title) {
@@ -227,7 +229,7 @@ const TasksPage = () => {
       }));
     }
     if (groupBy === "assignee") {
-      const groups = ALL_USERS.map(u => ({
+      const groups = portalUsers.map(u => ({
         key: u.id, label: u.displayName,
         issues: filtered.filter(i => i.assigneeId === u.id),
       }));
@@ -330,10 +332,10 @@ const TasksPage = () => {
               <option value="">Priority</option>
               {ISSUE_PRIORITIES.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
             </select>
-            {/* TODO: Fetch team members from Supabase portal_members table instead of hardcoded ALL_USERS */}
+
             <select value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)} style={{ fontSize: 11, padding: "5px 7px", borderRadius: 6, background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", color: "var(--text-tertiary)", cursor: "pointer" }}>
               <option value="">Assignee</option>
-              {ALL_USERS.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+              {portalUsers.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
             </select>
             <select value={filterLabel} onChange={e => setFilterLabel(e.target.value)} style={{ fontSize: 11, padding: "5px 7px", borderRadius: 6, background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", color: "var(--text-tertiary)", cursor: "pointer" }}>
               <option value="">Label</option>

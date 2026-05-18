@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
-import { useAuth, getUserById, deleteUser, resetUserPassword, type User, type PortalId, ALL_PORTAL_IDS, ALL_USERS } from "@/lib/authContext";
+﻿import { useState, useMemo, useEffect, useCallback } from "react";
+import { useAuth, getUserById, deleteUser, resetUserPassword, type User, type PortalId, ALL_PORTAL_IDS } from "@/lib/authContext";
+import { usePortalUsers } from "@/hooks/usePortalUsers";
 import type { Role } from "@/lib/permissions";
 import { usePortalDB } from "@/lib/portalContextDB";
 import { supabase } from "@/lib/supabase";
@@ -124,8 +125,8 @@ function UsersTab({ isOwner }: { isOwner: boolean }) {
             const legacyUser = adminUserToUser(u);
             return (
               <div key={u.id} className="flex items-center justify-between transition-colors" style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: "14px 18px" }}
-                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.08)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "none"; }}>
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--glass-border-hover, var(--sosa-border))"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--sosa-border)"; }}>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--sosa-bg-3)", fontSize: 14, fontWeight: 700, color: "var(--portal-accent)" }}>
                     {u.display_name.charAt(0).toUpperCase()}
@@ -134,7 +135,7 @@ function UsersTab({ isOwner }: { isOwner: boolean }) {
                     <div className="flex items-center gap-2">
                       <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{u.display_name}</span>
                       <RoleBadge role={u.top_role as Role} />
-                      <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 99, background: "rgba(34,197,94,0.1)", color: "#22c55e" }}>Active</span>
+                      <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 99, background: "rgba(34,197,94,0.1)", color: "var(--color-success)" }}>Active</span>
                     </div>
                     <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>{u.email}</span>
                     {u.created_at && (
@@ -247,7 +248,7 @@ function CreateLoginModal({ onClose, onCreated }: { onClose: () => void; onCreat
         action: `Created login for ${name.trim()}`,
         category: "admin",
         details: `${email.trim()} — role: ${role}, portals: ${portalAccess.join(", ")}`,
-        icon: "👤",
+        icon: "○",
       });
       onCreated(name.trim());
     } finally {
@@ -324,7 +325,7 @@ function CreateLoginModal({ onClose, onCreated }: { onClose: () => void; onCreat
           </div>
 
           {error && (
-            <p style={{ fontSize: 12, color: "#ef4444", background: "rgba(239,68,68,0.08)", border: "0.5px solid rgba(239,68,68,0.25)", borderRadius: 8, padding: "8px 12px" }}>{error}</p>
+            <p style={{ fontSize: 12, color: "var(--color-error)", background: "rgba(239,68,68,0.08)", border: "0.5px solid rgba(239,68,68,0.25)", borderRadius: 8, padding: "8px 12px" }}>{error}</p>
           )}
 
           <div className="flex gap-2 justify-end pt-2">
@@ -382,7 +383,7 @@ function EditUserModal({ user, onClose, onSave, onDeleted }: { user: User; onClo
       action: `Cancelled login for ${user.displayName}`,
       category: "admin",
       details: `Account ${user.email} removed`,
-      icon: "ðŸš«",
+      icon: "✕",
     });
     toast({ title: `Login for ${user.displayName} cancelled` });
     onDeleted();
@@ -443,8 +444,8 @@ function EditUserModal({ user, onClose, onSave, onDeleted }: { user: User; onClo
                   <label style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)" }}>Confirm Password</label>
                   <input className="glass-input w-full" type={showPwd ? "text" : "password"} value={confirmPwd} onChange={(e) => setConfirmPwd(e.target.value)} placeholder="Repeat password" style={{ fontSize: 14, padding: "10px 14px" }} />
                 </div>
-                {pwdError && <p style={{ fontSize: 12, color: "#ef4444", background: "rgba(239,68,68,0.08)", border: "0.5px solid rgba(239,68,68,0.25)", borderRadius: 8, padding: "8px 12px" }}>{pwdError}</p>}
-                {pwdSuccess && <p style={{ fontSize: 12, color: "#22c55e", background: "rgba(34,197,94,0.08)", border: "0.5px solid rgba(34,197,94,0.25)", borderRadius: 8, padding: "8px 12px" }}>Password updated successfully.</p>}
+                {pwdError && <p style={{ fontSize: 12, color: "var(--color-error)", background: "rgba(239,68,68,0.08)", border: "0.5px solid rgba(239,68,68,0.25)", borderRadius: 8, padding: "8px 12px" }}>{pwdError}</p>}
+                {pwdSuccess && <p style={{ fontSize: 12, color: "var(--color-success)", background: "rgba(34,197,94,0.08)", border: "0.5px solid rgba(34,197,94,0.25)", borderRadius: 8, padding: "8px 12px" }}>Password updated successfully.</p>}
                 <div className="flex gap-2">
                   <button type="button" onClick={() => { setShowResetPwd(false); setNewPwd(""); setConfirmPwd(""); setPwdError(""); }} className="glass-btn" style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8 }}>Cancel</button>
                   <button type="button" onClick={handleResetPassword} disabled={!newPwd || !confirmPwd} className="glass-btn-primary" style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, opacity: newPwd && confirmPwd ? 1 : 0.45 }}>Update Password</button>
@@ -465,19 +466,19 @@ function EditUserModal({ user, onClose, onSave, onDeleted }: { user: User; onClo
           {user.role !== "owner" && (
             <div style={{ borderTop: "0.5px solid rgba(239,68,68,0.2)", paddingTop: 14, marginTop: 4 }}>
               {!confirmDelete ? (
-                <button type="button" onClick={() => setConfirmDelete(true)} style={{ fontSize: 12, color: "#ef4444", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                <button type="button" onClick={() => setConfirmDelete(true)} style={{ fontSize: 12, color: "var(--color-error)", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
                   <Trash2 className="w-3.5 h-3.5" /> Cancel Login
                 </button>
               ) : (
                 <div style={{ background: "rgba(239,68,68,0.06)", border: "0.5px solid rgba(239,68,68,0.3)", borderRadius: 0, padding: "14px" }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "#ef4444", marginBottom: 6 }}>Cancel this login?</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--color-error)", marginBottom: 6 }}>Cancel this login?</p>
                   <p style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 12 }}>
                     This will permanently remove <strong>{user.displayName}</strong>'s account. They will no longer be able to log in.
                   </p>
-                  {deleteError && <p style={{ fontSize: 12, color: "#ef4444", marginBottom: 10 }}>{deleteError}</p>}
+                  {deleteError && <p style={{ fontSize: 12, color: "var(--color-error)", marginBottom: 10 }}>{deleteError}</p>}
                   <div className="flex gap-2">
                     <button type="button" onClick={() => setConfirmDelete(false)} className="glass-btn" style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8 }}>Keep Account</button>
-                    <button type="button" onClick={handleDelete} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: 600 }}>Yes, Cancel Login</button>
+                    <button type="button" onClick={handleDelete} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, background: "var(--color-error)", color: "white", border: "none", cursor: "pointer", fontWeight: 600 }}>Yes, Cancel Login</button>
                   </div>
                 </div>
               )}
@@ -529,12 +530,12 @@ function GoalsModal({ user, onClose }: { user: User; onClose: () => void }) {
             <div key={g.id} style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: 14 }}>
               <div className="flex items-start justify-between mb-2">
                 <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>ðŸŽ¯ {g.title}</span>
-                <button type="button" onClick={() => deleteGoal(g.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", padding: 2 }}><Trash2 className="w-3.5 h-3.5" /></button>
+                <button type="button" onClick={() => deleteGoal(g.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-error)", padding: 2 }}><Trash2 className="w-3.5 h-3.5" /></button>
               </div>
               <div className="mb-2">
                 <div className="flex items-center justify-between mb-1">
                   <span style={{ fontSize: 11, color: "var(--text-quaternary)" }}>Progress: {g.current || g.progress}%{g.target ? ` / ${g.target}` : ""}</span>
-                  <span style={{ fontSize: 11, color: g.completed ? "#22c55e" : "var(--text-quaternary)" }}>{g.completed ? "âœ“ Complete" : `${g.progress}%`}</span>
+                  <span style={{ fontSize: 11, color: g.completed ? "var(--color-success)" : "var(--text-quaternary)" }}>{g.completed ? "âœ“ Complete" : `${g.progress}%`}</span>
                 </div>
                 <Progress value={g.progress} className="h-1.5" />
               </div>
@@ -611,7 +612,7 @@ function RolesTab() {
               <tr key={r.name} style={{ borderBottom: "1px solid var(--sosa-border)" }}>
                 <td style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", padding: "10px 16px" }}>{r.name}</td>
                 {[r.owner, r.admin, r.manager, r.member].map((val, i) => (
-                  <td key={i} style={{ fontSize: 12, color: val === "—" ? "var(--text-quaternary)" : val === "Full" ? "#22c55e" : "var(--text-tertiary)", padding: "10px 16px", textAlign: "center", fontWeight: val === "Full" ? 600 : 400 }}>
+                  <td key={i} style={{ fontSize: 12, color: val === "—" ? "var(--text-quaternary)" : val === "Full" ? "var(--color-success)" : "var(--text-tertiary)", padding: "10px 16px", textAlign: "center", fontWeight: val === "Full" ? 600 : 400 }}>
                     {val}
                   </td>
                 ))}
@@ -672,7 +673,7 @@ function AuditLogTab() {
           </select>
           <select className="glass-input" value={userFilter} onChange={(e) => setUserFilter(e.target.value)} style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, width: "auto" }}>
             <option value="">All users</option>
-            {ALL_USERS.map((u) => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+            {portalUsers.map((u) => <option key={u.id} value={u.id}>{u.displayName}</option>)}
           </select>
           <select className="glass-input" value={catFilter} onChange={(e) => setCatFilter(e.target.value)} style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, width: "auto" }}>
             <option value="">All actions</option>
@@ -762,7 +763,7 @@ function CompanyTab() {
             </div>
             <div className="flex items-center justify-between">
               <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>User Seats</span>
-              <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>{ALL_USERS.length} of {settings.maxUsers}</span>
+              <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>{portalUsers.length} of {settings.maxUsers}</span>
             </div>
           </div>
 
@@ -802,7 +803,7 @@ function SecurityTab() {
                 <div key={key} className="flex items-center justify-between">
                   <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{label}</span>
                   <button type="button" onClick={() => setSettings((p) => ({ ...p, [key]: !p[key] }))}
-                    style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, border: "none", cursor: "pointer", background: settings[key] ? "rgba(34,197,94,0.15)" : "var(--sosa-bg-2)", color: settings[key] ? "#22c55e" : "var(--text-quaternary)", fontWeight: 600, outline: "1px solid var(--sosa-border)" }}>
+                    style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, border: "none", cursor: "pointer", background: settings[key] ? "rgba(34,197,94,0.15)" : "var(--sosa-bg-2)", color: settings[key] ? "var(--color-success)" : "var(--text-quaternary)", fontWeight: 600, outline: "1px solid var(--sosa-border)" }}>
                     {settings[key] ? "ON" : "OFF"}
                   </button>
                 </div>
@@ -858,7 +859,7 @@ function SecurityTab() {
             <div className="flex items-center justify-between">
               <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Require MFA for all users</span>
               <button type="button" onClick={() => setSettings((p) => ({ ...p, requireMfa: !p.requireMfa }))}
-                style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, border: "none", cursor: "pointer", background: settings.requireMfa ? "rgba(34,197,94,0.15)" : "var(--sosa-bg-2)", color: settings.requireMfa ? "#22c55e" : "var(--text-quaternary)", fontWeight: 600, outline: "1px solid var(--sosa-border)" }}>
+                style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, border: "none", cursor: "pointer", background: settings.requireMfa ? "rgba(34,197,94,0.15)" : "var(--sosa-bg-2)", color: settings.requireMfa ? "var(--color-success)" : "var(--text-quaternary)", fontWeight: 600, outline: "1px solid var(--sosa-border)" }}>
                 {settings.requireMfa ? "ON" : "OFF"}
               </button>
             </div>
@@ -875,6 +876,7 @@ function SecurityTab() {
 /* â”€â”€ Main Page â”€â”€ */
 const AdministrationPage = () => {
   const { isOwner } = usePortalDB();
+  const { users: portalUsers } = usePortalUsers();
   const [tab, setTab] = useState<AdminTab>("users");
 
   const tabs: { key: AdminTab; label: string; icon: React.ReactNode; ownerOnly: boolean }[] = [

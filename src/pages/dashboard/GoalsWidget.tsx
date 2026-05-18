@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { motion } from "framer-motion";
 import { Target, Check, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -50,11 +50,11 @@ export function GoalsWidget({ goals, netWorth }: GoalsWidgetProps) {
 
   return (
     <motion.div variants={fadeUp} custom={0.3} initial="hidden" animate="visible">
-      <LiquidGlassCard accentColor="#2ECC71" hover={false}>
+      <LiquidGlassCard accentColor="var(--color-success)" hover={false}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
             <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(46,204,113,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Target style={{ width: 16, height: 16, color: "#2ECC71" }} />
+              <Target style={{ width: 16, height: 16, color: "var(--color-success)" }} />
             </div>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Goals</h3>
           </div>
@@ -72,14 +72,14 @@ export function GoalsWidget({ goals, netWorth }: GoalsWidgetProps) {
         {goals.length === 0 ? (
           <div style={{ padding: "28px 16px", textAlign: "center" }}>
             <div style={{ width: 44, height: 44, borderRadius: 14, background: "rgba(46,204,113,0.1)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
-              <Target style={{ width: 20, height: 20, color: "#2ECC71" }} />
+              <Target style={{ width: 20, height: 20, color: "var(--color-success)" }} />
             </div>
             <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 6 }}>No goals yet</p>
             <p style={{ fontSize: 11, color: "var(--text-quaternary)", marginBottom: 14 }}>Set financial goals to track your progress.</p>
             <button
               type="button"
               onClick={() => navigate(`${prefix}/pl-rules`)}
-              style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, padding: "7px 16px", borderRadius: 8, border: "none", background: "rgba(46,204,113,0.15)", color: "#2ECC71", cursor: "pointer" }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, padding: "7px 16px", borderRadius: 8, border: "none", background: "rgba(46,204,113,0.15)", color: "var(--color-success)", cursor: "pointer" }}
             >
               <Plus style={{ width: 12, height: 12 }} /> Create Goal
             </button>

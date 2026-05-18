@@ -115,8 +115,7 @@ function ConnectedCard({
       onMouseLeave={() => setHovered(false)}
       style={{
         position: "relative",
-        background: `linear-gradient(135deg, ${p.color}12, rgba(10,13,20,0) 65%)`,
-        backgroundColor: "var(--sosa-bg-2)",
+        background: "var(--sosa-bg-2)",
         border: `1px solid ${hovered ? p.color + "45" : p.color + "22"}`,
         padding: "18px 18px 16px",
         cursor: "default",
@@ -278,8 +277,7 @@ function TelegramCard({ profile, onDisconnect }: { profile: Profile; onDisconnec
       onMouseLeave={() => setHovered(false)}
       style={{
         position: "relative",
-        background: connected ? "linear-gradient(135deg, #26A6E612, rgba(10,13,20,0) 65%)" : hovered ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.015)",
-        backgroundColor: "var(--sosa-bg-2)",
+        background: hovered ? "var(--glass-bg-hover)" : "var(--sosa-bg-2)",
         border: connected ? `1px solid ${hovered ? "#26A6E645" : "#26A6E622"}` : `1px dashed ${hovered ? "#26A6E650" : "rgba(255,255,255,0.09)"}`,
         padding: "18px 18px 16px", cursor: connected ? "default" : "pointer", overflow: "hidden",
         transition: "border-color 0.2s",

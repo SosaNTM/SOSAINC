@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Wallet, AlertTriangle, ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
@@ -14,9 +14,9 @@ import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
 // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function barColor(pct: number): string {
-  if (pct >= 85) return "#FF5A5A";
-  if (pct >= 60) return "#f59e0b";
-  return "#2ECC71";
+  if (pct >= 85) return "var(--color-error)";
+  if (pct >= 60) return "var(--color-warning)";
+  return "var(--color-success)";
 }
 
 function useIsMobile(): boolean {
@@ -66,9 +66,9 @@ export default function Budget() {
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       >
         {[
-          { label: "Total Budget",  value: `€${totalBudget.toLocaleString("en-US")}`,  color: "#4A9EFF" },
-          { label: "Total Spent",  value: `€${totalSpent.toLocaleString("en-US")}`,    color: totalSpent > totalBudget ? "#FF5A5A" : "#e8ff00" },
-          { label: "Remaining",    value: `€${Math.abs(remaining).toLocaleString("en-US")}${remaining < 0 ? " -" : ""}`, color: remaining < 0 ? "#FF5A5A" : "#2ECC71" },
+          { label: "Total Budget",  value: `€${totalBudget.toLocaleString("en-US")}`,  color: "var(--color-info)" },
+          { label: "Total Spent",  value: `€${totalSpent.toLocaleString("en-US")}`,    color: totalSpent > totalBudget ? "var(--color-error)" : "var(--sosa-yellow)" },
+          { label: "Remaining",    value: `€${Math.abs(remaining).toLocaleString("en-US")}${remaining < 0 ? " -" : ""}`, color: remaining < 0 ? "var(--color-error)" : "var(--color-success)" },
         ].map((s) => (
           <div key={s.label} style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: "14px 18px" }}>
             <p style={{ fontSize: 11, color: "var(--text-quaternary)", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" }}>{s.label}</p>
@@ -85,12 +85,12 @@ export default function Budget() {
       >
         {/* Left: Budget Breakdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="lg:col-span-2">
-          <LiquidGlassCard accentColor="#e8ff00" hover={false}>
+          <LiquidGlassCard accentColor="var(--sosa-yellow)" hover={false}>
             {/* Card header */}
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2.5">
                 <div style={{ width: 32, height: 32, borderRadius: 0, background: "rgba(232,255,0,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Wallet style={{ width: 16, height: 16, color: "#e8ff00" }} />
+                  <Wallet style={{ width: 16, height: 16, color: "var(--sosa-yellow)" }} />
                 </div>
                 <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Monthly Budget</h3>
               </div>
@@ -103,7 +103,7 @@ export default function Budget() {
                     height: 30, padding: "0 10px", borderRadius: 0,
                     background: "rgba(232,255,0,0.10)",
                     border: "1px solid rgba(232,255,0,0.25)",
-                    color: "#e8ff00", fontSize: 11, fontWeight: 600,
+                    color: "var(--sosa-yellow)", fontSize: 11, fontWeight: 600,
                     cursor: "pointer", display: "flex", alignItems: "center", gap: 5,
                   }}
                 >
@@ -163,14 +163,14 @@ export default function Budget() {
                       <div className="flex items-center gap-2" style={{ color: cat.color }}>
                         {cat.icon}
                         <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{cat.name}</span>
-                        {over && <AlertTriangle style={{ width: 12, height: 12, color: "#FF5A5A" }} />}
+                        {over && <AlertTriangle style={{ width: 12, height: 12, color: "var(--color-error)" }} />}
                       </div>
                       <div className="flex items-center gap-3">
-                        <span style={{ fontSize: 12, fontWeight: 700, color: over ? "#FF5A5A" : "var(--text-primary)" }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: over ? "var(--color-error)" : "var(--text-primary)" }}>
                           €{cat.spent.toLocaleString("en-US")}
                           <span style={{ fontSize: 10, color: "var(--text-quaternary)", fontWeight: 400 }}> / €{cat.budget.toLocaleString("en-US")}</span>
                         </span>
-                        <span style={{ fontSize: 11, fontWeight: 700, minWidth: 36, textAlign: "right", color: over ? "#FF5A5A" : cat.color }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, minWidth: 36, textAlign: "right", color: over ? "var(--color-error)" : cat.color }}>
                           {pct}%
                         </span>
                       </div>

@@ -5,6 +5,7 @@ import { setActivePortal } from "@/lib/portalStoreManager";
 import { useAuth } from "@/lib/authContext";
 import { usePortalDB } from "@/lib/portalContextDB";
 import { usePortalSecurity } from "@/hooks/settings";
+import { useSchemaCheck } from "@/hooks/useSchemaCheck";
 import { AppLayout } from "./AppLayout";
 import { PortalLockScreen } from "./PortalLockScreen";
 
@@ -14,6 +15,7 @@ export function PortalLayout() {
   const { isLoading } = useAuth();
   const { portals: dbPortals, loadingPortals, setCurrentPortalBySlug } = usePortalDB();
   const { data: security, loading: securityLoading } = usePortalSecurity();
+  useSchemaCheck();
 
   const [unlocked, setUnlocked] = useState<boolean>(() =>
     !!sessionStorage.getItem(`portal_unlocked_${portalId ?? ""}`),

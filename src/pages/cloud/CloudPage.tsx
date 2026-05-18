@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { useAuth, ALL_USERS } from "@/lib/authContext";
+import { useAuth } from "@/lib/authContext";
+import { usePortalUsers } from "@/hooks/usePortalUsers";
 import { STORAGE_CLOUD_COLLAPSED_SECTIONS } from "@/constants/storageKeys";
 import {
   INITIAL_FOLDERS, INITIAL_SECTIONS,
@@ -178,13 +179,14 @@ function PermissionsModalUI({
   setFolders: React.Dispatch<React.SetStateAction<CloudFolder[]>>;
   setPermissionsModal: (id: string | null) => void;
 }) {
+  const { users: portalUsers } = usePortalUsers();
   const folder = folders.find((f) => f.id === permissionsModal);
   if (!folder) return null;
 
   const [localPerms, setLocalPerms] = useState<{ userId: string; level: PermissionLevel }[]>(
     folder.permissions.length > 0
       ? [...folder.permissions]
-      : ALL_USERS.map((u) => ({ userId: u.id, level: "read" as PermissionLevel }))
+      : portalUsers.map((u) => ({ userId: u.id, level: "read" as PermissionLevel }))
   );
   const [inherit, setInherit] = useState(folder.inheritPermissions);
 
@@ -200,7 +202,7 @@ function PermissionsModalUI({
       ? "Inherited from parent"
       : localPerms
           .map((p) => {
-            const u = ALL_USERS.find((u) => u.id === p.userId);
+            const u = portalUsers.find((u) => u.id === p.userId);
             return `${u?.displayName}: ${p.level}`;
           })
           .join(", ");
@@ -209,7 +211,7 @@ function PermissionsModalUI({
       action: `Updated permissions on "${folder.name}"`,
       category: "cloud",
       details: summary,
-      icon: "🔒",
+      icon: "●",
     });
   };
 
@@ -231,7 +233,7 @@ function PermissionsModalUI({
       )}
       {!inherit && (
         <div className="flex flex-col gap-2">
-          {ALL_USERS.map((u) => {
+          {portalUsers.map((u) => {
             const perm = localPerms.find((p) => p.userId === u.id);
             return (
               <div key={u.id} className="flex items-center justify-between py-1.5">
@@ -309,8 +311,9 @@ function NewFolderModal({
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState<string>(currentFolderId || "");
   const [permMode, setPermMode] = useState<"inherit" | "custom">("inherit");
+  const { users: portalUsers } = usePortalUsers();
   const [customPerms, setCustomPerms] = useState<{ userId: string; level: PermissionLevel }[]>(
-    ALL_USERS.map((u) => ({ userId: u.id, level: "read" as PermissionLevel }))
+    portalUsers.map((u) => ({ userId: u.id, level: "read" as PermissionLevel }))
   );
   const [error, setError] = useState("");
 
@@ -442,7 +445,7 @@ function NewFolderModal({
 
             {permMode === "custom" && (
               <div style={{ marginTop: 10, border: "1px solid var(--glass-border)", background: "var(--glass-bg)" }}>
-                {ALL_USERS.map((u) => {
+                {portalUsers.map((u) => {
                   const p = customPerms.find((cp) => cp.userId === u.id);
                   return (
                     <div key={u.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 12px", borderBottom: "1px solid var(--glass-border)" }}>
@@ -504,6 +507,7 @@ function NewFolderModal({
 /* ── Main Cloud Page Orchestrator ── */
 const CloudPage = () => {
   const { user } = useAuth();
+  const { users: portalUsers } = usePortalUsers();
   const isMobile = useIsMobile();
   const { currentPortalId, isOwner: isPortalOwner, isAdmin: isPortalAdmin } = usePortalDB();
   const cloudFiles = useCloudFiles();
@@ -922,7 +926,7 @@ const CloudPage = () => {
     toast.success("🔒 Folder locked");
     addAuditEntry({
       userId, action: `Locked folder "${folderName}"`, category: "cloud",
-      details: "Folder manually locked during session", icon: "🔒",
+      details: "Folder manually locked during session", icon: "●",
     });
   };
 

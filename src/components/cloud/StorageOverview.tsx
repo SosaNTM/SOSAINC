@@ -37,14 +37,14 @@ interface StorageOverviewProps {
 
 /* ── Helpers ── */
 const FILE_TYPE_MAP: Record<string, { category: FileCategory; label: string; color: string; icon: string }> = {
-  video: { category: "video", label: "Videos", color: "#8b5cf6", icon: "🎬" },
-  image: { category: "image", label: "Images", color: "#ec4899", icon: "🖼️" },
-  pdf: { category: "pdf", label: "PDFs", color: "#ef4444", icon: "📄" },
-  xlsx: { category: "spreadsheet", label: "Spreadsheets", color: "#22c55e", icon: "📊" },
-  docx: { category: "document", label: "Documents", color: "#3b82f6", icon: "📝" },
-  pptx: { category: "other", label: "Other", color: "#6b7280", icon: "📦" },
-  zip: { category: "other", label: "Other", color: "#6b7280", icon: "📦" },
-  other: { category: "other", label: "Other", color: "#6b7280", icon: "📦" },
+  video: { category: "video", label: "Videos", color: "#8b5cf6", icon: "▶" },
+  image: { category: "image", label: "Images", color: "#ec4899", icon: "◆" },
+  pdf: { category: "pdf", label: "PDFs", color: "#ef4444", icon: "●" },
+  xlsx: { category: "spreadsheet", label: "Spreadsheets", color: "#22c55e", icon: "◆" },
+  docx: { category: "document", label: "Documents", color: "#3b82f6", icon: "○" },
+  pptx: { category: "other", label: "Other", color: "#6b7280", icon: "→" },
+  zip: { category: "other", label: "Other", color: "#6b7280", icon: "→" },
+  other: { category: "other", label: "Other", color: "#6b7280", icon: "→" },
 };
 
 function getFileCategory(type: CloudFile["type"]): FileCategory {
