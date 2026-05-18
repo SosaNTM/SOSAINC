@@ -19,7 +19,7 @@ function readCache(portalId: string): Record<string, CryptoPrice> | null {
 }
 
 function writeCache(portalId: string, data: Record<string, CryptoPrice>): void {
-  try { localStorage.setItem(cacheKey(portalId), JSON.stringify(data)); } catch { }
+  try { localStorage.setItem(cacheKey(portalId), JSON.stringify(data)); } catch { /* storage quota exceeded or unavailable */ }
 }
 
 export function useCryptoPrices() {

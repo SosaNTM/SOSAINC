@@ -23,8 +23,8 @@ import type { DateRange } from "@/hooks/useFinanceSummary";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useNumberFormat } from "@/lib/numberFormat";
-import { getAllCategories } from "@/lib/financeCategoryStore";
 import { usePortal } from "@/lib/portalContext";
+import { useCategories } from "@/hooks/useCategories";
 import { useExpenseCategories } from "@/hooks/settings";
 import type { PersonalTransaction } from "@/types/finance";
 import { TransactionDrillDownModal } from "@/components/finance/TransactionDrillDownModal";
@@ -370,6 +370,7 @@ export default function Recap() {
   const { formatCurrency } = useNumberFormat();
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: expenseCats } = useExpenseCategories();
+  const { categoryColorMap } = useCategories();
 
   // ── Period state ────────────────────────────────────────────────────────────
   const initialPeriod = (searchParams.get("p") as Period) ?? "month";
@@ -462,11 +463,8 @@ export default function Recap() {
 
   const { transactions: rawTableTxs, isLoading: tableLoading, deleteTransaction, updateTransaction } = useTransactions(tableFilters as TransactionFilters);
 
-  // ── Category color map ──────────────────────────────────────────────────────
-  const catColorMap = useMemo(() => {
-    const cats = getAllCategories(portal?.id ?? "sosa");
-    return Object.fromEntries(cats.map(c => [c.name, c.color]));
-  }, [portal?.id]);
+  // ── Category color map — DB-backed via useCategories ───────────────────────
+  const catColorMap = categoryColorMap;
 
   // ── Budget map (for top expense progress bars) ──────────────────────────────
   const budgetMap = useMemo(() => {

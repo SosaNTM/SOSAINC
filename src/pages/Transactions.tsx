@@ -205,7 +205,7 @@ export default function Transactions() {
     dateTo:   dateRange.to,
   }), [typeFilter, classFilter, catFilter, search, dateRange]);
 
-  const { transactions, isLoading, error, page, hasMore, setPage, addTransaction, updateTransaction, deleteTransaction } = useTransactions(filters);
+  const { transactions, isLoading, error, page, hasMore, isAtLimit, setPage, addTransaction, updateTransaction, deleteTransaction } = useTransactions(filters);
   const { summary } = useFinanceSummary(dateRange);
 
   function prevMonth() {
@@ -221,6 +221,17 @@ export default function Transactions() {
     <ModuleErrorBoundary moduleName="Transactions">
     <div className="space-y-5">
       <LiquidGlassFilter />
+
+      {/* ── 2000 tx limit warning ──────────────────────────────── */}
+      {isAtLimit && (
+        <div style={{
+          background: "rgba(251,146,60,0.1)", border: "1px solid rgba(251,146,60,0.4)",
+          borderRadius: "var(--radius-md)", padding: "10px 14px",
+          color: "#fb923c", fontSize: "0.8rem", fontFamily: "var(--font-mono)",
+        }}>
+          → Limite di 2000 transazioni raggiunto. I dati più vecchi non sono visibili. Usa i filtri per data per accedere a periodi specifici.
+        </div>
+      )}
 
       {/* ── Summary cards ──────────────────────────────────────── */}
       <motion.div

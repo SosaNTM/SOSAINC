@@ -15,7 +15,7 @@ import { subscribeToFinanceUpdates } from "@/lib/financeRealtime";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
 import { getAllCategories, getCategoryUpdateEvent } from "@/lib/financeCategoryStore";
-import type { FinanceCategory } from "@/lib/financeCategoryStore";
+import type { PersonalFinanceCategory } from "@/lib/financeCategoryStore";
 import { useFinanceCategories } from "@/hooks/useFinanceCategories";
 import type { FinanceCategory as TxCategory } from "@/types/finance";
 import {
@@ -66,7 +66,7 @@ export function useBudgetData(month: number, year: number): BudgetDataResult {
     })();
   }, [portalId, yearMonth]);
 
-  const expenseCategories: FinanceCategory[] = useMemo(() => {
+  const expenseCategories: PersonalFinanceCategory[] = useMemo(() => {
     void catTick;
     return getAllCategories(portalId)
       .filter((c) => c.type === "expense" && c.is_active)

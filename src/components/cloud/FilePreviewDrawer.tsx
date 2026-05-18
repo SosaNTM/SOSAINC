@@ -221,7 +221,6 @@ export default function FilePreviewDrawer({
     if (previewUrl && isVideo(file)) {
       return (
         <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, boxSizing: "border-box" }}>
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
           <video src={previewUrl} controls style={{ maxWidth: "100%", maxHeight: "100%" }} />
         </div>
       );
@@ -231,7 +230,6 @@ export default function FilePreviewDrawer({
       return (
         <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
           <span style={{ fontSize: 48 }}>🎵</span>
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
           <audio src={previewUrl} controls style={{ width: "80%" }} />
         </div>
       );

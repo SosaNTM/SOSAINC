@@ -11,10 +11,10 @@ import { usePortalDB } from "@/lib/portalContextDB";
 import {
   DEFAULT_CATEGORIES,
   getCategoryUpdateEvent,
-  type FinanceCategory,
+  type PersonalFinanceCategory,
 } from "@/lib/financeCategoryStore";
 
-export type { FinanceCategory } from "@/lib/financeCategoryStore";
+export type { PersonalFinanceCategory } from "@/lib/financeCategoryStore";
 
 function slugify(name: string): string {
   return name
@@ -24,7 +24,7 @@ function slugify(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-function dbRowToCategory(row: Record<string, unknown>): FinanceCategory {
+function dbRowToCategory(row: Record<string, unknown>): PersonalFinanceCategory {
   return {
     id: row.id as string,
     name: row.name as string,
@@ -40,7 +40,7 @@ function dbRowToCategory(row: Record<string, unknown>): FinanceCategory {
 
 export function useCategories() {
   const { currentPortalId } = usePortalDB();
-  const [categories, setCategories] = useState<FinanceCategory[]>([]);
+  const [categories, setCategories] = useState<PersonalFinanceCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
   const broadcast = useCallback(() => {
@@ -109,13 +109,13 @@ export function useCategories() {
   // ── Lookups ─────────────────────────────────────────────────────────────
 
   const getCategoryBySlug = useCallback(
-    (slug: string): FinanceCategory | undefined =>
+    (slug: string): PersonalFinanceCategory | undefined =>
       categories.find((c) => c.slug === slug),
     [categories],
   );
 
   const getCategoryByName = useCallback(
-    (name: string): FinanceCategory | undefined =>
+    (name: string): PersonalFinanceCategory | undefined =>
       categories.find((c) => c.name.toLowerCase() === name.toLowerCase()),
     [categories],
   );
@@ -145,7 +145,7 @@ export function useCategories() {
       icon: string;
       color: string;
       type: "income" | "expense";
-    }): Promise<FinanceCategory | null> => {
+    }): Promise<PersonalFinanceCategory | null> => {
       if (!currentPortalId) return null;
       if (categories.some((c) => c.name.toLowerCase() === data.name.toLowerCase())) {
         return null;
@@ -181,8 +181,8 @@ export function useCategories() {
   );
 
   const updateCategory = useCallback(
-    async (id: string, changes: Partial<Omit<FinanceCategory, "id">>): Promise<void> => {
-      const updates: Partial<FinanceCategory> = { ...changes };
+    async (id: string, changes: Partial<Omit<PersonalFinanceCategory, "id">>): Promise<void> => {
+      const updates: Partial<PersonalFinanceCategory> = { ...changes };
       if (updates.name) updates.slug = slugify(updates.name);
       const { data, error } = await supabase
         .from("finance_transaction_categories")

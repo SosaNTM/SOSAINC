@@ -41,7 +41,8 @@ function KpiCard({ ch, onClick }: { ch: Channel; onClick: () => void }) {
 }
 
 // NOTE: Custom tooltip â€” too specialized for GlassTooltip (multi-field layout: revenue, margin, orders)
-function GlassTooltip({ active, payload }: any) {
+type ChartTooltipProps = { active?: boolean; payload?: Array<{ name: string; value: number; color?: string }> };
+function GlassTooltip({ active, payload }: ChartTooltipProps) {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
   if (!d) return null;
@@ -190,7 +191,7 @@ export function AnalyticsTab() {
             <YAxis type="number" dataKey="margin" name="Margin" unit="%" tick={{ fill: "var(--chart-axis)", fontSize: 11 }} domain={[80, 100]} />
             <ZAxis type="number" dataKey="orders" range={[200, 800]} name="Orders" />
             <Tooltip content={<GlassTooltip />} />
-            <Scatter data={scatterData} cursor="pointer" onClick={(d: any) => { if (d?.ch) setDetailChannel(d.ch); }}>
+            <Scatter data={scatterData} cursor="pointer" onClick={(d: Record<string, unknown>) => { if (d?.ch) setDetailChannel(d.ch as string); }}>
               {scatterData.map((d, i) => <Cell key={i} fill={d.color} />)}
             </Scatter>
           </ScatterChart>

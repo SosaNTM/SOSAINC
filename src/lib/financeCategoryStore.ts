@@ -4,7 +4,7 @@
 // (used as catalog seed when the DB returns no rows), and the broadcast event
 // name used by hooks to coordinate updates across components.
 
-export interface FinanceCategory {
+export interface PersonalFinanceCategory {
   id: string;
   name: string;
   slug: string;
@@ -25,7 +25,7 @@ export const CATEGORY_UPDATE_EVENT = "finance-category-update-sosa";
 
 // ── Default catalog (read-only fallback when DB is empty) ────────────────────
 
-const DEFAULT_EXPENSE_CATEGORIES: FinanceCategory[] = [
+const DEFAULT_EXPENSE_CATEGORIES: PersonalFinanceCategory[] = [
   { id: "cat-rent",          name: "Rent",          slug: "rent",          icon: "🏠", color: "#8b5cf6", type: "expense", sort_order: 1,  is_default: true, is_active: true },
   { id: "cat-utilities",     name: "Utilities",     slug: "utilities",     icon: "💡", color: "#f59e0b", type: "expense", sort_order: 2,  is_default: true, is_active: true },
   { id: "cat-groceries",     name: "Groceries",     slug: "groceries",     icon: "🛒", color: "#10b981", type: "expense", sort_order: 3,  is_default: true, is_active: true },
@@ -43,7 +43,7 @@ const DEFAULT_EXPENSE_CATEGORIES: FinanceCategory[] = [
   { id: "cat-other-expense", name: "Other",         slug: "other-expense", icon: "📌", color: "#94a3b8", type: "expense", sort_order: 99, is_default: true, is_active: true },
 ];
 
-const DEFAULT_INCOME_CATEGORIES: FinanceCategory[] = [
+const DEFAULT_INCOME_CATEGORIES: PersonalFinanceCategory[] = [
   { id: "cat-salary",        name: "Salary",        slug: "salary",        icon: "💰", color: "#4ade80", type: "income", sort_order: 1,  is_default: true, is_active: true },
   { id: "cat-freelance",     name: "Freelance",     slug: "freelance",     icon: "💻", color: "#34d399", type: "income", sort_order: 2,  is_default: true, is_active: true },
   { id: "cat-investments",   name: "Investments",   slug: "investments",   icon: "📈", color: "#22d3ee", type: "income", sort_order: 3,  is_default: true, is_active: true },
@@ -53,7 +53,7 @@ const DEFAULT_INCOME_CATEGORIES: FinanceCategory[] = [
   { id: "cat-other-income",  name: "Other",         slug: "other-income",  icon: "📌", color: "#94a3b8", type: "income", sort_order: 99, is_default: true, is_active: true },
 ];
 
-export const DEFAULT_CATEGORIES: FinanceCategory[] = [
+export const DEFAULT_CATEGORIES: PersonalFinanceCategory[] = [
   ...DEFAULT_EXPENSE_CATEGORIES,
   ...DEFAULT_INCOME_CATEGORIES,
 ];
@@ -64,6 +64,6 @@ export const DEFAULT_CATEGORIES: FinanceCategory[] = [
  * For user-editable category data, use the `useCategories` hook (DB-backed).
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function getAllCategories(_portalId: string): FinanceCategory[] {
+export function getAllCategories(_portalId: string): PersonalFinanceCategory[] {
   return DEFAULT_CATEGORIES;
 }

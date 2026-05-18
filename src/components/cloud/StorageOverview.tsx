@@ -190,7 +190,7 @@ export default function StorageOverview({
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
       return next;
     });
   }, []);
@@ -260,7 +260,7 @@ export default function StorageOverview({
   }, [donutData]);
 
   // Custom active shape renderer for donut hover/click expand
-  const renderActiveShape = (props: any) => {
+  const renderActiveShape = (props: { cx: number; cy: number; innerRadius: number; outerRadius: number; startAngle: number; endAngle: number; fill: string; index: number }) => {
     const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
     const entryName = donutData[props.index]?.name;
     const isHighlighted = hoveredType === entryName || activeType === entryName;

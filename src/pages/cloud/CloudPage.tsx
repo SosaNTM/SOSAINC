@@ -9,7 +9,7 @@ import {
   type CloudFolder, type CloudFile, type PermissionLevel, type FolderSection,
 } from "@/lib/cloudStore";
 import { fetchFolders as svcFetchFolders, createFolder as svcCreateFolder, renameFolder as svcRenameFolder, softDeleteFolder as svcSoftDeleteFolder, updateFolderLock as svcUpdateFolderLock } from "@/lib/services/cloudService";
-import { sha256hex } from "@/hooks/settings";
+import { hashPassword, verifyPassword } from "@/hooks/settings";
 import { supabase as _cloudSupabase } from "@/lib/supabase";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const cloudSupabase = _cloudSupabase as any;
@@ -181,14 +181,16 @@ function PermissionsModalUI({
 }) {
   const { users: portalUsers } = usePortalUsers();
   const folder = folders.find((f) => f.id === permissionsModal);
-  if (!folder) return null;
 
-  const [localPerms, setLocalPerms] = useState<{ userId: string; level: PermissionLevel }[]>(
-    folder.permissions.length > 0
+  const [localPerms, setLocalPerms] = useState<{ userId: string; level: PermissionLevel }[]>(() => {
+    if (!folder) return [];
+    return folder.permissions.length > 0
       ? [...folder.permissions]
-      : portalUsers.map((u) => ({ userId: u.id, level: "read" as PermissionLevel }))
-  );
-  const [inherit, setInherit] = useState(folder.inheritPermissions);
+      : portalUsers.map((u) => ({ userId: u.id, level: "read" as PermissionLevel }));
+  });
+  const [inherit, setInherit] = useState(() => folder?.inheritPermissions ?? false);
+
+  if (!folder) return null;
 
   const save = () => {
     setFolders((prev) =>
@@ -802,7 +804,7 @@ const CloudPage = () => {
   const toggleSectionCollapse = (sectionId: string) => {
     setCollapsedSections((prev) => {
       const next = new Set(prev);
-      next.has(sectionId) ? next.delete(sectionId) : next.add(sectionId);
+      if (next.has(sectionId)) { next.delete(sectionId); } else { next.add(sectionId); }
       localStorage.setItem(STORAGE_CLOUD_COLLAPSED_SECTIONS, JSON.stringify([...next]));
       return next;
     });
@@ -857,10 +859,8 @@ const CloudPage = () => {
   const handleUnlock = async () => {
     if (!unlockPromptFolder || lockoutUntil) return;
     const folder = unlockPromptFolder;
-    const inputHash = await sha256hex(unlockPassword);
-    // Support legacy plaintext in MOCK_FOLDER_PASSWORDS (in-memory session cache)
     const correctHash = MOCK_FOLDER_PASSWORDS[folder.id] ?? folder.passwordHash;
-    const matches = correctHash != null && inputHash === correctHash;
+    const matches = correctHash != null && await verifyPassword(unlockPassword, correctHash);
     if (matches) {
       setUnlockedFolders((prev) => new Set(prev).add(folder.id));
       setUnlockState(folder.id, unlockRemember, folder.lockAutoTimeoutMinutes || 30);
@@ -934,7 +934,7 @@ const CloudPage = () => {
   const handleSetPassword = async (folderId: string, password: string, timeoutMinutes: number) => {
     const folderName = folders.find((f) => f.id === folderId)?.name || folderId;
     const now = new Date().toISOString();
-    const hash = await sha256hex(password);
+    const hash = await hashPassword(password);
     const ok = await svcUpdateFolderLock(folderId, {
       is_locked: true,
       password_hash: hash,
@@ -965,7 +965,7 @@ const CloudPage = () => {
   const handleChangePassword = async (folderId: string, newPassword: string) => {
     const folderName = folders.find((f) => f.id === folderId)?.name || folderId;
     const now = new Date().toISOString();
-    const hash = await sha256hex(newPassword);
+    const hash = await hashPassword(newPassword);
     const ok = await svcUpdateFolderLock(folderId, {
       is_locked: true,
       password_hash: hash,
@@ -1020,7 +1020,7 @@ const CloudPage = () => {
   const toggleExpand = (id: string) => {
     setExpandedFolders((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
       return next;
     });
   };

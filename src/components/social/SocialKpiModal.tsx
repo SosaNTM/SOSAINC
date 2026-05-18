@@ -319,15 +319,16 @@ function PlatformBreakdownRow({
 }) {
   const [hovered, setHovered] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const meta = PLATFORM_META[item.platform];
-  if (!meta) return null;
-
-  const barPct = maxValue > 0 ? (item.value / maxValue) * 100 : 0;
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), index * 60);
     return () => clearTimeout(t);
   }, [index]);
+
+  const meta = PLATFORM_META[item.platform];
+  if (!meta) return null;
+
+  const barPct = maxValue > 0 ? (item.value / maxValue) * 100 : 0;
 
   const changeColor = item.change > 0 ? "#10b981" : item.change < 0 ? "#ef4444" : "rgba(255,255,255,0.3)";
   const changePrefix = item.change > 0 ? "+" : "";
@@ -462,7 +463,7 @@ function ModalChart({
           <Tooltip
             {...tooltipStyle}
             cursor={{ stroke: "rgba(255,255,255,0.1)", strokeDasharray: "4 4" }}
-            formatter={(v: any) => [tooltipFmt(v as number), "Value"]}
+            formatter={(v: number) => [tooltipFmt(v), "Value"]}
           />
           <ReferenceLine
             y={average}
@@ -497,7 +498,7 @@ function ModalChart({
           <Tooltip
             {...tooltipStyle}
             cursor={{ fill: "rgba(255,255,255,0.03)" }}
-            formatter={(v: any) => [tooltipFmt(v as number), "Value"]}
+            formatter={(v: number) => [tooltipFmt(v), "Value"]}
           />
           <ReferenceLine
             y={average}
@@ -529,7 +530,7 @@ function ModalChart({
         <Tooltip
           {...tooltipStyle}
           cursor={{ stroke: "rgba(255,255,255,0.1)", strokeDasharray: "4 4" }}
-          formatter={(v: any) => [tooltipFmt(v as number), "Value"]}
+          formatter={(v: number) => [tooltipFmt(v), "Value"]}
         />
         <ReferenceLine
           y={average}

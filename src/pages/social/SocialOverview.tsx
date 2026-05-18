@@ -135,7 +135,7 @@ export default function SocialOverview() {
   const followerChartData = Array.from({ length: clampedDays }, (_, i) => {
     const dt = new Date(TODAY); dt.setDate(dt.getDate() - clampedDays + i + 1);
     const label = dt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    const point: Record<string, any> = { date: label, _iso: dt.toISOString() };
+    const point: Record<string, number | string> = { date: label, _iso: dt.toISOString() };
     mockSocialAccounts.forEach((a) => {
       const g = GROWTH_RATES[a.platform];
       if (g) {
@@ -152,7 +152,7 @@ export default function SocialOverview() {
   const engRateChartData = Array.from({ length: clampedDays }, (_, i) => {
     const dt = new Date(TODAY); dt.setDate(dt.getDate() - clampedDays + i + 1);
     const label = dt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    const point: Record<string, any> = { date: label };
+    const point: Record<string, number | string> = { date: label };
     mockSocialAccounts.forEach((a) => {
       const arr = ENG_BASES[a.platform];
       point[a.platform] = arr ? arr[i % arr.length] : 4.0;
@@ -353,7 +353,7 @@ export default function SocialOverview() {
                   contentStyle={{ background: "#0d1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }}
                   labelStyle={{ color: "rgba(255,255,255,0.45)", fontSize: 11, marginBottom: 6, fontWeight: 600 }}
                   itemStyle={{ color: "rgba(255,255,255,0.8)", fontSize: 12, padding: "2px 0" }}
-                  formatter={(v: any, name: string) => [formatSocialNumber(Number(v)), PLATFORM_CONFIG[name as keyof typeof PLATFORM_CONFIG]?.label ?? name]}
+                  formatter={(v: number, name: string) => [formatSocialNumber(v), PLATFORM_CONFIG[name as keyof typeof PLATFORM_CONFIG]?.label ?? name]}
                   cursor={{ stroke: "rgba(255,255,255,0.1)", strokeDasharray: "4 4" }}
                 />
                 {mockSocialAccounts.map((a) => (
@@ -425,7 +425,7 @@ export default function SocialOverview() {
                   contentStyle={{ background: "#0d1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }}
                   labelStyle={{ color: "rgba(255,255,255,0.45)", fontSize: 11, marginBottom: 6, fontWeight: 600 }}
                   itemStyle={{ color: "rgba(255,255,255,0.8)", fontSize: 12, padding: "2px 0" }}
-                  formatter={(v: any, name: string) => [`${Number(v).toFixed(1)}%`, PLATFORM_CONFIG[name as keyof typeof PLATFORM_CONFIG]?.label ?? name]}
+                  formatter={(v: number, name: string) => [`${v.toFixed(1)}%`, PLATFORM_CONFIG[name as keyof typeof PLATFORM_CONFIG]?.label ?? name]}
                   cursor={{ stroke: "rgba(255,255,255,0.1)", strokeDasharray: "4 4" }}
                 />
                 {mockSocialAccounts.map((a) => (

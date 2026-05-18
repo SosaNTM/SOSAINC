@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Lock } from "lucide-react";
-import { sha256hex } from "@/hooks/settings";
+import { verifyPassword } from "@/hooks/settings";
 
 interface Props {
   portalName: string;
@@ -18,8 +18,7 @@ export function PortalLockScreen({ portalName, passwordHash, onUnlocked }: Props
     if (!value) return;
     setChecking(true);
     setError(false);
-    const hash = await sha256hex(value);
-    if (hash === passwordHash) {
+    if (await verifyPassword(value, passwordHash)) {
       if (remember) sessionStorage.setItem(`portal_unlocked_${portalName}`, "1");
       onUnlocked();
     } else {

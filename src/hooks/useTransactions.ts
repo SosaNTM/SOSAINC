@@ -19,6 +19,7 @@ import type { PersonalTransaction, NewPersonalTransaction, TransactionFilters } 
 function toPersonal(row: any): PersonalTransaction {
   return {
     id:                  row.id,
+    portal_id:           row.portal_id,
     user_id:             row.user_id,
     type:                row.type,
     amount:              Number(row.amount),
@@ -46,6 +47,7 @@ export interface UseTransactionsResult {
   error:              string | null;
   page:               number;
   hasMore:            boolean;
+  isAtLimit:          boolean;
   addTransaction:     (data: NewPersonalTransaction) => Promise<boolean>;
   updateTransaction:  (id: string, changes: Partial<NewPersonalTransaction>) => Promise<boolean>;
   deleteTransaction:  (id: string) => Promise<boolean>;
@@ -100,7 +102,8 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
       setAll([]);
     } else {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setAll((data as any[] | null ?? []).map(toPersonal));
+      const rows = (data as any[] | null ?? []).map(toPersonal);
+      setAll(rows);
     }
     setIsLoading(false);
   }, [user, currentPortalId, filtersKey, tick]);
@@ -118,6 +121,7 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
   }, [all, page]);
 
   const hasMore = (page + 1) * PAGE_SIZE < all.length;
+  const isAtLimit = all.length >= 2000;
 
   const addTransaction = useCallback(async (data: NewPersonalTransaction): Promise<boolean> => {
     if (!user || !currentPortalId) return false;
@@ -188,5 +192,5 @@ export function useTransactions(filters: TransactionFilters = {}): UseTransactio
 
   const refetch = useCallback(() => setTick((t) => t + 1), []);
 
-  return { transactions, allTransactions: all, isLoading, error, page, hasMore, addTransaction, updateTransaction, deleteTransaction, setPage, refetch };
+  return { transactions, allTransactions: all, isLoading, error, page, hasMore, isAtLimit, addTransaction, updateTransaction, deleteTransaction, setPage, refetch };
 }

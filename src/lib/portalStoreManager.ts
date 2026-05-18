@@ -1,5 +1,4 @@
 import { setActivePortal as setInvoicePortal } from "./invoiceStore";
-import { setActivePortal as setTransactionPortal } from "./transactionStore";
 import { setActivePortal as setCategoryPortal } from "./categoryStore";
 import { setActivePortal as setChannelPortal } from "./channelStore";
 import { setActivePortal as setVaultPortal } from "./vaultStore";
@@ -12,7 +11,6 @@ import { setActivePortal as setSocialPortal } from "./socialStore";
  */
 export function setActivePortal(portalId: string) {
   setInvoicePortal(portalId);
-  setTransactionPortal(portalId);
   setCategoryPortal(portalId);
   setChannelPortal(portalId);
   setVaultPortal(portalId);

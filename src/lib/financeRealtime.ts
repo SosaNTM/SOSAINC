@@ -18,7 +18,7 @@ export type FinanceEvent =
   | "transaction_deleted";
 
 // Singleton channel shared across the app
-let _channel = supabase.channel(CHANNEL_NAME);
+const _channel = supabase.channel(CHANNEL_NAME);
 let _subscribed = false;
 
 function ensureSubscribed() {

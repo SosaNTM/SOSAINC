@@ -9,7 +9,7 @@ export type LeadgenEvent =
   | "search_failed"
   | "lead_updated";
 
-let _channel = supabase.channel(CHANNEL_NAME);
+const _channel = supabase.channel(CHANNEL_NAME);
 let _subscribed = false;
 
 function ensureSubscribed() {

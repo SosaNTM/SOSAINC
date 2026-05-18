@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/authContext";
 import { addAuditEntry } from "@/lib/adminStore";
 import { usePermission } from "@/lib/permissions";
 import { usePortal } from "@/lib/portalContext";
-import { usePortalSecurity, sha256hex } from "@/hooks/settings";
+import { usePortalSecurity, verifyPassword } from "@/hooks/settings";
 import { getVaultItems, type VaultItem, type VaultItemType } from "@/lib/vaultStore";
 import { fetchVaultItems, createVaultItem, deleteVaultItem } from "@/lib/services/vaultService";
 import { generateVaultPDF } from "@/lib/services/vaultPdfExport";
@@ -660,8 +660,7 @@ const VaultPage = () => {
       setLockError("Nessuna password configurata. Impostala in Impostazioni → Accesso Vault.");
       return;
     }
-    const hash = await sha256hex(lockPassword);
-    const correct = hash === security.password_hash;
+    const correct = await verifyPassword(lockPassword, security.password_hash);
     if (correct) {
       setIsUnlocked(true);
       setLockError("");

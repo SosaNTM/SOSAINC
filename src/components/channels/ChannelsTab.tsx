@@ -233,7 +233,7 @@ export function ChannelsTab() {
 
   // Stacked bar data
   const stackedData = useMemo(() => months.map((m, i) => {
-    const row: any = { month: m };
+    const row: Record<string, number | string> = { month: m };
     channels.forEach(c => { row[c.name] = c.monthlyRevenue[i] || 0; });
     return row;
   }), [channels]);
@@ -245,7 +245,7 @@ export function ChannelsTab() {
 
   // Trend line data
   const trendData = useMemo(() => months.map((m, i) => {
-    const row: any = { month: m };
+    const row: Record<string, number | string> = { month: m };
     channels.forEach(c => { row[c.name] = c.monthlyRevenue[i] || 0; });
     return row;
   }), [channels]);

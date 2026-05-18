@@ -103,7 +103,7 @@ function FollowerGrowthModal({ days }: { days: number }) {
     const d = new Date(TODAY);
     d.setDate(d.getDate() - (clampedDays - 1 - i));
     const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    const point: Record<string, any> = { date };
+    const point: Record<string, number | string> = { date };
     mockSocialAccounts.forEach((a) => {
       const m = getMetricsForPeriod(a.id, clampedDays);
       point[a.platform] = m[i]?.followers ?? 0;
@@ -123,7 +123,7 @@ function FollowerGrowthModal({ days }: { days: number }) {
   const togglePlatform = (id: string) => {
     setHiddenPlatforms(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
       return next;
     });
   };

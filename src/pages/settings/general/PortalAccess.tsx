@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Lock, ShieldCheck, ShieldOff, KeyRound } from "lucide-react";
 import { toast } from "sonner";
-import { usePortalSecurity, sha256hex } from "@/hooks/settings";
+import { usePortalSecurity, hashPassword } from "@/hooks/settings";
 import { SettingsPageHeader, SettingsCard, SettingsFormField, SettingsToggle } from "@/components/settings";
 
 export default function PortalAccess() {
@@ -31,7 +31,7 @@ export default function PortalAccess() {
     if (newPassword !== confirmPassword) { toast.error("Le password non coincidono"); return; }
     if (newPassword.length < 4) { toast.error("Password troppo corta (min 4 caratteri)"); return; }
     setSaving(true);
-    const hash = await sha256hex(newPassword);
+    const hash = await hashPassword(newPassword);
     const { error } = await upsert({ is_enabled: true, password_hash: hash });
     setSaving(false);
     if (error) { toast.error(error); return; }

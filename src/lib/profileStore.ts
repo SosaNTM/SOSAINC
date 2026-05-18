@@ -129,7 +129,7 @@ export function getProfile(userId: string, email: string, displayName: string): 
   try {
     const stored = localStorage.getItem(key);
     if (stored) return JSON.parse(stored);
-  } catch {}
+  } catch { /* localStorage unavailable — fall through to default */ }
   
   // Create from seed or default
   const seed = SEED_PROFILES[userId] || {};

@@ -98,7 +98,7 @@ export default function SocialAudience() {
     const d = new Date(TODAY);
     d.setDate(d.getDate() - (clampedDays - 1 - i));
     const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    const point: Record<string, any> = { date };
+    const point: Record<string, number | string> = { date };
     filteredAccounts.forEach((a) => {
       const m = getMetricsForPeriod(a.id, clampedDays);
       point[a.platform] = m[i]?.followers ?? 0;
