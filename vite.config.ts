@@ -41,10 +41,17 @@ export default defineConfig(({ mode }) => ({
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            // Edge Functions + REST API: NEVER cache. Live data only.
+            // Caching mutation responses (e.g. admin-list-users right after a create) shows stale data.
+            urlPattern: /^https:\/\/.*\.supabase\.co\/(functions|rest|auth|realtime)\/.*/i,
+            handler: "NetworkOnly",
+          },
+          {
+            // Supabase Storage (file downloads): cache short-term for performance.
+            urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/.*/i,
             handler: "NetworkFirst",
             options: {
-              cacheName: "supabase-cache",
+              cacheName: "supabase-storage-cache",
               expiration: { maxEntries: 50, maxAgeSeconds: 300 },
             },
           },

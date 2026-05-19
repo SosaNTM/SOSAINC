@@ -13,17 +13,18 @@ const SUPABASE_ANON_KEY     = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const MAIN_PORTAL_IDS = [
-  "00000000-0000-0000-0000-000000000001",
-  "00000000-0000-0000-0000-000000000002",
-  "00000000-0000-0000-0000-000000000003",
-  "00000000-0000-0000-0000-000000000004",
+  "a1000000-0000-0000-0000-000000000001",
+  "a1000000-0000-0000-0000-000000000002",
+  "a1000000-0000-0000-0000-000000000003",
+  "a1000000-0000-0000-0000-000000000004",
 ];
 
+// Return frontend-compatible slugs (no hyphens). DB has "trust-me" but frontend uses "trustme".
 const PORTAL_SLUG: Record<string, string> = {
-  "00000000-0000-0000-0000-000000000001": "sosa",
-  "00000000-0000-0000-0000-000000000002": "keylo",
-  "00000000-0000-0000-0000-000000000003": "redx",
-  "00000000-0000-0000-0000-000000000004": "trustme",
+  "a1000000-0000-0000-0000-000000000001": "sosa",
+  "a1000000-0000-0000-0000-000000000002": "keylo",
+  "a1000000-0000-0000-0000-000000000003": "redx",
+  "a1000000-0000-0000-0000-000000000004": "trustme",
 };
 
 const ROLE_RANK: Record<string, number> = { owner: 4, admin: 3, member: 2, viewer: 1 };
@@ -81,7 +82,7 @@ serve(async (req: Request) => {
 
   const { data: memberships, error: membershipsError } = await adminClient
     .from("portal_members")
-    .select("portal_id, user_id, role, created_at")
+    .select("portal_id, user_id, role, joined_at")
     .in("portal_id", MAIN_PORTAL_IDS);
 
   if (membershipsError) {

@@ -76,15 +76,26 @@ function UsersTab({ isOwner }: { isOwner: boolean }) {
     setLoadingUsers(true);
     try {
       const auth = await getAuthHeader();
-      const res = await fetch(`${EDGE_BASE}/admin-list-users`, { headers: { Authorization: auth } });
-      if (res.ok) {
-        const data = await res.json() as { users: AdminUser[] };
-        setAdminUsers(data.users ?? []);
+      if (!auth) { toast({ title: "Not authenticated", description: "Re-login required", variant: "destructive" }); return; }
+      // cache:"no-store" bypasses SW + browser HTTP cache so we always see fresh data after a mutation.
+      const res = await fetch(`${EDGE_BASE}/admin-list-users`, { headers: { Authorization: auth }, cache: "no-store" });
+      const text = await res.text();
+      let parsed: { users?: AdminUser[]; error?: string } = {};
+      try { parsed = text ? JSON.parse(text) as { users?: AdminUser[]; error?: string } : {}; } catch { /* non-JSON */ }
+      if (!res.ok) {
+        console.error("[admin-list-users] HTTP", res.status, parsed.error ?? text.slice(0, 200));
+        toast({ title: "Failed to load users", description: parsed.error ?? `HTTP ${res.status}`, variant: "destructive" });
+        return;
       }
+      setAdminUsers(parsed.users ?? []);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[admin-list-users] fetch failed:", e);
+      toast({ title: "Network error", description: msg, variant: "destructive" });
     } finally {
       setLoadingUsers(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => { void fetchUsers(); }, [fetchUsers]);
 
