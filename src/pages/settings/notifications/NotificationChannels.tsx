@@ -64,7 +64,7 @@ export default function NotificationChannelsPage() {
   }
 
   return (
-    <div style={{ maxWidth: 860 }}>
+    <div style={{ maxWidth: "100%" }}>
       <SettingsPageHeader
         icon={Bell}
         title="Canali di Notifica"

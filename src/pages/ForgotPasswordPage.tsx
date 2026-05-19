@@ -4,8 +4,6 @@ import { ArrowLeft, Mail } from "lucide-react";
 import { MorphingSquare } from "@/components/ui/morphing-square";
 import { sendPasswordResetEmail } from "@/lib/supabaseAuth";
 
-const USE_REAL_AUTH = import.meta.env.VITE_USE_REAL_AUTH === "true";
-
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,11 +15,7 @@ const ForgotPasswordPage = () => {
     setError(null);
     setLoading(true);
     try {
-      if (USE_REAL_AUTH) {
-        await sendPasswordResetEmail(email);
-      } else {
-        await new Promise((r) => setTimeout(r, 1000));
-      }
+      await sendPasswordResetEmail(email);
       setSent(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to send reset link. Please try again.");

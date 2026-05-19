@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Wallet, AlertTriangle, ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
@@ -11,12 +11,12 @@ import { BudgetManagerModal } from "@/portals/finance/components/BudgetManagerMo
 import { GlassTooltip } from "@/components/ui/GlassTooltip";
 import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function barColor(pct: number): string {
-  if (pct >= 85) return "#FF5A5A";
-  if (pct >= 60) return "#f59e0b";
-  return "#2ECC71";
+  if (pct >= 85) return "var(--color-error)";
+  if (pct >= 60) return "var(--color-warning)";
+  return "var(--color-success)";
 }
 
 function useIsMobile(): boolean {
@@ -36,7 +36,7 @@ const MONTH_NAMES = [
 
 const fmtEurTooltip = (v: number) => `€${Number(v).toLocaleString("en-US")}`;
 
-// ── Main component ────────────────────────────────────────────────────────────
+// â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function Budget() {
   const {
@@ -59,38 +59,38 @@ export default function Budget() {
     <div className="space-y-5">
       <LiquidGlassFilter />
 
-      {/* ── Summary bar ─────────────────────────────────────────── */}
+      {/* â”€â”€ Summary bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div
         className="grid grid-cols-3 gap-3"
         initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       >
         {[
-          { label: "Total Budget",  value: `€${totalBudget.toLocaleString("en-US")}`,  color: "#4A9EFF" },
-          { label: "Total Spent",  value: `€${totalSpent.toLocaleString("en-US")}`,    color: totalSpent > totalBudget ? "#FF5A5A" : "#e8ff00" },
-          { label: "Remaining",    value: `€${Math.abs(remaining).toLocaleString("en-US")}${remaining < 0 ? " -" : ""}`, color: remaining < 0 ? "#FF5A5A" : "#2ECC71" },
+          { label: "Total Budget",  value: `€${totalBudget.toLocaleString("en-US")}`,  color: "var(--color-info)" },
+          { label: "Total Spent",  value: `€${totalSpent.toLocaleString("en-US")}`,    color: totalSpent > totalBudget ? "var(--color-error)" : "var(--sosa-yellow)" },
+          { label: "Remaining",    value: `€${Math.abs(remaining).toLocaleString("en-US")}${remaining < 0 ? " -" : ""}`, color: remaining < 0 ? "var(--color-error)" : "var(--color-success)" },
         ].map((s) => (
-          <div key={s.label} style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 14, padding: "14px 18px" }}>
+          <div key={s.label} style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: "14px 18px" }}>
             <p style={{ fontSize: 11, color: "var(--text-quaternary)", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" }}>{s.label}</p>
             <p style={{ fontSize: 22, fontWeight: 700, color: s.color, letterSpacing: "-0.5px", marginTop: 4 }}>{s.value}</p>
           </div>
         ))}
       </motion.div>
 
-      {/* ── Main grid ───────────────────────────────────────────── */}
+      {/* â”€â”€ Main grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div
         className="grid grid-cols-1 lg:grid-cols-3 gap-5"
         initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
       >
-        {/* Left: Budget Breakdown ──────────────────────────────── */}
+        {/* Left: Budget Breakdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="lg:col-span-2">
-          <LiquidGlassCard accentColor="#e8ff00" hover={false}>
+          <LiquidGlassCard accentColor="var(--sosa-yellow)" hover={false}>
             {/* Card header */}
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2.5">
-                <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(232,255,0,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Wallet style={{ width: 16, height: 16, color: "#e8ff00" }} />
+                <div style={{ width: 32, height: 32, borderRadius: 0, background: "rgba(232,255,0,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Wallet style={{ width: 16, height: 16, color: "var(--sosa-yellow)" }} />
                 </div>
                 <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Monthly Budget</h3>
               </div>
@@ -100,10 +100,10 @@ export default function Budget() {
                 <button
                   onClick={() => setManagerOpen(true)}
                   style={{
-                    height: 30, padding: "0 10px", borderRadius: 8,
+                    height: 30, padding: "0 10px", borderRadius: 0,
                     background: "rgba(232,255,0,0.10)",
                     border: "1px solid rgba(232,255,0,0.25)",
-                    color: "#e8ff00", fontSize: 11, fontWeight: 600,
+                    color: "var(--sosa-yellow)", fontSize: 11, fontWeight: 600,
                     cursor: "pointer", display: "flex", alignItems: "center", gap: 5,
                   }}
                 >
@@ -113,13 +113,13 @@ export default function Budget() {
 
                 {/* Month navigation */}
                 <div className="flex items-center gap-1">
-                  <button onClick={prevMonth} style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
+                  <button onClick={prevMonth} style={{ width: 28, height: 28, borderRadius: 0, background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
                     <ChevronLeft style={{ width: 14, height: 14 }} />
                   </button>
                   <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", minWidth: 110, textAlign: "center" }}>
                     {MONTH_NAMES[month]} {year}
                   </span>
-                  <button onClick={nextMonth} style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
+                  <button onClick={nextMonth} style={{ width: 28, height: 28, borderRadius: 0, background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
                     <ChevronRight style={{ width: 14, height: 14 }} />
                   </button>
                 </div>
@@ -151,7 +151,7 @@ export default function Budget() {
                     onClick={() => isSelected ? closeCategoryPanel() : openCategory(cat.id)}
                     style={{
                       padding: "10px 12px",
-                      borderRadius: 10,
+                      borderRadius: 0,
                       cursor: "pointer",
                       borderLeft: isSelected ? "3px solid #e8ff00" : "3px solid transparent",
                       background: isSelected ? "rgba(232,255,0,0.07)" : "transparent",
@@ -163,14 +163,14 @@ export default function Budget() {
                       <div className="flex items-center gap-2" style={{ color: cat.color }}>
                         {cat.icon}
                         <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{cat.name}</span>
-                        {over && <AlertTriangle style={{ width: 12, height: 12, color: "#FF5A5A" }} />}
+                        {over && <AlertTriangle style={{ width: 12, height: 12, color: "var(--color-error)" }} />}
                       </div>
                       <div className="flex items-center gap-3">
-                        <span style={{ fontSize: 12, fontWeight: 700, color: over ? "#FF5A5A" : "var(--text-primary)" }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: over ? "var(--color-error)" : "var(--text-primary)" }}>
                           €{cat.spent.toLocaleString("en-US")}
                           <span style={{ fontSize: 10, color: "var(--text-quaternary)", fontWeight: 400 }}> / €{cat.budget.toLocaleString("en-US")}</span>
                         </span>
-                        <span style={{ fontSize: 11, fontWeight: 700, minWidth: 36, textAlign: "right", color: over ? "#FF5A5A" : cat.color }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, minWidth: 36, textAlign: "right", color: over ? "var(--color-error)" : cat.color }}>
                           {pct}%
                         </span>
                       </div>
@@ -201,7 +201,7 @@ export default function Budget() {
           </LiquidGlassCard>
         </div>
 
-        {/* Right: Pie chart OR BudgetCategoryPanel (desktop) ─────── */}
+        {/* Right: Pie chart OR BudgetCategoryPanel (desktop) â”€â”€â”€â”€â”€â”€â”€ */}
         <AnimatePresence mode="wait">
           {isPanelOpen && selectedCat && !isMobile ? (
             <motion.div
@@ -262,7 +262,7 @@ export default function Budget() {
         </AnimatePresence>
       </motion.div>
 
-      {/* ── Mobile bottom sheet (portal) ─────────────────────────── */}
+      {/* â”€â”€ Mobile bottom sheet (portal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <AnimatePresence>
         {isPanelOpen && selectedCat && isMobile && createPortal(
           <motion.div
@@ -291,7 +291,7 @@ export default function Budget() {
         )}
       </AnimatePresence>
 
-      {/* ── Budget manager modal ─────────────────────────────────── */}
+      {/* â”€â”€ Budget manager modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <BudgetManagerModal
         open={managerOpen}
         onClose={() => setManagerOpen(false)}

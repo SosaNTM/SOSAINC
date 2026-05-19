@@ -1,55 +1,49 @@
-﻿import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { toPortalUUID } from "@/lib/portalUUID";
+import { toast } from "sonner";
 import type { DbTask, DbProject, NewDbTask, NewDbProject, DbTaskComment, NewDbTaskComment } from "@/types/database";
-
-const LS_TASKS = (portalId: string) => `SOSA INC_tasks_${portalId}`;
-const LS_PROJECTS = (portalId: string) => `SOSA INC_projects_${portalId}`;
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
 
 export async function fetchProjects(portalId: string): Promise<DbProject[]> {
-  try {
-    const { data, error } = await supabase
-      .from("projects")
-      .select("*")
-      .eq("portal_id", toPortalUUID(portalId))
-      .order("name", { ascending: true });
-    if (error) throw error;
-    const result = data ?? [];
-    localStorage.setItem(LS_PROJECTS(portalId), JSON.stringify(result));
-    return result;
-  } catch {
-    try { return JSON.parse(localStorage.getItem(LS_PROJECTS(portalId)) ?? "[]"); }
-    catch { return []; }
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("portal_id", toPortalUUID(portalId))
+    .order("name", { ascending: true });
+  if (error) {
+    console.error("fetchProjects:", error.message);
+    toast.error(`Projects load failed: ${error.message}`);
+    return [];
   }
+  return data ?? [];
 }
 
 export async function upsertProject(
   project: Omit<NewDbProject, "portal_id"> & { id?: string },
   portalId: string,
 ): Promise<DbProject | null> {
-  try {
-    const { data, error } = await supabase
-      .from("projects")
-      .upsert({ ...project, portal_id: toPortalUUID(portalId) })
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  } catch {
+  const { data, error } = await supabase
+    .from("projects")
+    .upsert({ ...project, portal_id: toPortalUUID(portalId) })
+    .select()
+    .single();
+  if (error) {
+    toast.error(`Project not saved: ${error.message}`);
     return null;
   }
+  return data;
 }
 
 export async function deleteProject(id: string, portalId?: string): Promise<boolean> {
-  try {
-    let q = supabase.from("projects").delete().eq("id", id);
-    if (portalId) q = q.eq("portal_id", toPortalUUID(portalId));
-    const { error } = await q;
-    return !error;
-  } catch {
+  let q = supabase.from("projects").delete().eq("id", id);
+  if (portalId) q = q.eq("portal_id", toPortalUUID(portalId));
+  const { error } = await q;
+  if (error) {
+    toast.error(`Project not deleted: ${error.message}`);
     return false;
   }
+  return true;
 }
 
 // ─── Tasks ────────────────────────────────────────────────────────────────────
@@ -58,93 +52,88 @@ export async function fetchTasks(
   portalId: string,
   projectId?: string,
 ): Promise<DbTask[]> {
-  try {
-    let query = supabase
-      .from("tasks")
-      .select("*")
-      .eq("portal_id", toPortalUUID(portalId))
-      .order("created_at", { ascending: false });
-    if (projectId) query = query.eq("project_id", projectId);
-    const { data, error } = await query;
-    if (error) throw error;
-    const result = data ?? [];
-    localStorage.setItem(LS_TASKS(portalId), JSON.stringify(result));
-    return result;
-  } catch {
-    try { return JSON.parse(localStorage.getItem(LS_TASKS(portalId)) ?? "[]"); }
-    catch { return []; }
+  let query = supabase
+    .from("tasks")
+    .select("*")
+    .eq("portal_id", toPortalUUID(portalId))
+    .order("created_at", { ascending: false });
+  if (projectId) query = query.eq("project_id", projectId);
+  const { data, error } = await query;
+  if (error) {
+    console.error("fetchTasks:", error.message);
+    toast.error(`Tasks load failed: ${error.message}`);
+    return [];
   }
+  return data ?? [];
 }
 
 export async function upsertTask(
   task: Omit<NewDbTask, "portal_id"> & { id?: string },
   portalId: string,
 ): Promise<DbTask | null> {
-  // Optimistic local update
-  try {
-    const { data, error } = await supabase
-      .from("tasks")
-      .upsert({ ...task, portal_id: toPortalUUID(portalId) })
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  } catch {
+  const { data, error } = await supabase
+    .from("tasks")
+    .upsert({ ...task, portal_id: toPortalUUID(portalId) })
+    .select()
+    .single();
+  if (error) {
+    toast.error(`Task not saved: ${error.message}`);
     return null;
   }
+  return data;
 }
 
-export async function deleteTask(id: string, portalId?: string): Promise<boolean> {
-  try {
-    let q = supabase.from("tasks").delete().eq("id", id);
-    if (portalId) q = q.eq("portal_id", toPortalUUID(portalId));
-    const { error } = await q;
-    return !error;
-  } catch {
+export async function deleteTask(id: string, portalId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("tasks")
+    .delete()
+    .eq("id", id)
+    .eq("portal_id", toPortalUUID(portalId));
+  if (error) {
+    toast.error(`Task not deleted: ${error.message}`);
     return false;
   }
+  return true;
 }
 
 // ─── Comments ─────────────────────────────────────────────────────────────────
 
 export async function fetchComments(taskId: string): Promise<DbTaskComment[]> {
-  try {
-    const { data, error } = await supabase
-      .from("task_comments")
-      .select("*")
-      .eq("task_id", taskId)
-      .order("created_at", { ascending: true });
-    if (error) throw error;
-    return data ?? [];
-  } catch {
+  const { data, error } = await supabase
+    .from("task_comments")
+    .select("*")
+    .eq("task_id", taskId)
+    .order("created_at", { ascending: true });
+  if (error) {
+    console.error("fetchComments:", error.message);
     return [];
   }
+  return data ?? [];
 }
 
 export async function createComment(
   comment: Omit<NewDbTaskComment, "portal_id">,
   portalId: string,
 ): Promise<DbTaskComment | null> {
-  try {
-    const { data, error } = await supabase
-      .from("task_comments")
-      .insert({ ...comment, portal_id: toPortalUUID(portalId) })
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  } catch {
+  const { data, error } = await supabase
+    .from("task_comments")
+    .insert({ ...comment, portal_id: toPortalUUID(portalId) })
+    .select()
+    .single();
+  if (error) {
+    toast.error(`Comment not saved: ${error.message}`);
     return null;
   }
+  return data;
 }
 
 export async function deleteComment(id: string, portalId?: string): Promise<boolean> {
-  try {
-    let q = supabase.from("task_comments").delete().eq("id", id);
-    if (portalId) q = q.eq("portal_id", toPortalUUID(portalId));
-    const { error } = await q;
-    return !error;
-  } catch {
+  let q = supabase.from("task_comments").delete().eq("id", id);
+  if (portalId) q = q.eq("portal_id", toPortalUUID(portalId));
+  const { error } = await q;
+  if (error) {
+    toast.error(`Comment not deleted: ${error.message}`);
     return false;
   }
+  return true;
 }

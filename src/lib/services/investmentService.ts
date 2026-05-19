@@ -1,32 +1,21 @@
 import { supabase } from "@/lib/supabase";
 import { toPortalUUID } from "@/lib/portalUUID";
 import { newInvestmentSchema, safeValidate } from "@/lib/validation/schemas";
+import { toast } from "sonner";
 import type { DbInvestment, NewDbInvestment } from "@/types/database";
 
-const LS_KEY = (portalId: string) => `finance_investments_${portalId}`;
-
-function readLocal(portalId: string): DbInvestment[] {
-  try { return JSON.parse(localStorage.getItem(LS_KEY(portalId)) ?? "[]"); }
-  catch { return []; }
-}
-function writeLocal(portalId: string, data: DbInvestment[]): void {
-  localStorage.setItem(LS_KEY(portalId), JSON.stringify(data));
-}
-
 export async function fetchInvestments(portalId: string): Promise<DbInvestment[]> {
-  try {
-    const { data, error } = await supabase
-      .from("investments")
-      .select("*")
-      .eq("portal_id", toPortalUUID(portalId))
-      .order("name", { ascending: true });
-    if (error) throw error;
-    const result = data ?? [];
-    writeLocal(portalId, result);
-    return result;
-  } catch {
-    return readLocal(portalId);
+  const { data, error } = await supabase
+    .from("investments")
+    .select("*")
+    .eq("portal_id", toPortalUUID(portalId))
+    .order("name", { ascending: true });
+  if (error) {
+    console.error("fetchInvestments:", error.message);
+    toast.error(`Investments load failed: ${error.message}`);
+    return [];
   }
+  return data ?? [];
 }
 
 export async function createInvestment(
@@ -34,22 +23,21 @@ export async function createInvestment(
   portalId: string,
 ): Promise<DbInvestment | null> {
   const validation = safeValidate(newInvestmentSchema, investment);
-  if (!validation.success) {
+  if (validation.success === false) {
     console.warn("createInvestment validation failed:", validation.errors);
     return null;
   }
-  try {
-    const { data, error } = await supabase
-      .from("investments")
-      .insert({ ...investment, portal_id: toPortalUUID(portalId) })
-      .select()
-      .single();
-    if (error) throw error;
-    writeLocal(portalId, [data, ...readLocal(portalId)]);
-    return data;
-  } catch {
+  const { data, error } = await supabase
+    .from("investments")
+    .insert({ ...investment, portal_id: toPortalUUID(portalId) })
+    .select()
+    .single();
+  if (error) {
+    console.error("createInvestment:", error.message);
+    toast.error(`Investment not saved: ${error.message}`);
     return null;
   }
+  return data;
 }
 
 export async function updateInvestment(
@@ -57,33 +45,33 @@ export async function updateInvestment(
   updates: Partial<DbInvestment>,
   portalId: string,
 ): Promise<DbInvestment | null> {
-  try {
-    const { data, error } = await supabase
-      .from("investments")
-      .update(updates)
-      .eq("id", id)
-      .eq("portal_id", toPortalUUID(portalId))
-      .select()
-      .single();
-    if (error) throw error;
-    writeLocal(portalId, readLocal(portalId).map((i) => (i.id === id ? data : i)));
-    return data;
-  } catch {
+  const { data, error } = await supabase
+    .from("investments")
+    .update(updates)
+    .eq("id", id)
+    .eq("portal_id", toPortalUUID(portalId))
+    .select()
+    .single();
+  if (error) {
+    console.error("updateInvestment:", error.message);
+    toast.error(`Investment not updated: ${error.message}`);
     return null;
   }
+  return data;
 }
 
 export async function deleteInvestment(id: string, portalId: string): Promise<boolean> {
-  const snapshot = readLocal(portalId);
-  writeLocal(portalId, snapshot.filter((i) => i.id !== id));
-  try {
-    const { error } = await supabase.from("investments").delete().eq("id", id).eq("portal_id", toPortalUUID(portalId));
-    if (error) throw error;
-    return true;
-  } catch {
-    writeLocal(portalId, snapshot); // rollback optimistic delete
+  const { error } = await supabase
+    .from("investments")
+    .delete()
+    .eq("id", id)
+    .eq("portal_id", toPortalUUID(portalId));
+  if (error) {
+    console.error("deleteInvestment:", error.message);
+    toast.error(`Investment not deleted: ${error.message}`);
     return false;
   }
+  return true;
 }
 
 export function computePortfolioValue(investments: DbInvestment[]): number {

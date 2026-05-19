@@ -38,12 +38,10 @@ export const GlassCard = React.memo(function GlassCard({
     <div
       className={cn("relative overflow-hidden", className)}
       style={{
-        background: "rgba(255, 255, 255, 0.15)",
+        background: "var(--glass-bg)",
         backdropFilter: "blur(16px)",
         WebkitBackdropFilter: "blur(16px)",
-        border: "1px solid rgba(255, 255, 255, 0.30)",
-        borderRadius: 16,
-        boxShadow: "0 4px 24px rgba(0, 0, 0, 0.08)",
+        border: "1px solid var(--glass-border)",
         padding: 20,
       }}
     >
@@ -81,7 +79,7 @@ export const GlassCard = React.memo(function GlassCard({
             {title}
           </span>
           {headerRight ?? (
-            <button type="button"
+            <button
               type="button"
               className="flex items-center justify-center rounded-md p-1 opacity-60 hover:opacity-100 transition-opacity"
               aria-label="More options"

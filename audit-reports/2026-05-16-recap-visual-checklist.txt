@@ -1,0 +1,117 @@
+# Recap visual checklist — 2026-05-16 (Saturday)
+
+Portal: sosa | Owner: sosa@sosainc.com
+
+==================================================
+[1] /recap?p=month (May 2026)
+==================================================
+
+http://localhost:8080/sosa/recap?p=month
+  KPI Entrate           → €5070,00
+  KPI Uscite            → €1958,50
+  KPI Saldo Netto       → €3111,50   (green, positive)
+  KPI Risparmio %       → 61%             (green, ≥20%)
+
+  Donut Spese (May):    6 slices, no 'Altro'
+    Casa        €850,00   44%
+    Spesa       €725,00   37%
+    Svago       €156,50    8%   (144 + F-01 12.50)
+    Trasporti   €122,00    6%
+    Salute      €75,00     4%
+    Abbonamenti €30,00     2%
+
+  Donut Entrate (May):  5 slices
+    Stipendio   €3500,00  69%
+    Bonus       €1000,00  20%
+    Freelance   €370,00    7%
+    Vendite     €105,00    2%
+    Rimborsi    €95,00     2%
+
+  Trend chart:          daily (16 ticks); peak income day 01 = 3500, day 16 = 1000
+  Cashflow waveform:    ends at €3111,50; never crosses below 0 in May
+  Heatmap hottest cell: Sat 2 May (€850 Affitto)
+  Top 5 Spese:          Casa, Spesa (RED bar, 725>600 budget), Svago, Trasporti, Salute
+  Transaction Table:    20 rows (May), default sort = date desc, first = today (F-01 or E-24 or I-12)
+
+==================================================
+[2] /recap?p=month&cmp=1 (compare on)
+==================================================
+
+http://localhost:8080/sosa/recap?p=month&cmp=1
+  Δ Entrate:    +15,2 %  (green, up)
+  Δ Uscite:     +41,4 %  (red, up=bad)
+  Δ Saldo:      +3,2 %   (green, up)
+  Δ Risparmio:  −10,4 %  (red, down)
+
+==================================================
+[3] /recap?p=prevmonth (April 2026)
+==================================================
+
+http://localhost:8080/sosa/recap?p=prevmonth
+  KPI Entrate:    €4400,00
+  KPI Uscite:     €1385,00
+  KPI Saldo:      €3015,00  (green)
+  KPI Risparmio:  69%             (green)
+  Transactions:   9 rows (3 income, 6 expense)
+
+==================================================
+[4] /recap?p=today (Sat 16 May 2026)
+==================================================
+
+http://localhost:8080/sosa/recap?p=today
+  KPI Entrate:    €1000,00 (Bonus Q1)
+  KPI Uscite:     €37,50 (Parcheggio 25 + Caffè 12.50)
+  KPI Saldo:      €962,50  (green)
+  Transactions:   3 rows
+
+==================================================
+[5] /recap?p=7days (10–16 May 2026)
+==================================================
+
+http://localhost:8080/sosa/recap?p=7days
+  KPI Entrate:    €1225,00  (4 rows)
+  KPI Uscite:     €485,50  (8 rows incl. F-01)
+  KPI Saldo:      €739,50
+
+==================================================
+[6] /recap?p=3months (Mar–May 2026)
+==================================================
+
+http://localhost:8080/sosa/recap?p=3months
+  KPI Entrate:    €13.420,00
+  KPI Uscite:     €4773,50
+  KPI Saldo:      €8646,50
+  Trend chart:    monthly (Mar/Apr/May)
+    Mar  income €3950,00  expense €1430,00
+    Apr  income €4400,00  expense €1385,00
+    May  income €5070,00  expense €1958,50
+
+==================================================
+[7] /recap?p=year (2026)
+==================================================
+
+http://localhost:8080/sosa/recap?p=year
+  Same totals as 3months (no data outside Mar-May)
+
+==================================================
+[8] /recap?p=prevyear (2025)
+==================================================
+
+http://localhost:8080/sosa/recap?p=prevyear
+  All widgets → empty state (Italian copy: 'Nessun dato')
+
+==================================================
+Interaction tests (manual)
+==================================================
+  Click KPI Entrate          → drill modal '7 tx, €5070'
+  Click KPI Uscite           → drill '13 tx, €1958.50'
+  Click donut Casa slice     → drill 'Spese — Casa, 1 tx, €850' + table filters to Casa
+  Click donut Bonus slice    → drill 'Entrate — Bonus, 1 tx, €1000'
+  Click trend day 02         → drill 1 tx (Affitto Maggio)
+  Click cashflow day 16      → drill all May 16 tx
+  Click heatmap May 2 cell   → drill 1 tx
+  Click Top5 Casa row        → drill same as donut Casa
+  Filter banner 'Casa ×'     → × clears filter
+  Modal close: ESC, X button, overlay click
+  Modal centering: panel centered via flex, NO translate(-50%,-50%) regression
+

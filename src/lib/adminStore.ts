@@ -1,4 +1,4 @@
-﻿export interface AuditLogEntry {
+export interface AuditLogEntry {
   id: string;
   userId: string;
   action: string;
@@ -21,7 +21,7 @@ async function getAuditBridge() {
 
 const PORTAL_NAMES: Record<string, string> = {
   sosa:    "Sosa Inc",
-  keylo:   "KEYLO",
+  keylo:   "KEYLOW",
   redx:    "REDX",
   trustme: "Trust Me",
 };
@@ -30,30 +30,13 @@ export function getPortalName(portalId: string): string {
   return PORTAL_NAMES[portalId] ?? portalId;
 }
 
-/* ── Persistent audit log store ── */
-import { STORAGE_AUDIT_LOG } from "@/constants/storageKeys";
+/* ── In-memory audit log (Supabase is source of truth via auditLogService) ── */
 
-const AUDIT_STORAGE_KEY = STORAGE_AUDIT_LOG;
 const MAX_AUDIT_ENTRIES = 200;
 
-function loadAuditLog(): AuditLogEntry[] {
-  try {
-    const raw = localStorage.getItem(AUDIT_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as AuditLogEntry[];
-    return parsed.map((e) => ({ ...e, timestamp: new Date(e.timestamp) }));
-  } catch { return []; }
-}
-
-function saveAuditLog(log: AuditLogEntry[]): void {
-  try {
-    localStorage.setItem(AUDIT_STORAGE_KEY, JSON.stringify(log.slice(0, MAX_AUDIT_ENTRIES)));
-  } catch { /* quota exceeded — silently drop oldest entries */ }
-}
-
-let _liveLog: AuditLogEntry[] = loadAuditLog();
+let _liveLog: AuditLogEntry[] = [];
 let _auditListeners: Array<() => void> = [];
-let _auditCounter = _liveLog.length + 1000;
+let _auditCounter = 1000;
 
 export function addAuditEntry(
   entry: Omit<AuditLogEntry, "id" | "timestamp">
@@ -63,10 +46,9 @@ export function addAuditEntry(
     { ...entry, id: `al_${_auditCounter}`, timestamp: new Date() },
     ..._liveLog,
   ].slice(0, MAX_AUDIT_ENTRIES);
-  saveAuditLog(_liveLog);
   _auditListeners.forEach((cb) => cb());
 
-  // Bridge to Supabase audit log (fire-and-forget — never throws)
+  // Persist to Supabase audit_log (fire-and-forget — never throws)
   if (entry.portalId) {
     const portalId = entry.portalId;
     getAuditBridge().then((bridge) => {
@@ -87,10 +69,6 @@ export function getAuditLog(): AuditLogEntry[] {
 export function subscribeAudit(cb: () => void): () => void {
   _auditListeners.push(cb);
   return () => { _auditListeners = _auditListeners.filter((l) => l !== cb); };
-}
-
-function d(daysAgo: number, h: number, m = 0): Date {
-  const dt = new Date(); dt.setDate(dt.getDate() - daysAgo); dt.setHours(h, m, 0, 0); return dt;
 }
 
 export const INITIAL_AUDIT_LOG: AuditLogEntry[] = _liveLog;

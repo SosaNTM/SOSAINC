@@ -1,5 +1,3 @@
-import { ALL_USERS } from "@/lib/authContext";
-
 // ── Types ──
 export type IssueStatus = "backlog" | "todo" | "in_progress" | "in_review" | "done" | "cancelled";
 export type IssuePriority = "none" | "urgent" | "high" | "medium" | "low";

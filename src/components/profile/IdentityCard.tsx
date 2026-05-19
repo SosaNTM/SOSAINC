@@ -74,10 +74,10 @@ export function IdentityCard({ employee, canEdit, isAdmin, localAvatar, onAvatar
 
   return (
     <div
-      className="rounded-2xl p-7 flex flex-col items-center gap-4"
+      className="p-7 flex flex-col items-center gap-4"
       style={{
-        backgroundColor: "#0d1117",
-        border: "1px solid rgba(255,255,255,0.08)",
+        background: "var(--sosa-bg-2)",
+        border: "1px solid var(--sosa-border)",
       }}
     >
       {/* Avatar */}
@@ -91,15 +91,15 @@ export function IdentityCard({ employee, canEdit, isAdmin, localAvatar, onAvatar
           />
         ) : (
           <div
-            className="flex items-center justify-center rounded-2xl"
+            className="flex items-center justify-center"
             style={{
               width: 120,
               height: 120,
-              background: "linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.05))",
-              border: "1px solid rgba(16,185,129,0.2)",
+              background: "var(--sosa-bg-3)",
+              border: "1px solid var(--sosa-border)",
             }}
           >
-            <span className="text-4xl font-bold" style={{ color: "#10b981" }}>
+            <span style={{ fontSize: 36, fontWeight: 700, color: "var(--portal-accent)", fontFamily: "var(--font-mono)" }}>
               {initials}
             </span>
           </div>

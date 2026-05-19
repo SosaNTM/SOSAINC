@@ -2,9 +2,9 @@ import type { LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface SettingsPageHeaderProps {
-  icon: LucideIcon;
+  icon?: LucideIcon;
   title: string;
-  description: string;
+  description?: string;
   action?: {
     label: string;
     icon: LucideIcon;
@@ -27,24 +27,28 @@ export function SettingsPageHeader({ icon: Icon, title, description, action }: S
       }}
     >
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-        <div style={{
-          width: 40, height: 40, borderRadius: "var(--radius-md)",
-          background: "var(--accent-primary-soft)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          flexShrink: 0,
-        }}>
-          <Icon style={{ width: 20, height: 20, color: "var(--accent-primary)" }} />
-        </div>
+        {Icon && (
+          <div style={{
+            width: 40, height: 40, borderRadius: "var(--radius-md)",
+            background: "var(--accent-primary-soft)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+          }}>
+            <Icon style={{ width: 20, height: 20, color: "var(--accent-primary)" }} />
+          </div>
+        )}
         <div>
           <h1 style={{
             fontFamily: "var(--font-display)", fontSize: "var(--text-h1)",
             fontWeight: 600, color: "var(--text-primary)",
             letterSpacing: "0.02em", lineHeight: 1.2, margin: 0,
           }}>{title}</h1>
-          <p style={{
-            fontFamily: "var(--font-body)", fontSize: 13,
-            color: "var(--text-tertiary)", marginTop: 4,
-          }}>{description}</p>
+          {description && (
+            <p style={{
+              fontFamily: "var(--font-body)", fontSize: 13,
+              color: "var(--text-tertiary)", marginTop: 4,
+            }}>{description}</p>
+          )}
         </div>
       </div>
       {action && (

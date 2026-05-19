@@ -38,17 +38,47 @@ export const useDepartments = () => usePortalData<Department>("departments", { o
 // Notifications
 export const useAlertRules = () => usePortalData<AlertRule>("alert_rules", { orderBy: "created_at" });
 
+function singletonSwrKey(table: string, portalId: string) {
+  return `swr_single_${table}_${portalId}`;
+}
+
+function readSingletonCache<T>(table: string, portalId: string): T | null {
+  try {
+    const raw = localStorage.getItem(singletonSwrKey(table, portalId));
+    if (raw) return JSON.parse(raw) as T;
+  } catch { /* ignore */ }
+  return null;
+}
+
+function writeSingletonCache<T>(table: string, portalId: string, row: T) {
+  try { localStorage.setItem(singletonSwrKey(table, portalId), JSON.stringify(row)); } catch { /* quota exceeded */ }
+}
+
 // Singleton hooks (one row per portal)
 function useSingleton<T>(tableName: string) {
   const { currentPortalId } = usePortalDB();
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  const [data, setData] = useState<T | null>(() => {
+    if (!currentPortalId) return null;
+    return readSingletonCache<T>(tableName, currentPortalId);
+  });
+
+  const [loading, setLoading] = useState(() => {
+    if (!currentPortalId) return true;
+    return readSingletonCache(tableName, currentPortalId) === null;
+  });
 
   const fetchData = useCallback(async () => {
     if (!currentPortalId) { setLoading(false); return; }
+
+    // Show cache immediately, fetch fresh in background
+    const cached = readSingletonCache<T>(tableName, currentPortalId);
+    if (cached !== null) { setData(cached); setLoading(false); }
+
     const { data: row } = await supabase
       .from(tableName).select("*").eq("portal_id", currentPortalId).single();
     setData(row as T | null);
+    if (row) writeSingletonCache(tableName, currentPortalId, row as T);
     setLoading(false);
   }, [currentPortalId, tableName]);
 
@@ -59,7 +89,10 @@ function useSingleton<T>(tableName: string) {
       .from(tableName)
       .upsert({ ...payload, portal_id: currentPortalId }, { onConflict: "portal_id" })
       .select().single();
-    if (!error) setData(row as T);
+    if (!error && row) {
+      setData(row as T);
+      if (currentPortalId) writeSingletonCache(tableName, currentPortalId, row as T);
+    }
     return { data: row as T | null, error: error?.message ?? null };
   }, [currentPortalId, tableName]);
 
@@ -70,6 +103,52 @@ export const useCurrencySettings      = () => useSingleton<CurrencySettings>("cu
 export const useSocialPublishingRules = () => useSingleton<SocialPublishingRules>("social_publishing_rules");
 export const usePortalProfile         = () => useSingleton<PortalProfile>("portal_profiles");
 export const useAppearanceSettings    = () => useSingleton<AppearanceSettings>("appearance_settings");
+
+export interface PortalSecuritySettings {
+  portal_id: string;
+  is_enabled: boolean;
+  password_hash: string | null;
+  updated_at: string;
+}
+
+export async function sha256hex(text: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// PBKDF2-SHA-256 with random salt. Format: "v1:<base64salt>:<base64hash>"
+export async function hashPassword(password: string): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt, iterations: 100_000 },
+    key, 256
+  );
+  const b64 = (u: Uint8Array) => btoa(String.fromCharCode(...u));
+  return `v1:${b64(salt)}:${b64(new Uint8Array(bits))}`;
+}
+
+// Verifies against v1 (PBKDF2) format or legacy bare SHA-256 hex.
+export async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  if (stored.startsWith("v1:")) {
+    const parts = stored.split(":");
+    const salt = Uint8Array.from(atob(parts[1]), (c) => c.charCodeAt(0));
+    const key = await crypto.subtle.importKey(
+      "raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]
+    );
+    const bits = await crypto.subtle.deriveBits(
+      { name: "PBKDF2", hash: "SHA-256", salt, iterations: 100_000 },
+      key, 256
+    );
+    const hash = btoa(String.fromCharCode(...new Uint8Array(bits)));
+    return hash === parts[2];
+  }
+  return (await sha256hex(password)) === stored;
+}
+
+export const usePortalSecurity = () => useSingleton<PortalSecuritySettings>("portal_security");
 
 // Notification channels (list but auto-seeded per portal)
 export const useNotificationChannels = () => usePortalData<NotificationChannel>("notification_channels", { orderBy: "channel_type" });

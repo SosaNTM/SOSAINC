@@ -167,7 +167,7 @@ const ProfilePage = () => {
           style={{
             background: bannerSrc
               ? undefined
-              : `linear-gradient(135deg, ${profile.brand_color}30 0%, rgba(59,130,246,0.12) 50%, rgba(139,92,246,0.08) 100%)`,
+              : `${profile.brand_color}20`,
           }}
           onClick={() => canEdit && !uploadingBanner && bannerInputRef.current?.click()}
         >
@@ -226,9 +226,7 @@ const ProfilePage = () => {
                   alt=""
                   className="object-cover w-16 h-16 md:w-[88px] md:h-[88px]"
                   style={{
-                    borderRadius: 18,
-                    border: "3px solid var(--bg-body)",
-                    boxShadow: `0 6px 20px rgba(0,0,0,0.3), 0 0 0 2px ${profile.brand_color}40`,
+                    border: `3px solid ${profile.brand_color}`,
                   }}
                 />
               ) : (
@@ -237,8 +235,7 @@ const ProfilePage = () => {
                   style={{
                     borderRadius: 18,
                     border: "3px solid var(--bg-body)",
-                    background: `linear-gradient(135deg, ${profile.brand_color}, ${profile.brand_color}80)`,
-                    boxShadow: `0 6px 20px rgba(0,0,0,0.3), 0 0 20px ${profile.brand_color}30`,
+                    background: profile.brand_color,
                   }}
                 >
                   <span className="text-[28px] font-bold text-white">{initials}</span>
@@ -413,7 +410,8 @@ const ProfilePage = () => {
                       style={{
                         width: 60, height: 40, borderRadius: 10, background: opt.preview,
                         border: theme === opt.value ? "2px solid var(--accent-color)" : "2px solid var(--glass-border)",
-                        boxShadow: theme === opt.value ? "0 0 0 2px var(--accent-dim)" : "none",
+                        outline: theme === opt.value ? "1px solid var(--sosa-yellow)" : "none",
+                        outlineOffset: 2,
                       }}
                     >
                       <span style={{ color: opt.value === "dark" ? "#fff" : "#111" }}>{opt.icon}</span>
@@ -442,7 +440,8 @@ const ProfilePage = () => {
                     style={{
                       width: 28, height: 28, borderRadius: "50%", backgroundColor: preset.swatch,
                       border: accent === preset.id ? "3px solid rgba(255,255,255,0.8)" : "3px solid transparent",
-                      boxShadow: accent === preset.id ? "0 0 0 2px rgba(255,255,255,0.15)" : "none",
+                      outline: accent === preset.id ? "1px solid var(--sosa-yellow)" : "none",
+                      outlineOffset: 2,
                     }}
                     title={preset.label}
                   >

@@ -540,8 +540,8 @@ export function PostDetailModal({ post, onClose }: PostDetailModalProps) {
                       contentStyle={tooltipStyle.contentStyle}
                       labelStyle={tooltipStyle.labelStyle}
                       cursor={{ stroke: "rgba(255,255,255,0.1)", strokeDasharray: "4 4" }}
-                      formatter={(v: any, name: string) => [
-                        formatSocialNumber(v as number),
+                      formatter={(v: number, name: string) => [
+                        formatSocialNumber(v),
                         name === "engagement" ? "This post" : "Avg post",
                       ]}
                       labelFormatter={(l) => `After ${l}`}

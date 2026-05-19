@@ -5,8 +5,6 @@ import { MorphingSquare } from "@/components/ui/morphing-square";
 import { toast } from "sonner";
 import { updatePassword } from "@/lib/supabaseAuth";
 
-const USE_REAL_AUTH = import.meta.env.VITE_USE_REAL_AUTH === "true";
-
 function getStrength(pw: string): { label: string; percent: number; color: string } {
   let score = 0;
   if (pw.length >= 6) score++;
@@ -36,11 +34,7 @@ const ResetPasswordPage = () => {
     if (mismatch) return;
     setLoading(true);
     try {
-      if (USE_REAL_AUTH) {
-        await updatePassword(password);
-      } else {
-        await new Promise((r) => setTimeout(r, 1000));
-      }
+      await updatePassword(password);
       setDone(true);
       toast.success("Password reset successfully");
       setTimeout(() => navigate("/login"), 2000);

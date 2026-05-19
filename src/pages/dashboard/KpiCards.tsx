@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { motion } from "framer-motion";
 import {
   TrendingUp, TrendingDown, Bitcoin, Gift, Zap,
@@ -62,7 +62,7 @@ export function KpiCards({
         className="lg:col-span-2 group relative rounded-2xl overflow-hidden p-[0.5px]"
         variants={fadeUp}
         custom={0}
-        style={{ background: "linear-gradient(to bottom, rgba(255,255,255,0.09), rgba(255,255,255,0.02) 40%, transparent 60%, rgba(255,255,255,0.04))" }}
+        style={{ background: "var(--sosa-border)" }}
       >
         <div
           className="relative rounded-2xl p-5 sm:p-7 h-full"
@@ -71,7 +71,7 @@ export function KpiCards({
           <BorderBeam
             size={200}
             duration={14}
-            colorFrom="#e8ff00"
+            colorFrom="var(--sosa-yellow)"
             colorTo="transparent"
             borderWidth={1}
             className="opacity-0 group-hover:opacity-100 transition-opacity duration-700"
@@ -86,7 +86,7 @@ export function KpiCards({
               </p>
               {nw.isCryptoStale && (
                 <span style={{
-                  color: "#e8ff00",
+                  color: "var(--sosa-yellow)",
                   fontSize: 10,
                   fontFamily: "'Space Mono', monospace",
                   opacity: 0.7,
@@ -100,7 +100,7 @@ export function KpiCards({
               )}
             </div>
             {trendDelta !== 0 && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, background: trendUp ? "rgba(46,204,113,0.12)" : "rgba(255,90,90,0.12)", color: trendUp ? "#2ECC71" : "#FF5A5A", flexShrink: 0, marginTop: 4 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, background: trendUp ? "rgba(46,204,113,0.12)" : "rgba(255,90,90,0.12)", color: trendUp ? "var(--color-success)" : "var(--color-error)", flexShrink: 0, marginTop: 4 }}>
                 {trendUp ? <TrendingUp style={{ width: 10, height: 10 }} /> : <TrendingDown style={{ width: 10, height: 10 }} />}
                 {trendUp ? "+" : ""}€{Math.abs(trendDelta).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
@@ -114,14 +114,14 @@ export function KpiCards({
                 <AreaChart data={balanceTrend} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
                   <defs>
                     <linearGradient id="balGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#e8ff00" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#e8ff00" stopOpacity={0} />
+                      <stop offset="0%" stopColor="var(--sosa-yellow)" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="var(--sosa-yellow)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <XAxis dataKey="label" hide />
                   <YAxis hide domain={["dataMin * 0.95", "dataMax * 1.05"]} />
                   <Tooltip content={<GlassTooltip formatter={fmtEurTooltip} />} />
-                  <Area type="monotone" dataKey="balance" stroke="#e8ff00" strokeWidth={2} fill="url(#balGrad)" dot={false} />
+                  <Area type="monotone" dataKey="balance" stroke="var(--sosa-yellow)" strokeWidth={2} fill="url(#balGrad)" dot={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -135,10 +135,10 @@ export function KpiCards({
           <div className="flex gap-0 mt-4" style={{ borderTop: "0.5px solid var(--glass-border)", paddingTop: 14 }}>
             {[
               ...(nw.cryptoValue > 0 ? [{ label: "Crypto", value: formatEUR(nw.cryptoValue), sub: nw.cryptoChange24h !== 0 ? `${nw.cryptoChange24hPercent >= 0 ? "+" : ""}${nw.cryptoChange24hPercent.toFixed(1)}%` : undefined, color: "#f7931a" }] : []),
-              ...(nw.giftCardsValue > 0 ? [{ label: "Gift Cards", value: formatEUR(nw.giftCardsValue), sub: `${nw.giftCardsActiveCount} attive`, color: "#e8ff00" }] : []),
-              ...(periodIncome > 0 ? [{ label: "Income", value: `€${periodIncome.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "#2ECC71" }] : []),
-              ...(periodExpenses > 0 ? [{ label: "Expenses", value: `€${periodExpenses.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "#FF5A5A" }] : []),
-              ...(nw.savingsRate > 0 ? [{ label: "Savings", value: `${nw.savingsRate}%`, color: "#4A9EFF" }] : []),
+              ...(nw.giftCardsValue > 0 ? [{ label: "Gift Cards", value: formatEUR(nw.giftCardsValue), sub: `${nw.giftCardsActiveCount} attive`, color: "var(--sosa-yellow)" }] : []),
+              ...(periodIncome > 0 ? [{ label: "Income", value: `€${periodIncome.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "var(--color-success)" }] : []),
+              ...(periodExpenses > 0 ? [{ label: "Expenses", value: `€${periodExpenses.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "var(--color-error)" }] : []),
+              ...(nw.savingsRate > 0 ? [{ label: "Savings", value: `${nw.savingsRate}%`, color: "var(--color-info)" }] : []),
               ...(nw.subscriptionsCost > 0 ? [{ label: "Subs", value: formatEUR(nw.subscriptionsCost), color: "#8b5cf6" }] : []),
             ].map((stat, i, arr) => (
               <React.Fragment key={stat.label}>
@@ -165,8 +165,8 @@ export function KpiCards({
       {/* Assets / Liabilities sidebar cards */}
       <div className="flex flex-col gap-4">
         {[
-          { label: "Crypto", value: formatEUR(nw.cryptoValue), sub: nw.isCryptoStale ? "Crypto values may be outdated" : nw.cryptoChange24h !== 0 ? `${nw.cryptoChange24hPercent >= 0 ? "+" : ""}${nw.cryptoChange24hPercent.toFixed(1)}% (24h)` : "Crypto portfolio", color: nw.isCryptoStale ? "#e8ff00" : "#f7931a", icon: <Bitcoin style={{ width: 16, height: 16 }} />, link: "crypto" },
-          { label: "Gift Cards", value: formatEUR(nw.giftCardsValue), sub: nw.giftCardsActiveCount > 0 ? `${nw.giftCardsActiveCount} attive` : "Nessuna card", color: "#e8ff00", icon: <Gift style={{ width: 16, height: 16 }} />, link: "gift-cards", badge: nw.giftCardsExpiringSoon },
+          { label: "Crypto", value: formatEUR(nw.cryptoValue), sub: nw.isCryptoStale ? "Crypto values may be outdated" : nw.cryptoChange24h !== 0 ? `${nw.cryptoChange24hPercent >= 0 ? "+" : ""}${nw.cryptoChange24hPercent.toFixed(1)}% (24h)` : "Crypto portfolio", color: nw.isCryptoStale ? "var(--sosa-yellow)" : "#f7931a", icon: <Bitcoin style={{ width: 16, height: 16 }} />, link: "crypto" },
+          { label: "Gift Cards", value: formatEUR(nw.giftCardsValue), sub: nw.giftCardsActiveCount > 0 ? `${nw.giftCardsActiveCount} attive` : "Nessuna card", color: "var(--sosa-yellow)", icon: <Gift style={{ width: 16, height: 16 }} />, link: "gift-cards", badge: nw.giftCardsExpiringSoon },
           { label: "Subscriptions", value: formatEUR(nw.subscriptionsCost), sub: "Monthly active cost", color: "#8b5cf6", icon: <Zap style={{ width: 16, height: 16 }} /> },
         ].map((item, i) => (
           <motion.div
@@ -174,7 +174,7 @@ export function KpiCards({
             variants={fadeUp}
             custom={0.1 + i * 0.08}
             className="group relative rounded-2xl p-[0.5px] overflow-hidden flex-1"
-            style={{ background: "linear-gradient(to bottom, rgba(255,255,255,0.07), transparent 70%)", cursor: "link" in item && item.link ? "pointer" : "default" }}
+            style={{ background: "var(--sosa-border)", cursor: "link" in item && item.link ? "pointer" : "default" }}
             onClick={() => { if ("link" in item && item.link) navigate(item.link); }}
           >
             <div className="relative rounded-2xl p-4 h-full" style={{ background: "var(--glass-bg)", backdropFilter: "blur(16px)", border: "1px solid var(--glass-border)" }}>

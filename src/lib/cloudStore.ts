@@ -42,6 +42,7 @@ export interface CloudFile {
   originalFolderPath: string | null;
   permanentDeleteAt: Date | null;
   // Enhanced metadata
+  ownerName?: string;
   description?: string | null;
   mimeType?: string;
   extension?: string;

@@ -1,18 +1,17 @@
 // ── useFinanceSummary ─────────────────────────────────────────────────────────
 //
 // Portal-scoped: aggregates personal_transactions for the active portal.
-// Used by Dashboard, Budget, and Analytics.
+// Supabase only — no localStorage cache.
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase as _supabase } from "@/lib/supabase";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase = _supabase as any;
-import { toPortalUUID } from "@/lib/portalUUID";
 import { subscribeToFinanceUpdates } from "@/lib/financeRealtime";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
+import { usePortalDB } from "@/lib/portalContextDB";
 import { getAllCategories } from "@/lib/financeCategoryStore";
-import { localGetAll } from "@/lib/personalTransactionStore";
 import type { FinanceSummary, MonthlyBreakdown, CategoryBreakdown } from "@/types/finance";
 
 export interface DateRange {
@@ -30,6 +29,29 @@ export function currentMonthRange(): DateRange {
   return { from, to };
 }
 
+export function lastNDaysRange(n: number): DateRange {
+  const to   = new Date();
+  const from = new Date();
+  from.setDate(from.getDate() - (n - 1));
+  const pad = (v: number) => String(v).padStart(2, "0");
+  const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return { from: fmt(from), to: fmt(to) };
+}
+
+export function lastMonthRange(): DateRange {
+  const now   = new Date();
+  const y     = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+  const m     = now.getMonth() === 0 ? 12 : now.getMonth();
+  const last  = new Date(y, m, 0).getDate();
+  const pad   = (v: number) => String(v).padStart(2, "0");
+  return { from: `${y}-${pad(m)}-01`, to: `${y}-${pad(m)}-${pad(last)}` };
+}
+
+export function lastYearRange(): DateRange {
+  const y = new Date().getFullYear() - 1;
+  return { from: `${y}-01-01`, to: `${y}-12-31` };
+}
+
 export function lastNMonthsRange(n: number): DateRange {
   const to   = new Date();
   const from = new Date();
@@ -40,11 +62,6 @@ export function lastNMonthsRange(n: number): DateRange {
     from: `${from.getFullYear()}-${pad(from.getMonth() + 1)}-01`,
     to:   `${to.getFullYear()}-${pad(to.getMonth() + 1)}-${pad(to.getDate())}`,
   };
-}
-
-function isSupabaseConfigured(): boolean {
-  const url = (import.meta.env.VITE_SUPABASE_URL as string) ?? "";
-  return !!url && !url.includes("placeholder");
 }
 
 const EMPTY: FinanceSummary = {
@@ -58,6 +75,7 @@ export function useFinanceSummary(dateRange: DateRange = currentMonthRange()): {
 } {
   const { user } = useAuth();
   const { portal } = usePortal();
+  const { currentPortalId } = usePortalDB();
   const portalId = portal?.id ?? "sosa";
 
   const [summary, setSummary] = useState<FinanceSummary>(EMPTY);
@@ -65,31 +83,18 @@ export function useFinanceSummary(dateRange: DateRange = currentMonthRange()): {
   const [tick, setTick] = useState(0);
 
   const compute = useCallback(async () => {
-    if (!user) { setIsLoading(false); return; }
-    setIsLoading(true);
+    if (!user || !currentPortalId) { setIsLoading(false); return; }
 
-    // Try Supabase first, fall back to portal-scoped localStorage
-    let rows: { type: string; amount: number; category: string; date: string }[] = [];
+    const { data, error } = await supabase
+      .from("personal_transactions")
+      .select("type, amount, category, date")
+      .eq("portal_id", currentPortalId)
+      .gte("date", dateRange.from)
+      .lte("date", dateRange.to)
+      .order("date", { ascending: true });
 
-    if (isSupabaseConfigured()) {
-      const { data, error } = await supabase
-        .from("personal_transactions")
-        .select("type, amount, category, date")
-        .eq("portal_id", toPortalUUID(portalId)) // portal-shared
-        .gte("date", dateRange.from)
-        .lte("date", dateRange.to)
-        .order("date", { ascending: true });
-
-      if (!error && data && data.length > 0) {
-        rows = data;
-      }
-    }
-
-    if (rows.length === 0) {
-      rows = localGetAll(portalId)
-        .filter((t) => t.date >= dateRange.from && t.date <= dateRange.to)
-        .sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
-    }
+    const rows: { type: string; amount: number; category: string; date: string }[] =
+      !error && data ? data : [];
 
     let totalIncome   = 0;
     let totalExpenses = 0;
@@ -118,6 +123,7 @@ export function useFinanceSummary(dateRange: DateRange = currentMonthRange()): {
       monthMap[key].net = monthMap[key].income - monthMap[key].expenses;
     }
 
+    const categoryColors = Object.fromEntries(getAllCategories(portalId).map((c) => [c.name, c.color]));
     const categoryBreakdown: CategoryBreakdown[] = Object.entries(catMap)
       .sort((a, b) => b[1].amount - a[1].amount)
       .map(([category, { amount, count }]) => ({
@@ -125,7 +131,7 @@ export function useFinanceSummary(dateRange: DateRange = currentMonthRange()): {
         amount,
         count,
         percentage: totalExpenses > 0 ? Math.round((amount / totalExpenses) * 100) : 0,
-        color: Object.fromEntries(getAllCategories(portalId).map((c) => [c.name, c.color]))[category] ?? "#6b7280",
+        color: categoryColors[category] ?? "#6b7280",
       }));
 
     setSummary({
@@ -137,7 +143,7 @@ export function useFinanceSummary(dateRange: DateRange = currentMonthRange()): {
       categoryBreakdown,
     });
     setIsLoading(false);
-  }, [user, portalId, dateRange.from, dateRange.to, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user, portalId, currentPortalId, dateRange.from, dateRange.to, tick]);
 
   useEffect(() => { compute(); }, [compute]);
 

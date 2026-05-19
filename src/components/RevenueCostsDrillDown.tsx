@@ -51,7 +51,8 @@ const opexBreakdown = [
 ];
 
 // NOTE: Custom tooltip — too specialized for GlassTooltip (mixed percentage/EUR formatting based on value magnitude)
-const MiniTip = ({ active, payload, label }: any) => {
+type ChartTooltipProps = { active?: boolean; payload?: Array<{ name: string; value: number; color?: string; stroke?: string }>; label?: string | number };
+const MiniTip = ({ active, payload, label }: ChartTooltipProps) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
@@ -60,7 +61,7 @@ const MiniTip = ({ active, payload, label }: any) => {
       backdropFilter: "blur(20px)",
     }}>
       <p style={{ color: "var(--text-primary)", marginBottom: 4 }}>{label}</p>
-      {payload.map((p: any, i: number) => (
+      {payload.map((p, i: number) => (
         <p key={i} style={{ color: p.color || p.stroke }}>{p.name}: {typeof p.value === "number" && p.value < 200 ? `${p.value.toFixed(1)}%` : fmtEur(p.value)}</p>
       ))}
     </div>

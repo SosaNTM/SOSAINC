@@ -1,7 +1,7 @@
 import { supabase as _supabase } from "@/lib/supabase";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase = _supabase as any;
-import { localAdd, localGetAll } from "@/lib/personalTransactionStore";
+import { toPortalUUID } from "@/lib/portalUUID";
 import { broadcastFinanceUpdate } from "@/lib/financeRealtime";
 import {
   type Subscription,
@@ -19,9 +19,15 @@ export interface ProcessResult {
   toasts: string[];
 }
 
-/** Compute current balance from local transaction store. */
-function computeBalance(portalId: string): number {
-  return localGetAll(portalId).reduce(
+/** Compute current balance by summing personal_transactions for this portal. */
+async function computeBalance(portalId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from("personal_transactions")
+    .select("type, amount")
+    .eq("portal_id", toPortalUUID(portalId));
+  if (error || !data) return 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data as any[]).reduce(
     (acc, t) => (t.type === "income" ? acc + Number(t.amount) : acc - Number(t.amount)),
     0,
   );
@@ -29,11 +35,6 @@ function computeBalance(portalId: string): number {
 
 /**
  * Process all overdue billing cycles for a single subscription.
- *
- * Handles catch-up: if next_billing_date is several cycles in the past,
- * every missed cycle gets its own transaction with the correct historical date.
- *
- * Returns the updated subscription (with new next_billing_date) and counters.
  */
 export async function processSubscription(
   sub: Subscription,
@@ -52,7 +53,6 @@ export async function processSubscription(
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Iterate until next_billing_date is in the future (catch-up loop)
   while (true) {
     const billingDate = new Date(current.next_billing_date + "T00:00:00");
     billingDate.setHours(0, 0, 0, 0);
@@ -60,33 +60,30 @@ export async function processSubscription(
 
     const billingDateStr = current.next_billing_date;
 
-    // 0. Check if balance is sufficient before charging
-    const currentBalance = computeBalance(portalId);
+    // Check sufficient balance
+    const currentBalance = await computeBalance(portalId);
     if (currentBalance < current.amount) {
-      // Insufficient funds — skip this charge cycle entirely
       return { updatedSub: current, processed, failed, totalAmount, skippedInsufficientFunds: true };
     }
 
-    // 1. Add to personal_transactions (appears in Finance → Transactions, Budget, Analytics)
-    try {
-      localAdd(
-        {
-          user_id: userId,
-          type: "expense",
-          amount: current.amount,
-          currency: current.currency ?? "EUR",
-          category: current.category || "Subscriptions",
-          description: `Subscription: ${current.name}`,
-          date: billingDateStr,
-          is_recurring: true,
-          recurring_interval: "monthly",
-        },
-        userId,
-        portalId,
-      );
-    } catch (e) {
-      console.warn("[subscriptionProcessor] Failed to record local transaction:", e);
-      // local store failed — mark as failed but continue advancing date
+    // Record the charge as an expense transaction
+    const { error: txErr } = await supabase
+      .from("personal_transactions")
+      .insert({
+        user_id: userId,
+        portal_id: toPortalUUID(portalId),
+        type: "expense",
+        amount: current.amount,
+        currency: current.currency ?? "EUR",
+        category: current.category || "Subscriptions",
+        description: `Subscription: ${current.name}`,
+        date: billingDateStr,
+        is_recurring: true,
+        recurring_interval: "monthly",
+      });
+
+    if (txErr) {
+      console.warn("[subscriptionProcessor] Failed to record personal_transaction:", txErr.message);
       failed++;
       const nextDate = calculateNextBillingDate(
         billingDate,
@@ -97,24 +94,24 @@ export async function processSubscription(
       continue;
     }
 
-    // 2. Record in Supabase subscription_transactions (best-effort)
-    try {
-      await supabase.from("subscription_transactions").insert({
+    // Record in subscription_transactions ledger
+    const { error: ledgerErr } = await supabase
+      .from("subscription_transactions")
+      .insert({
         subscription_id: current.id,
         user_id: userId,
-        portal_id: portalId,
+        portal_id: toPortalUUID(portalId),
         amount: current.amount,
         billing_date: billingDateStr,
         status: "completed",
       });
-    } catch (e) {
-      console.warn("[subscriptionProcessor] Failed to record subscription_transaction:", e);
+    if (ledgerErr) {
+      console.warn("[subscriptionProcessor] Failed to record subscription_transaction:", ledgerErr.message);
     }
 
     totalAmount += current.amount;
     processed++;
 
-    // 3. Advance to next cycle
     const nextDate = calculateNextBillingDate(
       billingDate,
       current.billing_cycle as BillingCycle,
@@ -127,28 +124,24 @@ export async function processSubscription(
     };
   }
 
-  // 4. Persist updated next_billing_date to Supabase (best-effort)
+  // Persist updated next_billing_date
   if (processed > 0) {
-    try {
-      await supabase
-        .from("subscriptions")
-        .update({
-          next_billing_date: current.next_billing_date,
-          updated_at: current.updated_at,
-        })
-        .eq("id", current.id);
-    } catch (e) {
-      console.warn("[subscriptionProcessor] Failed to update subscription next_billing_date in Supabase:", e);
+    const { error: updErr } = await supabase
+      .from("subscriptions")
+      .update({
+        next_billing_date: current.next_billing_date,
+        updated_at: current.updated_at,
+      })
+      .eq("id", current.id)
+      .eq("portal_id", toPortalUUID(portalId));
+    if (updErr) {
+      console.warn("[subscriptionProcessor] Failed to update next_billing_date:", updErr.message);
     }
   }
 
   return { updatedSub: current, processed, failed, totalAmount };
 }
 
-/**
- * Process all subscriptions due today or overdue.
- * Returns a full report including the updated subscription array.
- */
 export async function processAllDueSubscriptions(
   subscriptions: Subscription[],
   userId: string,
@@ -185,10 +178,8 @@ export async function processAllDueSubscriptions(
     }),
   );
 
-  // Merge updated subs back into the full list
   const updatedSubs = subscriptions.map((s) => updatedMap.get(s.id) ?? s);
 
-  // Broadcast so Dashboard, Budget, Analytics refresh
   if (processed > 0) {
     broadcastFinanceUpdate("transaction_added");
   }

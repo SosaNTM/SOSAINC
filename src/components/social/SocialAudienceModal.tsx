@@ -4,6 +4,7 @@ import {
   formatSocialNumber, PLATFORM_CONFIG,
 } from "@/lib/socialStore";
 import { PlatformIcon } from "@/components/social/PlatformIcon";
+import type { SocialPlatform } from "@/lib/socialStore";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -102,7 +103,7 @@ function FollowerGrowthModal({ days }: { days: number }) {
     const d = new Date(TODAY);
     d.setDate(d.getDate() - (clampedDays - 1 - i));
     const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    const point: Record<string, any> = { date };
+    const point: Record<string, number | string> = { date };
     mockSocialAccounts.forEach((a) => {
       const m = getMetricsForPeriod(a.id, clampedDays);
       point[a.platform] = m[i]?.followers ?? 0;
@@ -122,7 +123,7 @@ function FollowerGrowthModal({ days }: { days: number }) {
   const togglePlatform = (id: string) => {
     setHiddenPlatforms(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
       return next;
     });
   };
@@ -529,7 +530,7 @@ function DemographicsModal({ totalFollowers }: { totalFollowers: number }) {
             const ov = platformDemoOverrides[activePlatformTab];
             return (
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <PlatformIcon platform={activePlatformTab} size={16} />
+                <PlatformIcon platform={activePlatformTab as SocialPlatform} size={16} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: a.color }}>{PLATFORM_CONFIG[activePlatformTab].label}:</span>
                 <span style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>{ov.ageNote}</span>
                 <span style={{ color: "rgba(255,255,255,0.2)" }}>·</span>

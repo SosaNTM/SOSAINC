@@ -17,8 +17,8 @@ export function useCryptoHoldings() {
   const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       setError(null);
       const data = await fetchHoldings(portalId);
       setHoldings(data);
@@ -29,7 +29,7 @@ export function useCryptoHoldings() {
     }
   }, [portalId]);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => { void refetch(); }, [refetch]);
 
   const addHolding = useCallback(
     async (data: {

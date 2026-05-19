@@ -108,7 +108,7 @@ export function SidebarProfileWidget({ collapsed, onMobileClose }: SidebarProfil
     <div className="px-3 pb-5 relative">
       {open && popover}
       <div
-        className="flex items-center gap-3 cursor-pointer rounded-xl border border-border bg-muted/30 hover:bg-accent/30 transition-colors"
+        className="flex items-center gap-3 cursor-pointer transition-colors"
         onClick={() => setOpen((p) => !p)}
         style={{
           padding: collapsed ? "10px 0" : "10px 12px",

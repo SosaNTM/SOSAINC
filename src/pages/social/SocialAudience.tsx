@@ -12,6 +12,7 @@ import {
   XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell,
 } from "recharts";
 import { GlassTooltip } from "@/components/ui/GlassTooltip";
+import { SocialBetaBanner } from "@/components/social/SocialBetaBanner";
 
 const TODAY = new Date("2026-03-05");
 
@@ -97,7 +98,7 @@ export default function SocialAudience() {
     const d = new Date(TODAY);
     d.setDate(d.getDate() - (clampedDays - 1 - i));
     const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    const point: Record<string, any> = { date };
+    const point: Record<string, number | string> = { date };
     filteredAccounts.forEach((a) => {
       const m = getMetricsForPeriod(a.id, clampedDays);
       point[a.platform] = m[i]?.followers ?? 0;
@@ -133,6 +134,8 @@ export default function SocialAudience() {
 
   return (
     <div style={{ maxWidth: 1400, margin: "0 auto", paddingBottom: 48 }}>
+
+      <SocialBetaBanner />
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 24 }}>

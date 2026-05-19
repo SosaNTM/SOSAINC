@@ -1,5 +1,9 @@
-import { useState, useMemo, useEffect } from "react";
-import { useAuth, ALL_USERS, getUserById, createUser, updateUserPortalAccess, deleteUser, resetUserPassword, type User, type PortalId, ALL_PORTAL_IDS } from "@/lib/authContext";
+﻿import { useState, useMemo, useEffect, useCallback } from "react";
+import { useAuth, getUserById, deleteUser, resetUserPassword, type User, type PortalId, ALL_PORTAL_IDS } from "@/lib/authContext";
+import { usePortalUsers } from "@/hooks/usePortalUsers";
+import type { Role } from "@/lib/permissions";
+import { usePortalDB } from "@/lib/portalContextDB";
+import { supabase } from "@/lib/supabase";
 import { PORTALS, usePortal } from "@/lib/portalContext";
 import { usePermission } from "@/lib/permissions";
 import { ProtectedPage } from "@/components/ProtectedPage";
@@ -22,9 +26,39 @@ import { RoleBadge } from "@/components/RoleBadge";
 
 type AdminTab = "users" | "roles" | "audit" | "company" | "security";
 
-const ROLE_EMOJI: Record<string, string> = { owner: "👑", admin: "🔧", manager: "👥", member: "👤" };
+const EDGE_BASE = `${import.meta.env.VITE_SUPABASE_URL as string}/functions/v1`;
 
-/* ── Users Tab ── */
+async function getAuthHeader(): Promise<string> {
+  const { data } = await supabase.auth.getSession();
+  return data.session ? `Bearer ${data.session.access_token}` : "";
+}
+
+interface AdminUser {
+  id: string;
+  email: string;
+  display_name: string;
+  avatar_url: string | null;
+  top_role: string;
+  portals: { portal_id: string; slug: string; role: string }[];
+  created_at: string | null;
+}
+
+function adminUserToUser(u: AdminUser): User {
+  return {
+    id: u.id,
+    email: u.email,
+    displayName: u.display_name,
+    role: u.top_role as User["role"],
+    avatar: u.avatar_url,
+    bio: "",
+    createdAt: u.created_at ? new Date(u.created_at) : new Date(),
+    portalAccess: u.portals.map((p) => p.slug as PortalId),
+  };
+}
+
+const ROLE_EMOJI: Record<string, string> = { owner: "ðŸ‘‘", admin: "ðŸ”§", manager: "ðŸ‘¥", member: "ðŸ‘¤" };
+
+/* â”€â”€ Users Tab â”€â”€ */
 function UsersTab({ isOwner }: { isOwner: boolean }) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -35,14 +69,37 @@ function UsersTab({ isOwner }: { isOwner: boolean }) {
   const [editUser, setEditUser] = useState<User | null>(null);
   const [goalsUser, setGoalsUser] = useState<User | null>(null);
 
-  const filtered = ALL_USERS.filter((u) =>
-    !search.trim() || u.displayName.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase())
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+
+  const fetchUsers = useCallback(async () => {
+    setLoadingUsers(true);
+    try {
+      const auth = await getAuthHeader();
+      const res = await fetch(`${EDGE_BASE}/admin-list-users`, { headers: { Authorization: auth } });
+      if (res.ok) {
+        const data = await res.json() as { users: AdminUser[] };
+        setAdminUsers(data.users ?? []);
+      }
+    } finally {
+      setLoadingUsers(false);
+    }
+  }, []);
+
+  useEffect(() => { void fetchUsers(); }, [fetchUsers]);
+
+  const filtered = adminUsers.filter((u) =>
+    !search.trim() ||
+    u.display_name.toLowerCase().includes(search.toLowerCase()) ||
+    u.email.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
     <div>
       <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-        <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Team Members ({ALL_USERS.length})</h3>
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>
+          Team Members ({loadingUsers ? "…" : adminUsers.length})
+        </h3>
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: "var(--text-quaternary)" }} />
@@ -56,51 +113,63 @@ function UsersTab({ isOwner }: { isOwner: boolean }) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        {filtered.map((u) => (
-          <div key={u.id} className="flex items-center justify-between transition-colors" style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 12, padding: "14px 18px" }}
-            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.08)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "none"; }}>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--accent-color-dim, rgba(110,231,183,0.15))", fontSize: 14, fontWeight: 700, color: "var(--accent-color)" }}>
-                {u.displayName.charAt(0)}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{u.displayName}</span>
-                  <RoleBadge role={u.role} />
-                  <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 99, background: "rgba(34,197,94,0.1)", color: "#22c55e" }}>Active</span>
+      {loadingUsers ? (
+        <div className="flex flex-col gap-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} style={{ height: 68, background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", animation: "pulse 1.5s infinite" }} />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {filtered.map((u) => {
+            const legacyUser = adminUserToUser(u);
+            return (
+              <div key={u.id} className="flex items-center justify-between transition-colors" style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: "14px 18px" }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--glass-border-hover, var(--sosa-border))"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--sosa-border)"; }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--sosa-bg-3)", fontSize: 14, fontWeight: 700, color: "var(--portal-accent)" }}>
+                    {u.display_name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{u.display_name}</span>
+                      <RoleBadge role={u.top_role as Role} />
+                      <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 99, background: "rgba(34,197,94,0.1)", color: "var(--color-success)" }}>Active</span>
+                    </div>
+                    <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>{u.email}</span>
+                    {u.created_at && (
+                      <span style={{ fontSize: 11, color: "var(--text-quaternary)", marginLeft: 8 }}>
+                        Joined {format(new Date(u.created_at), "MMM yyyy")}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>{u.email}</span>
-                <span style={{ fontSize: 11, color: "var(--text-quaternary)", marginLeft: 8 }}>Joined {format(u.createdAt, "MMM yyyy")}</span>
+                <div className="flex items-center gap-1">
+                  <button type="button" onClick={() => navigate(`${prefix}/profile/${u.id}`)} className="glass-btn flex items-center gap-1" style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6 }}>
+                    <Eye className="w-3 h-3" /> View
+                  </button>
+                  {isOwner && (
+                    <button type="button" onClick={() => setEditUser(legacyUser)} className="glass-btn flex items-center gap-1" style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6 }}>
+                      <Pencil className="w-3 h-3" /> Edit
+                    </button>
+                  )}
+                  <ActionMenu
+                    trigger={<MoreVertical className="w-4 h-4" />}
+                    items={[
+                      { id: "profile", icon: <ExternalLink className="w-3.5 h-3.5" />, label: "View Profile", onClick: () => navigate(`${prefix}/profile/${u.id}`) },
+                      ...(isOwner ? [{ id: "goals", icon: <Target className="w-3.5 h-3.5" />, label: "Manage Goals", onClick: () => setGoalsUser(legacyUser) }] : []),
+                    ]}
+                  />
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <button type="button" onClick={() => navigate(`${prefix}/profile/${u.id}`)} className="glass-btn flex items-center gap-1" style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6 }}>
-                <Eye className="w-3 h-3" /> View
-              </button>
-              {isOwner && (
-                <button type="button" onClick={() => setEditUser(u)} className="glass-btn flex items-center gap-1" style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6 }}>
-                  <Pencil className="w-3 h-3" /> Edit
-                </button>
-              )}
-              <ActionMenu
-                trigger={<MoreVertical className="w-4 h-4" />}
-                items={[
-                  { id: "profile", icon: <ExternalLink className="w-3.5 h-3.5" />, label: "View Profile", onClick: () => navigate(`${prefix}/profile/${u.id}`) },
-                  ...(isOwner ? [{ id: "goals", icon: <Target className="w-3.5 h-3.5" />, label: "Manage Goals", onClick: () => setGoalsUser(u) }] : []),
-                ]}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
-      {/* Create Login Modal */}
-      {showInvite && <CreateLoginModal onClose={() => setShowInvite(false)} onCreated={(name) => { setShowInvite(false); toast({ title: `Login created for ${name}` }); }} />}
-      {/* Edit Modal */}
+      {showInvite && <CreateLoginModal onClose={() => setShowInvite(false)} onCreated={(name) => { setShowInvite(false); void fetchUsers(); toast({ title: `Login created for ${name}` }); }} />}
       {editUser && <EditUserModal user={editUser} onClose={() => setEditUser(null)} onSave={() => { setEditUser(null); toast({ title: "User updated" }); }} onDeleted={() => setEditUser(null)} />}
-      {/* Goals Modal */}
       {goalsUser && <GoalsModal user={goalsUser} onClose={() => setGoalsUser(null)} />}
     </div>
   );
@@ -116,9 +185,9 @@ function PortalAccessCheckboxes({ value, onChange }: { value: PortalId[]; onChan
         const checked = value.includes(p.id);
         return (
           <label key={p.id} className="flex items-center gap-2.5 cursor-pointer" style={{
-            background: checked ? `${p.accent}12` : "var(--glass-bg)",
+            background: checked ? `${p.accent}12` : "var(--sosa-bg-2)",
             border: `0.5px solid ${checked ? p.accent + "50" : "var(--glass-border)"}`,
-            borderRadius: 10, padding: "10px 14px", transition: "all 0.15s",
+            borderRadius: 0, padding: "10px 14px", transition: "all 0.15s",
           }}>
             <input type="checkbox" checked={checked} onChange={() => toggle(p.id)} style={{ display: "none" }} />
             <div style={{
@@ -145,35 +214,53 @@ function CreateLoginModal({ onClose, onCreated }: { onClose: () => void; onCreat
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<"member" | "manager" | "admin">("member");
+  const [role, setRole] = useState<"viewer" | "member" | "admin">("member");
   const [portalAccess, setPortalAccess] = useState<PortalId[]>([]);
   const [showPwd, setShowPwd] = useState(false);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const isValid = name.trim() && email.trim() && password.length >= 6 && password === confirmPassword && portalAccess.length > 0;
+  const isValid = !submitting && name.trim() && email.trim() && password.length >= 6 && password === confirmPassword && portalAccess.length > 0;
 
-  function handleCreate() {
+  async function handleCreate() {
     setError("");
     if (password !== confirmPassword) { setError("Passwords do not match."); return; }
     if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
     if (portalAccess.length === 0) { setError("Select at least one portal."); return; }
-    const result = createUser({ displayName: name, email, password, role, portalAccess });
-    if (!result.success) { setError(result.error ?? "Failed to create login."); return; }
-    addAuditEntry({
-      userId: currentUser?.id ?? "unknown",
-      action: `Created login for ${name.trim()}`,
-      category: "admin",
-      details: `${email.trim()} — role: ${role}, portals: ${portalAccess.join(", ")}`,
-      icon: "👤",
-    });
-    onCreated(name.trim());
+    setSubmitting(true);
+    try {
+      const auth = await getAuthHeader();
+      const res = await fetch(`${EDGE_BASE}/create-member`, {
+        method: "POST",
+        headers: { Authorization: auth, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+          displayName: name.trim(),
+          role,
+          portalSlugs: portalAccess,
+        }),
+      });
+      const data = await res.json() as { error?: string };
+      if (!res.ok) { setError(data.error ?? "Failed to create login."); return; }
+      addAuditEntry({
+        userId: currentUser?.id ?? "unknown",
+        action: `Created login for ${name.trim()}`,
+        category: "admin",
+        details: `${email.trim()} — role: ${role}, portals: ${portalAccess.join(", ")}`,
+        icon: "○",
+      });
+      onCreated(name.trim());
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
     <>
       <div className="fixed inset-0 z-[80]" style={{ background: "rgba(0,0,0,0.4)" }} onClick={onClose} />
       <div className="fixed z-[90] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-[480px] max-h-[90vh] overflow-y-auto"
-        style={{ background: "var(--glass-bg-opaque, var(--glass-bg))", backdropFilter: "blur(40px)", border: "0.5px solid var(--glass-border)", borderRadius: 16, padding: 28, boxShadow: "0 16px 48px rgba(0,0,0,0.3)" }}>
+        style={{ background: "var(--sosa-bg-3)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: 28 }}>
         <div className="flex items-center justify-between mb-2">
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>Create Login</h2>
           <button type="button" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-quaternary)" }}><X className="w-5 h-5" /></button>
@@ -198,19 +285,19 @@ function CreateLoginModal({ onClose, onCreated }: { onClose: () => void; onCreat
           {/* Role */}
           <div className="flex flex-col gap-1.5">
             <label style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)" }}>Role</label>
-            <select className="glass-input w-full" value={role} onChange={(e) => setRole(e.target.value as any)} style={{ fontSize: 13, padding: "8px 12px" }}>
+            <select className="glass-input w-full" value={role} onChange={(e) => setRole(e.target.value as "viewer" | "member" | "admin")} style={{ fontSize: 13, padding: "8px 12px" }}>
+              <option value="viewer">Viewer — read only</option>
               <option value="member">Member — read & contribute</option>
-              <option value="manager">Manager — manage team tasks</option>
               <option value="admin">Admin — full access except ownership</option>
             </select>
           </div>
 
           {/* Portal Access */}
-          <div style={{ borderTop: "0.5px solid var(--glass-border)", paddingTop: 16 }}>
+          <div style={{ borderTop: "1px solid var(--sosa-border)", paddingTop: 16 }}>
             <div className="flex items-center justify-between mb-3">
               <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Portal Access</p>
               <button type="button" onClick={() => setPortalAccess(portalAccess.length === ALL_PORTAL_IDS.length ? [] : [...ALL_PORTAL_IDS])}
-                style={{ fontSize: 11, color: "var(--accent-color)", background: "none", border: "none", cursor: "pointer" }}>
+                style={{ fontSize: 11, color: "var(--portal-accent)", background: "none", border: "none", cursor: "pointer" }}>
                 {portalAccess.length === ALL_PORTAL_IDS.length ? "Deselect all" : "Select all"}
               </button>
             </div>
@@ -218,7 +305,7 @@ function CreateLoginModal({ onClose, onCreated }: { onClose: () => void; onCreat
           </div>
 
           {/* Password */}
-          <div style={{ borderTop: "0.5px solid var(--glass-border)", paddingTop: 16 }}>
+          <div style={{ borderTop: "1px solid var(--sosa-border)", paddingTop: 16 }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.08em" }}>Set Password</p>
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
@@ -238,14 +325,14 @@ function CreateLoginModal({ onClose, onCreated }: { onClose: () => void; onCreat
           </div>
 
           {error && (
-            <p style={{ fontSize: 12, color: "#ef4444", background: "rgba(239,68,68,0.08)", border: "0.5px solid rgba(239,68,68,0.25)", borderRadius: 8, padding: "8px 12px" }}>{error}</p>
+            <p style={{ fontSize: 12, color: "var(--color-error)", background: "rgba(239,68,68,0.08)", border: "0.5px solid rgba(239,68,68,0.25)", borderRadius: 8, padding: "8px 12px" }}>{error}</p>
           )}
 
           <div className="flex gap-2 justify-end pt-2">
             <button type="button" onClick={onClose} className="glass-btn" style={{ fontSize: 13, padding: "8px 18px", borderRadius: 8 }}>Cancel</button>
-            <button type="button" onClick={handleCreate} disabled={!isValid} className="glass-btn-primary flex items-center gap-1.5"
+            <button type="button" onClick={() => void handleCreate()} disabled={!isValid} className="glass-btn-primary flex items-center gap-1.5"
               style={{ fontSize: 13, padding: "8px 20px", borderRadius: 8, opacity: isValid ? 1 : 0.45 }}>
-              <UserPlus className="w-3.5 h-3.5" /> Create Login
+              <UserPlus className="w-3.5 h-3.5" /> {submitting ? "Creating…" : "Create Login"}
             </button>
           </div>
         </div>
@@ -280,7 +367,7 @@ function EditUserModal({ user, onClose, onSave, onDeleted }: { user: User; onClo
       action: `Reset password for ${user.displayName}`,
       category: "admin",
       details: `Password changed for ${user.email}`,
-      icon: "🔐",
+      icon: "ðŸ”",
     });
     setPwdSuccess(true);
     setNewPwd(""); setConfirmPwd("");
@@ -296,7 +383,7 @@ function EditUserModal({ user, onClose, onSave, onDeleted }: { user: User; onClo
       action: `Cancelled login for ${user.displayName}`,
       category: "admin",
       details: `Account ${user.email} removed`,
-      icon: "🚫",
+      icon: "✕",
     });
     toast({ title: `Login for ${user.displayName} cancelled` });
     onDeleted();
@@ -306,7 +393,7 @@ function EditUserModal({ user, onClose, onSave, onDeleted }: { user: User; onClo
     <>
       <div className="fixed inset-0 z-[80]" style={{ background: "rgba(0,0,0,0.4)" }} onClick={onClose} />
       <div className="fixed z-[90] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-[460px] max-h-[90vh] overflow-y-auto"
-        style={{ background: "var(--glass-bg-opaque, var(--glass-bg))", backdropFilter: "blur(40px)", border: "0.5px solid var(--glass-border)", borderRadius: 16, padding: 24, boxShadow: "0 16px 48px rgba(0,0,0,0.3)" }}>
+        style={{ background: "var(--sosa-bg-3)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: 24 }}>
         <div className="flex items-center justify-between mb-5">
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>Edit: {user.displayName}</h2>
           <button type="button" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X className="w-5 h-5" /></button>
@@ -323,7 +410,7 @@ function EditUserModal({ user, onClose, onSave, onDeleted }: { user: User; onClo
           </div>
           <div className="flex flex-col gap-1.5">
             <label style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)" }}>Role</label>
-            <select className="glass-input w-full" value={role} onChange={(e) => setRole(e.target.value as any)} style={{ fontSize: 13, padding: "8px 12px" }} disabled={user.role === "owner"}>
+            <select className="glass-input w-full" value={role} onChange={(e) => setRole(e.target.value as Role)} style={{ fontSize: 13, padding: "8px 12px" }} disabled={user.role === "owner"}>
               <option value="member">Member</option>
               <option value="manager">Manager</option>
               <option value="admin">Admin</option>
@@ -332,12 +419,12 @@ function EditUserModal({ user, onClose, onSave, onDeleted }: { user: User; onClo
           </div>
 
           {/* Reset Password section */}
-          <div style={{ borderTop: "0.5px solid var(--glass-border)", paddingTop: 14 }}>
+          <div style={{ borderTop: "1px solid var(--sosa-border)", paddingTop: 14 }}>
             <div className="flex items-center justify-between mb-2">
               <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Password</p>
               {!showResetPwd && (
                 <button type="button" onClick={() => setShowResetPwd(true)}
-                  style={{ fontSize: 12, color: "var(--accent-color)", background: "none", border: "none", cursor: "pointer" }}>
+                  style={{ fontSize: 12, color: "var(--portal-accent)", background: "none", border: "none", cursor: "pointer" }}>
                   Reset Password
                 </button>
               )}
@@ -357,8 +444,8 @@ function EditUserModal({ user, onClose, onSave, onDeleted }: { user: User; onClo
                   <label style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)" }}>Confirm Password</label>
                   <input className="glass-input w-full" type={showPwd ? "text" : "password"} value={confirmPwd} onChange={(e) => setConfirmPwd(e.target.value)} placeholder="Repeat password" style={{ fontSize: 14, padding: "10px 14px" }} />
                 </div>
-                {pwdError && <p style={{ fontSize: 12, color: "#ef4444", background: "rgba(239,68,68,0.08)", border: "0.5px solid rgba(239,68,68,0.25)", borderRadius: 8, padding: "8px 12px" }}>{pwdError}</p>}
-                {pwdSuccess && <p style={{ fontSize: 12, color: "#22c55e", background: "rgba(34,197,94,0.08)", border: "0.5px solid rgba(34,197,94,0.25)", borderRadius: 8, padding: "8px 12px" }}>Password updated successfully.</p>}
+                {pwdError && <p style={{ fontSize: 12, color: "var(--color-error)", background: "rgba(239,68,68,0.08)", border: "0.5px solid rgba(239,68,68,0.25)", borderRadius: 8, padding: "8px 12px" }}>{pwdError}</p>}
+                {pwdSuccess && <p style={{ fontSize: 12, color: "var(--color-success)", background: "rgba(34,197,94,0.08)", border: "0.5px solid rgba(34,197,94,0.25)", borderRadius: 8, padding: "8px 12px" }}>Password updated successfully.</p>}
                 <div className="flex gap-2">
                   <button type="button" onClick={() => { setShowResetPwd(false); setNewPwd(""); setConfirmPwd(""); setPwdError(""); }} className="glass-btn" style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8 }}>Cancel</button>
                   <button type="button" onClick={handleResetPassword} disabled={!newPwd || !confirmPwd} className="glass-btn-primary" style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, opacity: newPwd && confirmPwd ? 1 : 0.45 }}>Update Password</button>
@@ -379,19 +466,19 @@ function EditUserModal({ user, onClose, onSave, onDeleted }: { user: User; onClo
           {user.role !== "owner" && (
             <div style={{ borderTop: "0.5px solid rgba(239,68,68,0.2)", paddingTop: 14, marginTop: 4 }}>
               {!confirmDelete ? (
-                <button type="button" onClick={() => setConfirmDelete(true)} style={{ fontSize: 12, color: "#ef4444", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                <button type="button" onClick={() => setConfirmDelete(true)} style={{ fontSize: 12, color: "var(--color-error)", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
                   <Trash2 className="w-3.5 h-3.5" /> Cancel Login
                 </button>
               ) : (
-                <div style={{ background: "rgba(239,68,68,0.06)", border: "0.5px solid rgba(239,68,68,0.3)", borderRadius: 10, padding: "14px" }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "#ef4444", marginBottom: 6 }}>Cancel this login?</p>
+                <div style={{ background: "rgba(239,68,68,0.06)", border: "0.5px solid rgba(239,68,68,0.3)", borderRadius: 0, padding: "14px" }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--color-error)", marginBottom: 6 }}>Cancel this login?</p>
                   <p style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 12 }}>
                     This will permanently remove <strong>{user.displayName}</strong>'s account. They will no longer be able to log in.
                   </p>
-                  {deleteError && <p style={{ fontSize: 12, color: "#ef4444", marginBottom: 10 }}>{deleteError}</p>}
+                  {deleteError && <p style={{ fontSize: 12, color: "var(--color-error)", marginBottom: 10 }}>{deleteError}</p>}
                   <div className="flex gap-2">
                     <button type="button" onClick={() => setConfirmDelete(false)} className="glass-btn" style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8 }}>Keep Account</button>
-                    <button type="button" onClick={handleDelete} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: 600 }}>Yes, Cancel Login</button>
+                    <button type="button" onClick={handleDelete} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, background: "var(--color-error)", color: "white", border: "none", cursor: "pointer", fontWeight: 600 }}>Yes, Cancel Login</button>
                   </div>
                 </div>
               )}
@@ -403,7 +490,7 @@ function EditUserModal({ user, onClose, onSave, onDeleted }: { user: User; onClo
   );
 }
 
-/* ── Goals Modal ── */
+/* â”€â”€ Goals Modal â”€â”€ */
 function GoalsModal({ user, onClose }: { user: User; onClose: () => void }) {
   const [goals, setGoals] = useState<Goal[]>(MOCK_GOALS.filter((g) => g.userId === user.id));
   const [showAdd, setShowAdd] = useState(false);
@@ -432,7 +519,7 @@ function GoalsModal({ user, onClose }: { user: User; onClose: () => void }) {
     <>
       <div className="fixed inset-0 z-[80]" style={{ background: "rgba(0,0,0,0.4)" }} onClick={onClose} />
       <div className="fixed z-[90] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-[520px] max-h-[85vh] overflow-y-auto"
-        style={{ background: "var(--glass-bg-opaque, var(--glass-bg))", backdropFilter: "blur(40px)", border: "0.5px solid var(--glass-border)", borderRadius: 16, padding: 24, boxShadow: "0 16px 48px rgba(0,0,0,0.3)" }}>
+        style={{ background: "var(--sosa-bg-3)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: 24 }}>
         <div className="flex items-center justify-between mb-5">
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>Goals for {user.displayName}</h2>
           <button type="button" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><X className="w-5 h-5" /></button>
@@ -440,15 +527,15 @@ function GoalsModal({ user, onClose }: { user: User; onClose: () => void }) {
 
         <div className="flex flex-col gap-3 mb-4">
           {goals.map((g) => (
-            <div key={g.id} style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 10, padding: 14 }}>
+            <div key={g.id} style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: 14 }}>
               <div className="flex items-start justify-between mb-2">
-                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>🎯 {g.title}</span>
-                <button type="button" onClick={() => deleteGoal(g.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", padding: 2 }}><Trash2 className="w-3.5 h-3.5" /></button>
+                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>ðŸŽ¯ {g.title}</span>
+                <button type="button" onClick={() => deleteGoal(g.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-error)", padding: 2 }}><Trash2 className="w-3.5 h-3.5" /></button>
               </div>
               <div className="mb-2">
                 <div className="flex items-center justify-between mb-1">
                   <span style={{ fontSize: 11, color: "var(--text-quaternary)" }}>Progress: {g.current || g.progress}%{g.target ? ` / ${g.target}` : ""}</span>
-                  <span style={{ fontSize: 11, color: g.completed ? "#22c55e" : "var(--text-quaternary)" }}>{g.completed ? "✓ Complete" : `${g.progress}%`}</span>
+                  <span style={{ fontSize: 11, color: g.completed ? "var(--color-success)" : "var(--text-quaternary)" }}>{g.completed ? "âœ“ Complete" : `${g.progress}%`}</span>
                 </div>
                 <Progress value={g.progress} className="h-1.5" />
               </div>
@@ -463,7 +550,7 @@ function GoalsModal({ user, onClose }: { user: User; onClose: () => void }) {
             <Plus className="w-4 h-4" /> Add New Goal
           </button>
         ) : (
-          <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 10, padding: 14 }}>
+          <div style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: 14 }}>
             <div className="flex flex-col gap-3">
               <input className="glass-input w-full" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Goal title" style={{ fontSize: 13, padding: "8px 12px" }} autoFocus />
               <div className="grid grid-cols-3 gap-2">
@@ -492,7 +579,7 @@ function GoalsModal({ user, onClose }: { user: User; onClose: () => void }) {
   );
 }
 
-/* ── Roles Tab ── */
+/* â”€â”€ Roles Tab â”€â”€ */
 function RolesTab() {
   const resources = [
     { name: "Finance", owner: "Full", admin: "Full", manager: "View", member: "—" },
@@ -509,23 +596,23 @@ function RolesTab() {
   return (
     <div>
       <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>Roles & Permissions</h3>
-      <div className="overflow-x-auto" style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 14 }}>
+      <div className="overflow-x-auto" style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 14 }}>
         <table className="w-full" style={{ minWidth: 500 }}>
           <thead>
-            <tr style={{ borderBottom: "0.5px solid var(--glass-border)" }}>
+            <tr style={{ borderBottom: "1px solid var(--sosa-border)" }}>
               <th style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", padding: "12px 16px", textAlign: "left" }}>Resource</th>
-              <th style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", padding: "12px 16px", textAlign: "center" }}>👑 Owner</th>
-              <th style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", padding: "12px 16px", textAlign: "center" }}>🔧 Admin</th>
-              <th style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", padding: "12px 16px", textAlign: "center" }}>👥 Manager</th>
-              <th style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", padding: "12px 16px", textAlign: "center" }}>👤 Member</th>
+              <th style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", padding: "12px 16px", textAlign: "center" }}>ðŸ‘‘ Owner</th>
+              <th style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", padding: "12px 16px", textAlign: "center" }}>ðŸ”§ Admin</th>
+              <th style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", padding: "12px 16px", textAlign: "center" }}>ðŸ‘¥ Manager</th>
+              <th style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", padding: "12px 16px", textAlign: "center" }}>ðŸ‘¤ Member</th>
             </tr>
           </thead>
           <tbody>
             {resources.map((r) => (
-              <tr key={r.name} style={{ borderBottom: "0.5px solid var(--glass-border)" }}>
+              <tr key={r.name} style={{ borderBottom: "1px solid var(--sosa-border)" }}>
                 <td style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", padding: "10px 16px" }}>{r.name}</td>
                 {[r.owner, r.admin, r.manager, r.member].map((val, i) => (
-                  <td key={i} style={{ fontSize: 12, color: val === "—" ? "var(--text-quaternary)" : val === "Full" ? "#22c55e" : "var(--text-tertiary)", padding: "10px 16px", textAlign: "center", fontWeight: val === "Full" ? 600 : 400 }}>
+                  <td key={i} style={{ fontSize: 12, color: val === "—" ? "var(--text-quaternary)" : val === "Full" ? "var(--color-success)" : "var(--text-tertiary)", padding: "10px 16px", textAlign: "center", fontWeight: val === "Full" ? 600 : 400 }}>
                     {val}
                   </td>
                 ))}
@@ -535,13 +622,13 @@ function RolesTab() {
         </table>
       </div>
       <p style={{ fontSize: 12, color: "var(--text-quaternary)", marginTop: 12 }}>
-        ⓘ Only Owners can modify role assignments and permissions.
+        â“˜ Only Owners can modify role assignments and permissions.
       </p>
     </div>
   );
 }
 
-/* ── Audit Log Tab ── */
+/* â”€â”€ Audit Log Tab â”€â”€ */
 function AuditLogTab() {
   const [log, setLog] = useState(() => getAuditLog());
   useEffect(() => subscribeAudit(() => setLog([...getAuditLog()])), []);
@@ -586,7 +673,7 @@ function AuditLogTab() {
           </select>
           <select className="glass-input" value={userFilter} onChange={(e) => setUserFilter(e.target.value)} style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, width: "auto" }}>
             <option value="">All users</option>
-            {ALL_USERS.map((u) => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+            {portalUsers.map((u) => <option key={u.id} value={u.id}>{u.displayName}</option>)}
           </select>
           <select className="glass-input" value={catFilter} onChange={(e) => setCatFilter(e.target.value)} style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, width: "auto" }}>
             <option value="">All actions</option>
@@ -604,12 +691,12 @@ function AuditLogTab() {
         {grouped.map((group) => (
           <div key={group.label}>
             <h4 style={{ fontSize: 12, fontWeight: 700, color: "var(--text-tertiary)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>{group.label}</h4>
-            <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 12, overflow: "hidden" }}>
+            <div style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 0, overflow: "hidden" }}>
               {group.entries.map((entry, i) => {
                 const author = getUserById(entry.userId);
                 return (
                   <div key={entry.id} className="flex items-center gap-3 transition-colors"
-                    style={{ padding: "10px 16px", borderBottom: i < group.entries.length - 1 ? "0.5px solid var(--glass-border)" : "none" }}
+                    style={{ padding: "10px 16px", borderBottom: i < group.entries.length - 1 ? "1px solid var(--sosa-border)" : "none" }}
                     onMouseEnter={(e) => { e.currentTarget.style.background = "var(--nav-hover-bg)"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
                     <span style={{ fontSize: 16, width: 24, textAlign: "center" }}>{entry.icon}</span>
@@ -631,7 +718,7 @@ function AuditLogTab() {
   );
 }
 
-/* ── Company Tab ── */
+/* â”€â”€ Company Tab â”€â”€ */
 function CompanyTab() {
   const [settings, setSettings] = useState<CompanySettings>(INITIAL_COMPANY_SETTINGS);
   const { toast } = useToast();
@@ -640,7 +727,7 @@ function CompanyTab() {
   return (
     <div>
       <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>Company Settings</h3>
-      <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 14, padding: 20 }}>
+      <div style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: 20 }}>
         <div className="flex flex-col gap-4 max-w-md">
           {([
             { key: "name" as const, label: "Company Name", type: "text" },
@@ -659,7 +746,7 @@ function CompanyTab() {
           <div className="flex flex-col gap-1.5">
             <label style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)" }}>Language</label>
             <select className="glass-input w-full" value={settings.language} onChange={(e) => update("language", e.target.value)} style={{ fontSize: 13, padding: "8px 12px" }}>
-              <option>Italiano</option><option>English</option><option>Deutsch</option><option>Français</option>
+              <option>Italiano</option><option>English</option><option>Deutsch</option><option>FranÃ§ais</option>
             </select>
           </div>
           <div className="flex flex-col gap-1.5">
@@ -669,14 +756,14 @@ function CompanyTab() {
             </select>
           </div>
 
-          <div style={{ borderTop: "0.5px solid var(--glass-border)", paddingTop: 12, marginTop: 4 }}>
+          <div style={{ borderTop: "1px solid var(--sosa-border)", paddingTop: 12, marginTop: 4 }}>
             <div className="flex items-center justify-between mb-1">
               <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Storage Quota</span>
               <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>{settings.storageQuotaGb} GB</span>
             </div>
             <div className="flex items-center justify-between">
               <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>User Seats</span>
-              <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>{ALL_USERS.length} of {settings.maxUsers}</span>
+              <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>{portalUsers.length} of {settings.maxUsers}</span>
             </div>
           </div>
 
@@ -687,7 +774,7 @@ function CompanyTab() {
   );
 }
 
-/* ── Security Tab ── */
+/* â”€â”€ Security Tab â”€â”€ */
 function SecurityTab() {
   const [settings, setSettings] = useState<SecuritySettings>(INITIAL_SECURITY_SETTINGS);
   const [vaultPassword, setVaultPassword] = useState("");
@@ -696,7 +783,7 @@ function SecurityTab() {
   return (
     <div>
       <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>Security Settings</h3>
-      <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 14, padding: 20 }}>
+      <div style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: 20 }}>
         <div className="flex flex-col gap-6 max-w-md">
           {/* Password Policy */}
           <div>
@@ -716,7 +803,7 @@ function SecurityTab() {
                 <div key={key} className="flex items-center justify-between">
                   <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{label}</span>
                   <button type="button" onClick={() => setSettings((p) => ({ ...p, [key]: !p[key] }))}
-                    style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, border: "none", cursor: "pointer", background: settings[key] ? "rgba(34,197,94,0.15)" : "var(--glass-bg)", color: settings[key] ? "#22c55e" : "var(--text-quaternary)", fontWeight: 600, outline: "0.5px solid var(--glass-border)" }}>
+                    style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, border: "none", cursor: "pointer", background: settings[key] ? "rgba(34,197,94,0.15)" : "var(--sosa-bg-2)", color: settings[key] ? "var(--color-success)" : "var(--text-quaternary)", fontWeight: 600, outline: "1px solid var(--sosa-border)" }}>
                     {settings[key] ? "ON" : "OFF"}
                   </button>
                 </div>
@@ -772,7 +859,7 @@ function SecurityTab() {
             <div className="flex items-center justify-between">
               <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Require MFA for all users</span>
               <button type="button" onClick={() => setSettings((p) => ({ ...p, requireMfa: !p.requireMfa }))}
-                style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, border: "none", cursor: "pointer", background: settings.requireMfa ? "rgba(34,197,94,0.15)" : "var(--glass-bg)", color: settings.requireMfa ? "#22c55e" : "var(--text-quaternary)", fontWeight: 600, outline: "0.5px solid var(--glass-border)" }}>
+                style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, border: "none", cursor: "pointer", background: settings.requireMfa ? "rgba(34,197,94,0.15)" : "var(--sosa-bg-2)", color: settings.requireMfa ? "var(--color-success)" : "var(--text-quaternary)", fontWeight: 600, outline: "1px solid var(--sosa-border)" }}>
                 {settings.requireMfa ? "ON" : "OFF"}
               </button>
             </div>
@@ -786,10 +873,10 @@ function SecurityTab() {
   );
 }
 
-/* ── Main Page ── */
+/* â”€â”€ Main Page â”€â”€ */
 const AdministrationPage = () => {
-  const { user } = useAuth();
-  const isOwner = user?.role === "owner";
+  const { isOwner } = usePortalDB();
+  const { users: portalUsers } = usePortalUsers();
   const [tab, setTab] = useState<AdminTab>("users");
 
   const tabs: { key: AdminTab; label: string; icon: React.ReactNode; ownerOnly: boolean }[] = [
@@ -815,10 +902,10 @@ const AdministrationPage = () => {
             <button type="button" key={t.key} onClick={() => setTab(t.key)} className="flex items-center gap-1.5"
               style={{
                 fontSize: 12, padding: "7px 16px", borderRadius: 99, border: "none", cursor: "pointer",
-                background: tab === t.key ? "var(--accent-color-dim, rgba(110,231,183,0.15))" : "var(--glass-bg)",
-                color: tab === t.key ? "var(--accent-color)" : "var(--text-tertiary)",
+                background: tab === t.key ? "var(--sosa-bg-3)" : "var(--sosa-bg-2)",
+                color: tab === t.key ? "var(--portal-accent)" : "var(--text-tertiary)",
                 fontWeight: tab === t.key ? 600 : 400,
-                outline: tab === t.key ? "1px solid var(--accent-color)" : "0.5px solid var(--glass-border)",
+                outline: tab === t.key ? "1px solid var(--accent-color)" : "1px solid var(--sosa-border)",
               }}>
               {t.icon} {t.label}
             </button>

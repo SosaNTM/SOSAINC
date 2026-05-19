@@ -12,15 +12,16 @@ import { AddTransactionModal } from "@/components/finance/AddTransactionModal";
 import { GlassTooltip } from "@/components/ui/GlassTooltip";
 import type { NewPersonalTransaction } from "@/types/finance";
 
-// ── Tooltip formatter ────────────────────────────────────────────────────────
+// â”€â”€ Tooltip formatter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const fmtEurTooltip = (v: number) => `€${Number(v).toLocaleString("en-US")}`;
 
 // NOTE: Custom tooltip — too specialized for GlassTooltip (accesses payload[0].payload.percentage)
-function PieTip({ active, payload }: any) {
+type PieTipProps = { active?: boolean; payload?: Array<{ name: string; value: number; payload: { percentage: string } }> };
+function PieTip({ active, payload }: PieTipProps) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 8, padding: "7px 12px" }}>
+    <div style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: "7px 12px" }}>
       <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{payload[0].name}</p>
       <p style={{ fontSize: 11, color: "var(--text-tertiary)", margin: "2px 0 0" }}>
         €{Number(payload[0].value).toLocaleString("en-US")} · {payload[0].payload.percentage}%
@@ -29,9 +30,9 @@ function PieTip({ active, payload }: any) {
   );
 }
 
-// ── CSV export ────────────────────────────────────────────────────────────────
+// â”€â”€ CSV export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-function exportCSV(rows: any[], filename: string) {
+function exportCSV(rows: Record<string, unknown>[], filename: string) {
   if (!rows.length) return;
   const headers = Object.keys(rows[0]).join(",");
   const lines   = rows.map((r) => Object.values(r).map((v) => `"${v}"`).join(","));
@@ -42,7 +43,7 @@ function exportCSV(rows: any[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function Analytics() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -94,8 +95,8 @@ export default function Analytics() {
   [s12]);
 
   const stat = (label: string, value: string, color: string, icon: React.ReactNode) => (
-    <div style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 14, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
-      <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
+    <div style={{ background: "var(--sosa-bg-2)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ width: 36, height: 36, borderRadius: 0, background: `${color}18`, display: "flex", alignItems: "center", justifyContent: "center", color, flexShrink: 0 }}>
         {icon}
       </div>
       <div>
@@ -109,7 +110,7 @@ export default function Analytics() {
     <div className="space-y-5">
       <LiquidGlassFilter />
 
-      {/* ── Header + stats ─────────────────────────────────────── */}
+      {/* â”€â”€ Header + stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
         <div className="flex items-center justify-between mb-4">
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.5px", margin: 0 }}>Analytics</h1>
@@ -127,7 +128,7 @@ export default function Analytics() {
         </div>
       </motion.div>
 
-      {/* ── Charts row 1: Income vs Expenses + Pie ─────────────── */}
+      {/* â”€â”€ Charts row 1: Income vs Expenses + Pie â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div
         className="grid grid-cols-1 lg:grid-cols-3 gap-5"
         initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
@@ -187,7 +188,7 @@ export default function Analytics() {
         </LiquidGlassCard>
       </motion.div>
 
-      {/* ── Charts row 2: Daily + Top5 ─────────────────────────── */}
+      {/* â”€â”€ Charts row 2: Daily + Top5 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div
         className="grid grid-cols-1 lg:grid-cols-2 gap-5"
         initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
@@ -234,14 +235,14 @@ export default function Analytics() {
         </LiquidGlassCard>
       </motion.div>
 
-      {/* ── Monthly table ───────────────────────────────────────── */}
+      {/* â”€â”€ Monthly table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}>
         <LiquidGlassCard accentColor="#64748b" hover={false}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Monthly Summary — Last 12 Months</h3>
             <button
               onClick={() => exportCSV(tableData, "finance-analytics.csv")}
-              style={{ height: 28, padding: "0 10px", borderRadius: 8, background: "rgba(232,255,0,0.10)", border: "1px solid rgba(232,255,0,0.25)", color: "#e8ff00", fontSize: 11, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+              style={{ height: 28, padding: "0 10px", borderRadius: 0, background: "rgba(232,255,0,0.10)", border: "1px solid rgba(232,255,0,0.25)", color: "#e8ff00", fontSize: 11, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
               <Download style={{ width: 12, height: 12 }} />
               Export CSV
             </button>
@@ -257,7 +258,7 @@ export default function Analytics() {
                 <thead>
                   <tr>
                     {["Month", "Income", "Expenses", "Net", "Transactions"].map((h) => (
-                      <th key={h} style={{ textAlign: h === "Month" ? "left" : "right", padding: "6px 10px", fontWeight: 700, fontSize: 10, color: "var(--text-quaternary)", letterSpacing: "0.07em", textTransform: "uppercase", borderBottom: "0.5px solid var(--glass-border)" }}>
+                      <th key={h} style={{ textAlign: h === "Month" ? "left" : "right", padding: "6px 10px", fontWeight: 700, fontSize: 10, color: "var(--text-quaternary)", letterSpacing: "0.07em", textTransform: "uppercase", borderBottom: "1px solid var(--sosa-border)" }}>
                         {h}
                       </th>
                     ))}
@@ -265,7 +266,7 @@ export default function Analytics() {
                 </thead>
                 <tbody>
                   {tableData.map((row, i) => (
-                    <tr key={i} style={{ borderBottom: "0.5px solid var(--glass-border)" }}
+                    <tr key={i} style={{ borderBottom: "1px solid var(--sosa-border)" }}
                       onMouseEnter={(e) => { e.currentTarget.style.background = "var(--nav-hover-bg)"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
                       <td style={{ padding: "8px 10px", color: "var(--text-primary)", fontWeight: 600 }}>{row.Month}</td>
@@ -282,7 +283,7 @@ export default function Analytics() {
         </LiquidGlassCard>
       </motion.div>
 
-      {/* ── Add Transaction Modal ─────────────────────────────── */}
+      {/* â”€â”€ Add Transaction Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <AddTransactionModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}

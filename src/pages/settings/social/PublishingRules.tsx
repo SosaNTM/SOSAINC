@@ -183,7 +183,7 @@ export default function PublishingRulesPage() {
   ];
 
   return (
-    <div style={{ maxWidth: 860 }}>
+    <div style={{ maxWidth: "100%" }}>
       <SettingsPageHeader
         icon={CalendarClock}
         title="Regole di Pubblicazione"

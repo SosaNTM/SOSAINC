@@ -16,7 +16,8 @@ function getFillColor(point: WaterfallDataPoint): string {
 }
 
 // NOTE: Custom tooltip — too specialized for GlassTooltip (extra netRevenue prop, percentage calc, color by point type)
-function WaterfallTooltipContent({ active, payload, netRevenue }: any) {
+type WaterfallTooltipProps = { active?: boolean; payload?: Array<{ payload: WaterfallDataPoint }>; netRevenue: number };
+function WaterfallTooltipContent({ active, payload, netRevenue }: WaterfallTooltipProps) {
   if (!active || !payload?.length) return null;
   const point = payload[0]?.payload as WaterfallDataPoint | undefined;
   if (!point) return null;

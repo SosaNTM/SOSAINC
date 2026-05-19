@@ -143,11 +143,11 @@ export function OnboardingModal({ profile, open, onComplete }: Props) {
 
   return (
     <>
-      <div className="fixed inset-0 z-[60]" style={{ background: "rgba(0,0,0,0.40)", backdropFilter: "blur(8px)" }} />
+      <div className="fixed inset-0 z-[60]" style={{ background: "rgba(0,0,0,0.75)" }} />
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
         <div
-          className="w-full max-w-[min(480px,calc(100%-2rem))] rounded-2xl overflow-hidden"
-          style={{ background: "var(--modal-bg)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", border: "1px solid var(--divider)", boxShadow: "0 32px 100px rgba(0,0,0,0.15)" }}
+          className="w-full max-w-[min(480px,calc(100%-2rem))] overflow-hidden"
+          style={{ background: "var(--sosa-bg-3)", border: "1px solid var(--sosa-border)", borderRadius: 0 }}
         >
           {/* Progress */}
           <div className="flex gap-1 px-6 pt-5">

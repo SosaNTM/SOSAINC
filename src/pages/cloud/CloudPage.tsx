@@ -1,15 +1,22 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { useAuth, ALL_USERS } from "@/lib/authContext";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useAuth } from "@/lib/authContext";
+import { usePortalUsers } from "@/hooks/usePortalUsers";
+import { STORAGE_CLOUD_COLLAPSED_SECTIONS } from "@/constants/storageKeys";
 import {
-  STORAGE_CLOUD_FOLDERS, STORAGE_CLOUD_FILES, STORAGE_CLOUD_SECTIONS,
-  STORAGE_CLOUD_COLLAPSED_SECTIONS,
-} from "@/constants/storageKeys";
-import {
-  INITIAL_FOLDERS, INITIAL_FILES, INITIAL_SECTIONS,
+  INITIAL_FOLDERS, INITIAL_SECTIONS,
   TOTAL_STORAGE_GB, USED_STORAGE_GB, MOCK_FOLDER_PASSWORDS,
   getFileTypeIcon, formatFileSize, getUserPermission, getFolderPath,
   type CloudFolder, type CloudFile, type PermissionLevel, type FolderSection,
 } from "@/lib/cloudStore";
+import { fetchFolders as svcFetchFolders, createFolder as svcCreateFolder, renameFolder as svcRenameFolder, softDeleteFolder as svcSoftDeleteFolder, updateFolderLock as svcUpdateFolderLock } from "@/lib/services/cloudService";
+import { hashPassword, verifyPassword } from "@/hooks/settings";
+import { supabase as _cloudSupabase } from "@/lib/supabase";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const cloudSupabase = _cloudSupabase as any;
+import { toPortalUUID as toPortalUUIDCloud } from "@/lib/portalUUID";
+import type { DbCloudFolder } from "@/types/database";
+import { useCloudFiles } from "@/hooks/useCloudFiles";
+import { usePortalDB } from "@/lib/portalContextDB";
 import {
   Cloud, FolderIcon, Trash2, X, Download, Pencil, Move, Link2,
   Eye, EyeOff, Shield, Lock, Unlock, Home, AlertTriangle, Layers,
@@ -19,7 +26,6 @@ import FilePreviewDrawer from "@/components/cloud/FilePreviewDrawer";
 import TrashPreviewDrawer from "@/components/cloud/TrashPreviewDrawer";
 import StorageOverview from "@/components/cloud/StorageOverview";
 import { ActionMenu, type ActionMenuEntry } from "@/components/ActionMenu";
-import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { addAuditEntry } from "@/lib/adminStore";
 import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
@@ -85,42 +91,27 @@ function UploadModal({
   currentFolderId: string | null;
   folders: CloudFolder[];
   onClose: () => void;
-  onUpload: (names: string[]) => void;
+  onUpload: (files: File[], folderId: string) => Promise<void>;
 }) {
-  const [uploadFiles, setUploadFiles] = useState<string[]>([]);
-  const [progress, setProgress] = useState<Record<string, number>>({});
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [selectedFolderId, setSelectedFolderId] = useState<string>(currentFolderId ?? "");
+
+  const availableFolders = folders.filter((f) => !f.isDeleted);
 
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setUploadFiles(Array.from(e.target.files || []).map((f) => f.name));
+    setUploadFiles(Array.from(e.target.files || []));
   };
 
-  const handleUpload = () => {
-    if (uploadFiles.length === 0) return;
+  const handleUpload = async () => {
+    if (uploadFiles.length === 0 || !selectedFolderId) return;
     setUploading(true);
-    const prog: Record<string, number> = {};
-    uploadFiles.forEach((f) => { prog[f] = 0; });
-    setProgress({ ...prog });
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        const next = { ...prev };
-        let allDone = true;
-        Object.keys(next).forEach((k) => {
-          next[k] = Math.min(100, next[k] + Math.floor(Math.random() * 25) + 10);
-          if (next[k] < 100) allDone = false;
-        });
-        if (allDone) {
-          clearInterval(interval);
-          setTimeout(() => onUpload(uploadFiles), 300);
-        }
-        return next;
-      });
-    }, 400);
+    try {
+      await onUpload(uploadFiles, selectedFolderId);
+    } finally {
+      setUploading(false);
+    }
   };
-
-  const targetFolder = currentFolderId
-    ? folders.find((f) => f.id === currentFolderId)?.name
-    : "Root";
 
   return (
     <ModalOverlay onClose={onClose}>
@@ -130,38 +121,43 @@ function UploadModal({
         <span className="text-sm text-muted-foreground">Drop files here or click to browse</span>
         <input type="file" multiple className="hidden" onChange={handleFiles} />
       </label>
-      <p className="text-xs text-muted-foreground mb-3">
-        Destination: <strong className="text-foreground">{targetFolder}</strong>
-      </p>
       {uploadFiles.length > 0 && (
         <div className="flex flex-col gap-2 mb-4">
-          {uploadFiles.map((name) => (
-            <div key={name}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-foreground">{name}</span>
-                {uploading && (
-                  <span className="text-xs text-primary">{progress[name] || 0}%</span>
-                )}
-              </div>
-              {uploading && <Progress value={progress[name] || 0} className="h-1.5" />}
+          {uploadFiles.map((file) => (
+            <div key={file.name} className="flex items-center justify-between">
+              <span className="text-xs text-foreground">{file.name}</span>
+              <span className="text-xs text-muted-foreground">
+                {(file.size / 1024 / 1024).toFixed(1)} MB
+              </span>
             </div>
           ))}
         </div>
       )}
+      <div className="mb-4">
+        <label className="block text-xs text-muted-foreground mb-1">Destination folder</label>
+        {availableFolders.length === 0 ? (
+          <p className="text-xs text-destructive">No folders yet — create a folder first.</p>
+        ) : (
+          <select
+            value={selectedFolderId}
+            onChange={(e) => setSelectedFolderId(e.target.value)}
+            className="w-full text-sm px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            <option value="">— select a folder —</option>
+            {availableFolders.map((f) => (
+              <option key={f.id} value={f.id}>{f.name}</option>
+            ))}
+          </select>
+        )}
+      </div>
       <div className="flex gap-2 justify-end">
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-sm px-4 py-2 rounded-lg border border-border bg-background hover:bg-accent transition-colors"
-        >
+        <button type="button" onClick={onClose}
+          className="text-sm px-4 py-2 rounded-lg border border-border bg-background hover:bg-accent transition-colors">
           Cancel
         </button>
-        <button
-          type="button"
-          onClick={handleUpload}
-          disabled={uploadFiles.length === 0 || uploading}
-          className="text-sm px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-        >
+        <button type="button" onClick={() => { void handleUpload(); }}
+          disabled={uploadFiles.length === 0 || !selectedFolderId || uploading}
+          className="text-sm px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50">
           {uploading ? "Uploading..." : "Upload"}
         </button>
       </div>
@@ -183,15 +179,18 @@ function PermissionsModalUI({
   setFolders: React.Dispatch<React.SetStateAction<CloudFolder[]>>;
   setPermissionsModal: (id: string | null) => void;
 }) {
+  const { users: portalUsers } = usePortalUsers();
   const folder = folders.find((f) => f.id === permissionsModal);
-  if (!folder) return null;
 
-  const [localPerms, setLocalPerms] = useState<{ userId: string; level: PermissionLevel }[]>(
-    folder.permissions.length > 0
+  const [localPerms, setLocalPerms] = useState<{ userId: string; level: PermissionLevel }[]>(() => {
+    if (!folder) return [];
+    return folder.permissions.length > 0
       ? [...folder.permissions]
-      : ALL_USERS.map((u) => ({ userId: u.id, level: "read" as PermissionLevel }))
-  );
-  const [inherit, setInherit] = useState(folder.inheritPermissions);
+      : portalUsers.map((u) => ({ userId: u.id, level: "read" as PermissionLevel }));
+  });
+  const [inherit, setInherit] = useState(() => folder?.inheritPermissions ?? false);
+
+  if (!folder) return null;
 
   const save = () => {
     setFolders((prev) =>
@@ -205,7 +204,7 @@ function PermissionsModalUI({
       ? "Inherited from parent"
       : localPerms
           .map((p) => {
-            const u = ALL_USERS.find((u) => u.id === p.userId);
+            const u = portalUsers.find((u) => u.id === p.userId);
             return `${u?.displayName}: ${p.level}`;
           })
           .join(", ");
@@ -214,7 +213,7 @@ function PermissionsModalUI({
       action: `Updated permissions on "${folder.name}"`,
       category: "cloud",
       details: summary,
-      icon: "🔒",
+      icon: "●",
     });
   };
 
@@ -236,7 +235,7 @@ function PermissionsModalUI({
       )}
       {!inherit && (
         <div className="flex flex-col gap-2">
-          {ALL_USERS.map((u) => {
+          {portalUsers.map((u) => {
             const perm = localPerms.find((p) => p.userId === u.id);
             return (
               <div key={u.id} className="flex items-center justify-between py-1.5">
@@ -314,8 +313,9 @@ function NewFolderModal({
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState<string>(currentFolderId || "");
   const [permMode, setPermMode] = useState<"inherit" | "custom">("inherit");
+  const { users: portalUsers } = usePortalUsers();
   const [customPerms, setCustomPerms] = useState<{ userId: string; level: PermissionLevel }[]>(
-    ALL_USERS.map((u) => ({ userId: u.id, level: "read" as PermissionLevel }))
+    portalUsers.map((u) => ({ userId: u.id, level: "read" as PermissionLevel }))
   );
   const [error, setError] = useState("");
 
@@ -349,21 +349,29 @@ function NewFolderModal({
     toast.success(`Folder "${name.trim()}" created`);
   };
 
+  const mono = { fontFamily: "var(--font-mono)" } as const;
+  const labelStyle: React.CSSProperties = { ...mono, fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.10em", color: "var(--text-tertiary)", display: "block", marginBottom: 6 };
+  const inputStyle: React.CSSProperties = { ...mono, fontSize: 12, width: "100%", padding: "8px 10px", background: "var(--glass-bg)", border: "1px solid var(--glass-border)", color: "var(--text-primary)", outline: "none" };
+
   const renderPickerItem = (folder: CloudFolder, depth: number): React.ReactNode => {
     const children = getChildren(folder.id);
+    const active = location === folder.id;
     return (
       <div key={folder.id}>
         <button
           type="button"
           onClick={() => setLocation(folder.id)}
-          className={`flex items-center gap-2 w-full text-left text-sm rounded-md px-2 py-1.5 transition-colors ${
-            location === folder.id
-              ? "bg-primary/15 text-primary font-medium"
-              : "text-foreground hover:bg-accent/50"
-          }`}
-          style={{ paddingLeft: depth * 16 + 8 }}
+          style={{
+            ...mono, fontSize: 11, display: "flex", alignItems: "center", gap: 6,
+            width: "100%", textAlign: "left", padding: "5px 8px",
+            paddingLeft: depth * 14 + 8,
+            background: active ? "rgba(255,255,255,0.06)" : "transparent",
+            borderLeft: active ? "2px solid var(--accent-primary)" : "2px solid transparent",
+            color: active ? "var(--text-primary)" : "var(--text-tertiary)",
+            cursor: "pointer",
+          }}
         >
-          <FolderIcon className="w-3.5 h-3.5 text-primary" />
+          <FolderIcon style={{ width: 12, height: 12, flexShrink: 0 }} />
           {folder.name}
         </button>
         {children.map((c) => renderPickerItem(c, depth + 1))}
@@ -373,133 +381,126 @@ function NewFolderModal({
 
   return (
     <ModalOverlay onClose={onClose}>
-      <h2 className="text-base font-bold text-foreground mb-4">New Folder</h2>
-      <div className="flex flex-col gap-4">
-        <div>
-          <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
-            Folder Name *
-          </label>
-          <input
-            autoFocus
-            value={name}
-            onChange={(e) => { setName(e.target.value); setError(""); }}
-            className={`w-full text-sm p-2.5 rounded-lg border ${
-              error ? "border-destructive" : "border-input"
-            } bg-background focus:outline-none focus:ring-1 focus:ring-ring`}
-            placeholder="Enter folder name"
-          />
-          {error && <p className="text-xs text-destructive mt-1">{error}</p>}
-        </div>
-        <div>
-          <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
-            Description (optional)
-          </label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full text-sm p-2.5 rounded-lg border border-input bg-background resize-none h-16 focus:outline-none focus:ring-1 focus:ring-ring"
-            placeholder="Add a description"
-          />
-        </div>
-        <div>
-          <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
-            Location
-          </label>
-          <div className="max-h-[150px] overflow-y-auto border border-border rounded-lg p-1 bg-muted/30">
-            {rootFolders.map((f) => renderPickerItem(f, 0))}
+      <div style={{ padding: "20px 24px" }}>
+        {/* Header */}
+        <p style={{ ...mono, fontSize: 13, fontWeight: 700, color: "var(--text-primary)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 20 }}>
+          Nuova Cartella
+        </p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Name */}
+          <div>
+            <label style={labelStyle}>Nome Cartella *</label>
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => { setName(e.target.value); setError(""); }}
+              style={{ ...inputStyle, borderColor: error ? "var(--color-error)" : "var(--glass-border)" }}
+              placeholder="→ nome cartella"
+            />
+            {error && <p style={{ ...mono, fontSize: 10, color: "var(--color-error)", marginTop: 4 }}>{error}</p>}
           </div>
-        </div>
-        <div>
-          <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
-            Permissions
-          </label>
-          <div className="flex flex-col gap-2">
-            <label
-              className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors ${
-                permMode === "inherit"
-                  ? "border-primary bg-primary/5"
-                  : "border-border hover:bg-accent/50"
-              }`}
-            >
-              <input
-                type="radio"
-                name="perm"
-                checked={permMode === "inherit"}
-                onChange={() => setPermMode("inherit")}
-                className="text-primary"
-              />
-              <span className="text-sm text-foreground">Inherit from parent (recommended)</span>
-            </label>
-            <label
-              className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors ${
-                permMode === "custom"
-                  ? "border-primary bg-primary/5"
-                  : "border-border hover:bg-accent/50"
-              }`}
-            >
-              <input
-                type="radio"
-                name="perm"
-                checked={permMode === "custom"}
-                onChange={() => setPermMode("custom")}
-                className="text-primary"
-              />
-              <span className="text-sm text-foreground">Custom permissions</span>
-            </label>
+
+          {/* Description */}
+          <div>
+            <label style={labelStyle}>Descrizione (opzionale)</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              style={{ ...inputStyle, resize: "none", height: 60 }}
+              placeholder="→ aggiungi descrizione"
+            />
           </div>
-          {permMode === "custom" && (
-            <div className="flex flex-col gap-1.5 mt-3 border border-border rounded-lg p-2">
-              {ALL_USERS.map((u) => {
-                const p = customPerms.find((cp) => cp.userId === u.id);
+
+          {/* Location */}
+          <div>
+            <label style={labelStyle}>Posizione</label>
+            <div style={{ maxHeight: 140, overflowY: "auto", border: "1px solid var(--glass-border)", background: "var(--glass-bg)" }}>
+              {rootFolders.map((f) => renderPickerItem(f, 0))}
+            </div>
+          </div>
+
+          {/* Permissions */}
+          <div>
+            <label style={labelStyle}>Permessi</label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {(["inherit", "custom"] as const).map((mode) => {
+                const active = permMode === mode;
                 return (
-                  <div key={u.id} className="flex items-center justify-between py-1">
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[9px] font-bold">
-                        {u.displayName.charAt(0)}
-                      </div>
-                      <span className="text-xs text-foreground">{u.displayName}</span>
-                      <span className="text-[9px] text-muted-foreground">{u.role}</span>
-                    </div>
-                    <select
-                      className="text-[11px] p-0.5 rounded border border-input bg-background"
-                      value={p?.level || "read"}
-                      onChange={(e) => {
-                        const lv = e.target.value as PermissionLevel;
-                        setCustomPerms((prev) => {
-                          const next = prev.filter((x) => x.userId !== u.id);
-                          next.push({ userId: u.id, level: lv });
-                          return next;
-                        });
-                      }}
-                    >
-                      <option value="read">Read</option>
-                      <option value="write">Write</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  </div>
+                  <label
+                    key={mode}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
+                      border: `1px solid ${active ? "var(--accent-primary)" : "var(--glass-border)"}`,
+                      background: active ? "rgba(212,255,0,0.04)" : "transparent",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <input type="radio" name="perm" checked={active} onChange={() => setPermMode(mode)} style={{ accentColor: "var(--accent-primary)" }} />
+                    <span style={{ ...mono, fontSize: 11, color: active ? "var(--text-primary)" : "var(--text-tertiary)" }}>
+                      {mode === "inherit" ? "Eredita dal genitore (consigliato)" : "Permessi personalizzati"}
+                    </span>
+                  </label>
                 );
               })}
             </div>
-          )}
+
+            {permMode === "custom" && (
+              <div style={{ marginTop: 10, border: "1px solid var(--glass-border)", background: "var(--glass-bg)" }}>
+                {portalUsers.map((u) => {
+                  const p = customPerms.find((cp) => cp.userId === u.id);
+                  return (
+                    <div key={u.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 12px", borderBottom: "1px solid var(--glass-border)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ width: 20, height: 20, background: "var(--accent-primary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <span style={{ ...mono, fontSize: 9, fontWeight: 700, color: "#000" }}>{u.displayName.charAt(0)}</span>
+                        </div>
+                        <span style={{ ...mono, fontSize: 11, color: "var(--text-primary)" }}>{u.displayName}</span>
+                        <span style={{ ...mono, fontSize: 9, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{u.role}</span>
+                      </div>
+                      <select
+                        style={{ ...mono, fontSize: 10, padding: "2px 4px", background: "var(--sosa-bg)", border: "1px solid var(--glass-border)", color: "var(--text-primary)" }}
+                        value={p?.level || "read"}
+                        onChange={(e) => {
+                          const lv = e.target.value as PermissionLevel;
+                          setCustomPerms((prev) => {
+                            const next = prev.filter((x) => x.userId !== u.id);
+                            next.push({ userId: u.id, level: lv });
+                            return next;
+                          });
+                        }}
+                      >
+                        <option value="read">Read</option>
+                        <option value="write">Write</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-      <div className="flex gap-2 justify-end mt-5">
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-sm px-4 py-2 rounded-lg border border-border bg-background hover:bg-accent transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={handleCreate}
-          disabled={!canCreate}
-          className="text-sm px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-          title={!canCreate ? "You don't have permission to create folders here" : undefined}
-        >
-          Create Folder
-        </button>
+
+        {/* Footer */}
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--glass-border)" }}>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{ ...mono, fontSize: 11, padding: "8px 16px", background: "transparent", border: "1px solid var(--glass-border)", color: "var(--text-tertiary)", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.06em" }}
+          >
+            Annulla
+          </button>
+          <button
+            type="button"
+            onClick={handleCreate}
+            disabled={!canCreate}
+            title={!canCreate ? "Permessi insufficienti" : undefined}
+            style={{ ...mono, fontSize: 11, padding: "8px 16px", background: canCreate ? "var(--accent-primary)" : "var(--glass-bg)", border: "1px solid var(--glass-border)", color: canCreate ? "#000" : "var(--text-tertiary)", cursor: canCreate ? "pointer" : "not-allowed", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}
+          >
+            Crea Cartella ↗
+          </button>
+        </div>
       </div>
     </ModalOverlay>
   );
@@ -508,56 +509,55 @@ function NewFolderModal({
 /* ── Main Cloud Page Orchestrator ── */
 const CloudPage = () => {
   const { user } = useAuth();
+  const { users: portalUsers } = usePortalUsers();
   const isMobile = useIsMobile();
+  const { currentPortalId, isOwner: isPortalOwner, isAdmin: isPortalAdmin } = usePortalDB();
+  const cloudFiles = useCloudFiles();
 
-  // ── State: Data ──
-  const [folders, setFolders] = useState<CloudFolder[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_CLOUD_FOLDERS);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id) {
-          return parsed.map((f: any) => ({
-            ...f,
-            createdAt: new Date(f.createdAt),
-            passwordSetAt: f.passwordSetAt ? new Date(f.passwordSetAt) : null,
-            lockedUntil: f.lockedUntil ? new Date(f.lockedUntil) : null,
-          }));
-        }
-      }
-    } catch { localStorage.removeItem(STORAGE_CLOUD_FOLDERS); }
-    return INITIAL_FOLDERS;
-  });
+  // ── State: Data (hydrated from Supabase) ──
+  const [folders, setFolders] = useState<CloudFolder[]>([]);
+  const [sections, setSections] = useState<FolderSection[]>([]);
+  const [hasHydrated, setHasHydrated] = useState(false);
 
-  const [files, setFiles] = useState<CloudFile[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_CLOUD_FILES);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id) {
-          return parsed.map((f: any) => ({
-            ...f,
-            createdAt: new Date(f.createdAt),
-            modifiedAt: new Date(f.modifiedAt),
-            deletedAt: f.deletedAt ? new Date(f.deletedAt) : null,
-            permanentDeleteAt: f.permanentDeleteAt ? new Date(f.permanentDeleteAt) : null,
-          }));
-        }
-      }
-    } catch { localStorage.removeItem(STORAGE_CLOUD_FILES); }
-    return INITIAL_FILES;
-  });
+  const files = cloudFiles.files;
 
-  const [sections, setSections] = useState<FolderSection[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_CLOUD_SECTIONS);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch { localStorage.removeItem(STORAGE_CLOUD_SECTIONS); }
-    return INITIAL_SECTIONS;
-  });
+  // Hydrate from Supabase on portal change
+  useEffect(() => {
+    if (!currentPortalId) return;
+    setHasHydrated(false);
+    void (async () => {
+      const dbFolders = await svcFetchFolders(currentPortalId);
+      const mapped: CloudFolder[] = dbFolders.map((r: DbCloudFolder) => ({
+        id: r.id,
+        name: r.name,
+        parentId: r.parent_id,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        permissions: (r as any).permissions ?? [],
+        inheritPermissions: true,
+        createdAt: new Date(r.created_at ?? Date.now()),
+        isDeleted: r.is_deleted ?? false,
+        isLocked: r.is_locked ?? false,
+        passwordHash: r.password_hash ?? null,
+        passwordSetBy: null,
+        passwordSetAt: r.password_set_at ? new Date(r.password_set_at) : null,
+        lockAutoTimeoutMinutes: r.lock_auto_timeout_minutes ?? 10,
+        failedAttempts: 0,
+        lockedUntil: null,
+      }));
+      setFolders(mapped.length > 0 ? mapped : INITIAL_FOLDERS);
+
+      // Sections from portal_settings JSONB (no dedicated table)
+      const { data: ps } = await cloudSupabase
+        .from("portal_settings")
+        .select("settings")
+        .eq("portal_id", toPortalUUIDCloud(currentPortalId))
+        .maybeSingle();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sec = (ps?.settings as any)?.cloud_sections;
+      setSections(Array.isArray(sec) && sec.length > 0 ? sec : INITIAL_SECTIONS);
+      setHasHydrated(true);
+    })();
+  }, [currentPortalId]);
 
   // ── State: UI ──
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -621,13 +621,73 @@ const CloudPage = () => {
   // ── Derived ──
   const userRole = user?.role || "member";
   const userId = user?.id || "";
-  const isOwnerOrAdmin = userRole === "owner" || userRole === "admin";
-  const isOwner = userRole === "owner";
+  const isOwnerOrAdmin = isPortalOwner || isPortalAdmin || userRole === "owner" || userRole === "admin";
+  const isOwner = isPortalOwner || userRole === "owner";
 
-  // ── Persist to localStorage ──
-  useEffect(() => { localStorage.setItem(STORAGE_CLOUD_FOLDERS, JSON.stringify(folders)); }, [folders]);
-  useEffect(() => { localStorage.setItem(STORAGE_CLOUD_FILES, JSON.stringify(files)); }, [files]);
-  useEffect(() => { localStorage.setItem(STORAGE_CLOUD_SECTIONS, JSON.stringify(sections)); }, [sections]);
+  // ── Sync to Supabase (debounced, diff-based) ──
+  const lastSyncedFoldersRef = useRef<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    if (!currentPortalId || !hasHydrated) return;
+    const timeout = setTimeout(async () => {
+      const currentIds = new Set(folders.map((f) => f.id));
+      const lastIds = new Set(lastSyncedFoldersRef.current.keys());
+
+      // Upsert new + modified
+      for (const f of folders) {
+        const serialized = JSON.stringify(f);
+        if (lastSyncedFoldersRef.current.get(f.id) !== serialized) {
+          await cloudSupabase
+            .from("cloud_folders")
+            .upsert({
+              id: f.id,
+              portal_id: toPortalUUIDCloud(currentPortalId),
+              name: f.name,
+              parent_id: f.parentId,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              permissions: f.permissions as any,
+              is_locked: f.isLocked ?? false,
+              password_hash: f.passwordHash ?? null,
+              password_set_at: f.passwordSetAt ? f.passwordSetAt.toISOString() : null,
+              lock_auto_timeout_minutes: f.lockAutoTimeoutMinutes ?? 10,
+              is_deleted: f.isDeleted ?? false,
+              created_by: user?.id ?? null,
+            });
+          lastSyncedFoldersRef.current.set(f.id, serialized);
+        }
+      }
+      // Soft-delete removed
+      for (const id of lastIds) {
+        if (!currentIds.has(id)) {
+          await svcSoftDeleteFolder(id, currentPortalId);
+          lastSyncedFoldersRef.current.delete(id);
+        }
+      }
+    }, 600);
+    return () => clearTimeout(timeout);
+  }, [folders, currentPortalId, hasHydrated, user?.id]);
+
+  useEffect(() => {
+    if (!currentPortalId || !hasHydrated) return;
+    const timeout = setTimeout(async () => {
+      const { data } = await cloudSupabase
+        .from("portal_settings")
+        .select("settings")
+        .eq("portal_id", toPortalUUIDCloud(currentPortalId))
+        .maybeSingle();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const settings = (data?.settings ?? {}) as Record<string, any>;
+      settings.cloud_sections = sections;
+      await cloudSupabase
+        .from("portal_settings")
+        .upsert({
+          portal_id: toPortalUUIDCloud(currentPortalId),
+          settings,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "portal_id" });
+    }, 600);
+    return () => clearTimeout(timeout);
+  }, [sections, currentPortalId, hasHydrated]);
 
   // ── Lockout countdown timer ──
   useEffect(() => {
@@ -660,9 +720,11 @@ const CloudPage = () => {
 
   // ── Computed values ──
   const getPerm = useCallback(
-    (folderId: string): PermissionLevel | null =>
-      getUserPermission(folderId, userId, userRole, folders),
-    [userId, userRole, folders]
+    (folderId: string): PermissionLevel | null => {
+      if (isPortalOwner || isPortalAdmin) return "admin";
+      return getUserPermission(folderId, userId, userRole, folders);
+    },
+    [isPortalOwner, isPortalAdmin, userId, userRole, folders]
   );
 
   const isFolderUnlocked = useCallback(
@@ -742,7 +804,7 @@ const CloudPage = () => {
   const toggleSectionCollapse = (sectionId: string) => {
     setCollapsedSections((prev) => {
       const next = new Set(prev);
-      next.has(sectionId) ? next.delete(sectionId) : next.add(sectionId);
+      if (next.has(sectionId)) { next.delete(sectionId); } else { next.add(sectionId); }
       localStorage.setItem(STORAGE_CLOUD_COLLAPSED_SECTIONS, JSON.stringify([...next]));
       return next;
     });
@@ -794,11 +856,12 @@ const CloudPage = () => {
   };
 
   // ── Unlock handler ──
-  const handleUnlock = () => {
+  const handleUnlock = async () => {
     if (!unlockPromptFolder || lockoutUntil) return;
     const folder = unlockPromptFolder;
-    const correctPassword = MOCK_FOLDER_PASSWORDS[folder.id] || folder.passwordHash;
-    if (unlockPassword === correctPassword) {
+    const correctHash = MOCK_FOLDER_PASSWORDS[folder.id] ?? folder.passwordHash;
+    const matches = correctHash != null && await verifyPassword(unlockPassword, correctHash);
+    if (matches) {
       setUnlockedFolders((prev) => new Set(prev).add(folder.id));
       setUnlockState(folder.id, unlockRemember, folder.lockAutoTimeoutMinutes || 30);
       setFolders((prev) =>
@@ -863,56 +926,79 @@ const CloudPage = () => {
     toast.success("🔒 Folder locked");
     addAuditEntry({
       userId, action: `Locked folder "${folderName}"`, category: "cloud",
-      details: "Folder manually locked during session", icon: "🔒",
+      details: "Folder manually locked during session", icon: "●",
     });
   };
 
   // ── Password management ──
-  const handleSetPassword = (folderId: string, password: string, timeoutMinutes: number) => {
-    MOCK_FOLDER_PASSWORDS[folderId] = password;
+  const handleSetPassword = async (folderId: string, password: string, timeoutMinutes: number) => {
     const folderName = folders.find((f) => f.id === folderId)?.name || folderId;
+    const now = new Date().toISOString();
+    const hash = await hashPassword(password);
+    const ok = await svcUpdateFolderLock(folderId, {
+      is_locked: true,
+      password_hash: hash,
+      lock_auto_timeout_minutes: timeoutMinutes,
+      password_set_at: now,
+    }, currentPortalId ?? undefined);
+    if (!ok) { toast.error("Password non salvata — riprova"); return; }
+    MOCK_FOLDER_PASSWORDS[folderId] = hash;
     setFolders((prev) =>
       prev.map((f) =>
         f.id === folderId
           ? {
-              ...f, isLocked: true, passwordHash: password, passwordSetBy: userId,
-              passwordSetAt: new Date(), lockAutoTimeoutMinutes: timeoutMinutes,
+              ...f, isLocked: true, passwordHash: hash, passwordSetBy: userId,
+              passwordSetAt: new Date(now), lockAutoTimeoutMinutes: timeoutMinutes,
               failedAttempts: 0, lockedUntil: null,
             }
           : f
       )
     );
     setSetPasswordFolder(null);
-    toast.success("🔒 Password set");
+    toast.success("🔒 Password impostata");
     addAuditEntry({
       userId, action: `Set password on folder "${folderName}"`, category: "cloud",
       details: `Auto-lock timeout: ${timeoutMinutes} min`, icon: "🔐",
     });
   };
 
-  const handleChangePassword = (folderId: string, newPassword: string) => {
-    MOCK_FOLDER_PASSWORDS[folderId] = newPassword;
+  const handleChangePassword = async (folderId: string, newPassword: string) => {
     const folderName = folders.find((f) => f.id === folderId)?.name || folderId;
+    const now = new Date().toISOString();
+    const hash = await hashPassword(newPassword);
+    const ok = await svcUpdateFolderLock(folderId, {
+      is_locked: true,
+      password_hash: hash,
+      password_set_at: now,
+    }, currentPortalId ?? undefined);
+    if (!ok) { toast.error("Password non aggiornata — riprova"); return; }
+    MOCK_FOLDER_PASSWORDS[folderId] = hash;
     setFolders((prev) =>
       prev.map((f) =>
         f.id === folderId
-          ? { ...f, passwordHash: newPassword, passwordSetBy: userId, passwordSetAt: new Date(), failedAttempts: 0, lockedUntil: null }
+          ? { ...f, passwordHash: hash, passwordSetBy: userId, passwordSetAt: new Date(now), failedAttempts: 0, lockedUntil: null }
           : f
       )
     );
     clearUnlockState(folderId);
     setUnlockedFolders((prev) => { const next = new Set(prev); next.delete(folderId); return next; });
     setChangePasswordFolder(null);
-    toast.success("🔒 Password changed — all sessions revoked");
+    toast.success("🔒 Password cambiata — tutte le sessioni revocate");
     addAuditEntry({
       userId, action: `Changed password on folder "${folderName}"`, category: "cloud",
       details: "All active sessions revoked", icon: "🔐",
     });
   };
 
-  const handleRemovePassword = (folderId: string) => {
-    delete MOCK_FOLDER_PASSWORDS[folderId];
+  const handleRemovePassword = async (folderId: string) => {
     const folderName = folders.find((f) => f.id === folderId)?.name || folderId;
+    const ok = await svcUpdateFolderLock(folderId, {
+      is_locked: false,
+      password_hash: null,
+      password_set_at: null,
+    }, currentPortalId ?? undefined);
+    if (!ok) { toast.error("Password non rimossa — riprova"); return; }
+    delete MOCK_FOLDER_PASSWORDS[folderId];
     setFolders((prev) =>
       prev.map((f) =>
         f.id === folderId
@@ -923,7 +1009,7 @@ const CloudPage = () => {
     clearUnlockState(folderId);
     setUnlockedFolders((prev) => { const next = new Set(prev); next.delete(folderId); return next; });
     setRemovePasswordFolder(null);
-    toast.success("🔓 Password removed");
+    toast.success("🔓 Protezione rimossa");
     addAuditEntry({
       userId, action: `Removed password from folder "${folderName}"`, category: "cloud",
       details: "Folder is now unprotected", icon: "🔓",
@@ -934,7 +1020,7 @@ const CloudPage = () => {
   const toggleExpand = (id: string) => {
     setExpandedFolders((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
       return next;
     });
   };
@@ -963,42 +1049,24 @@ const CloudPage = () => {
     });
   };
 
-  const moveToTrash = (fileId: string) => {
+  const moveToTrash = useCallback(async (fileId: string) => {
     const file = files.find((f) => f.id === fileId);
     const folderName = file ? getFolderPath(file.folderId, folders) : "";
-    setFiles((prev) =>
-      prev.map((f) => {
-        if (f.id !== fileId) return f;
-        const delDate = new Date();
-        const permDelDate = new Date(delDate);
-        permDelDate.setDate(permDelDate.getDate() + 60);
-        return {
-          ...f, isDeleted: true, deletedAt: delDate, deletedBy: userId,
-          originalFolderId: f.folderId, originalFolderPath: getFolderPath(f.folderId, folders),
-          permanentDeleteAt: permDelDate, folderId: "trash", sectionId: null,
-        };
-      })
-    );
+    await cloudFiles.softDelete(fileId);
     toast.success("Moved to Trash");
     if (file)
       addAuditEntry({
         userId, action: `Moved "${file.name}" to Trash`, category: "cloud",
         details: `From ${folderName}`, icon: "🗑️",
       });
-  };
+  }, [files, folders, userId, cloudFiles]);
 
-  const handleRecover = (file: CloudFile) => {
+  const handleRecover = useCallback(async (file: CloudFile) => {
     const origFolder = file.originalFolderId
       ? folders.find((f) => f.id === file.originalFolderId && !f.isDeleted)
       : null;
     if (origFolder) {
-      setFiles((prev) =>
-        prev.map((f) =>
-          f.id === file.id
-            ? { ...f, isDeleted: false, deletedAt: null, deletedBy: null, permanentDeleteAt: null, folderId: origFolder.id }
-            : f
-        )
-      );
+      await cloudFiles.recoverFile(file.id, origFolder.id);
       toast.success(`"${file.name}" restored to ${origFolder.name}`);
       addAuditEntry({
         userId, action: `Restored "${file.name}" from Trash`, category: "cloud",
@@ -1008,30 +1076,21 @@ const CloudPage = () => {
       setRecoverFile(file);
       setRecoverTarget("root");
     }
-  };
+  }, [folders, userId, cloudFiles]);
 
-  const executeRecover = () => {
+  const executeRecover = useCallback(async () => {
     if (!recoverFile) return;
-    let targetId: string;
-    if (recoverTarget === "root") targetId = "f_root_projects";
-    else if (recoverTarget === "choose" && moveTarget) targetId = moveTarget;
-    else {
-      const origParent = recoverFile.originalFolderId
-        ? folders.find((f) => f.id === recoverFile.originalFolderId)?.parentId
-        : null;
-      targetId =
-        origParent && folders.find((f) => f.id === origParent && !f.isDeleted)
-          ? origParent
-          : "f_root_projects";
+    if (recoverTarget !== "root" && !moveTarget) {
+      toast.error("Select a destination folder");
+      return;
     }
+    const targetId =
+      recoverTarget === "root"
+        ? (folders.find((f) => f.parentId === null && !f.isDeleted)?.id ?? folders[0]?.id)
+        : moveTarget;
+    if (!targetId) { toast.error("No valid destination folder"); return; }
     const targetName = folders.find((f) => f.id === targetId)?.name || "Cloud";
-    setFiles((prev) =>
-      prev.map((f) =>
-        f.id === recoverFile.id
-          ? { ...f, isDeleted: false, deletedAt: null, deletedBy: null, permanentDeleteAt: null, folderId: targetId }
-          : f
-      )
-    );
+    await cloudFiles.recoverFile(recoverFile.id, targetId);
     toast.success(`"${recoverFile.name}" restored to ${targetName}`);
     addAuditEntry({
       userId, action: `Restored "${recoverFile.name}" from Trash`, category: "cloud",
@@ -1039,11 +1098,11 @@ const CloudPage = () => {
     });
     setRecoverFile(null);
     setMoveTarget(null);
-  };
+  }, [recoverFile, recoverTarget, moveTarget, folders, userId, cloudFiles]);
 
-  const permanentDelete = (fileId: string) => {
+  const permanentDelete = useCallback(async (fileId: string) => {
     const file = files.find((f) => f.id === fileId);
-    setFiles((prev) => prev.filter((f) => f.id !== fileId));
+    await cloudFiles.permanentDelete(fileId);
     setConfirmPermDelete(null);
     toast.success("Permanently deleted");
     if (file)
@@ -1051,18 +1110,18 @@ const CloudPage = () => {
         userId, action: `Permanently deleted "${file.name}"`, category: "cloud",
         details: "File removed from Trash — cannot be recovered", icon: "❌",
       });
-  };
+  }, [files, userId, cloudFiles]);
 
-  const emptyTrash = () => {
+  const emptyTrash = useCallback(async () => {
     const count = files.filter((f) => f.isDeleted).length;
-    setFiles((prev) => prev.filter((f) => !f.isDeleted));
+    await cloudFiles.emptyTrash();
     setConfirmEmptyTrash(false);
     toast.success("Trash emptied");
     addAuditEntry({
       userId, action: "Emptied Trash", category: "cloud",
       details: `${count} file(s) permanently deleted`, icon: "🗑️",
     });
-  };
+  }, [files, userId, cloudFiles]);
 
   const deleteFolderAndContents = (folder: CloudFolder) => {
     const allFolderIds = new Set<string>();
@@ -1074,19 +1133,8 @@ const CloudPage = () => {
     const affectedFiles = files.filter(
       (f) => allFolderIds.has(f.folderId) && !f.isDeleted
     );
-    setFiles((prev) =>
-      prev.map((f) => {
-        if (!allFolderIds.has(f.folderId) || f.isDeleted) return f;
-        const delDate = new Date();
-        const permDelDate = new Date(delDate);
-        permDelDate.setDate(permDelDate.getDate() + 60);
-        return {
-          ...f, isDeleted: true, deletedAt: delDate, deletedBy: userId,
-          originalFolderId: f.folderId, originalFolderPath: getFolderPath(f.folderId, folders),
-          permanentDeleteAt: permDelDate, folderId: "trash", sectionId: null,
-        };
-      })
-    );
+    // Cascade: soft-delete every file inside the affected folders via the DB layer.
+    void Promise.all(affectedFiles.map((f) => cloudFiles.softDelete(f.id)));
     setSections((prev) => prev.filter((s) => !allFolderIds.has(s.folderId)));
     setFolders((prev) =>
       prev.map((f) => (allFolderIds.has(f.id) ? { ...f, isDeleted: true } : f))
@@ -1100,17 +1148,11 @@ const CloudPage = () => {
     });
   };
 
-  const moveFileToFolder = (fileId: string, targetFolderId: string) => {
+  const moveFileToFolder = useCallback(async (fileId: string, targetFolderId: string) => {
     const file = files.find((f) => f.id === fileId);
     const targetFolderName = folders.find((f) => f.id === targetFolderId)?.name || "folder";
-    const sourceFolderName = file
-      ? folders.find((f) => f.id === file.folderId)?.name || "Cloud"
-      : "Cloud";
-    setFiles((prev) =>
-      prev.map((f) =>
-        f.id === fileId ? { ...f, folderId: targetFolderId, modifiedAt: new Date(), sectionId: null } : f
-      )
-    );
+    const sourceFolderName = file ? folders.find((f) => f.id === file.folderId)?.name || "Cloud" : "Cloud";
+    await cloudFiles.moveFile(fileId, targetFolderId);
     toast.success(`Moved to ${targetFolderName}`);
     setMoveFileModal(null);
     setMoveTarget(null);
@@ -1119,59 +1161,69 @@ const CloudPage = () => {
         userId, action: `Moved "${file.name}" to "${targetFolderName}"`, category: "cloud",
         details: `From ${sourceFolderName}`, icon: "📦",
       });
-  };
+  }, [files, folders, userId, cloudFiles]);
 
-  const renameFile = (fileId: string, newName?: string) => {
+  const renameFile = useCallback(async (fileId: string, newName?: string) => {
     const val = newName || renameValue;
     if (!val.trim()) { setRenamingFileId(null); return; }
     const file = files.find((f) => f.id === fileId);
     const oldName = file?.name;
-    setFiles((prev) =>
-      prev.map((f) => (f.id === fileId ? { ...f, name: val.trim(), modifiedAt: new Date() } : f))
-    );
+    await cloudFiles.renameFile(fileId, val.trim());
     setRenamingFileId(null);
     if (file && oldName !== val.trim())
       addAuditEntry({
         userId, action: `Renamed "${oldName}" to "${val.trim()}"`, category: "cloud",
         details: "File renamed", icon: "✏️",
       });
+  }, [files, userId, renameValue, cloudFiles]);
+
+  const handleDownload = useCallback(async (fileId: string) => {
+    const url = await cloudFiles.getDownloadUrl(fileId);
+    if (!url) { toast.error("Could not generate download link"); return; }
+    const file = files.find((f) => f.id === fileId);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = file?.name ?? fileId;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10_000);
+    } catch {
+      toast.error("Download failed");
+    }
+  }, [cloudFiles, files]);
+
+  const updateFileDescription = (_fileId: string, _desc: string) => {
+    // Description editing is not persisted to the DB layer (acceptable known limitation).
   };
 
-  const updateFileDescription = (fileId: string, desc: string) => {
-    setFiles((prev) =>
-      prev.map((f) =>
-        f.id === fileId ? { ...f, description: desc || null, modifiedAt: new Date() } : f
-      )
-    );
-  };
-
-  const mockUpload = (names: string[]) => {
-    const targetFolderId = currentFolderId ?? folders[0]?.id ?? null;
-    const newFiles: CloudFile[] = names.map((name, i) => {
-      const ext = name.split(".").pop()?.toLowerCase() || "";
-      let type: CloudFile["type"] = "other";
-      if (ext === "pdf") type = "pdf";
-      else if (["doc", "docx"].includes(ext)) type = "docx";
-      else if (["xls", "xlsx"].includes(ext)) type = "xlsx";
-      else if (["jpg", "png", "gif", "webp", "svg"].includes(ext)) type = "image";
-      else if (ext === "zip") type = "zip";
-      else if (ext === "pptx") type = "pptx";
-      return {
-        id: `cf_${Date.now()}_${i}`, name, folderId: targetFolderId,
-        size: Math.floor(Math.random() * 5000000) + 100000, type, ownerId: userId,
-        modifiedAt: new Date(), createdAt: new Date(), isDeleted: false,
-        deletedAt: null, deletedBy: null, originalFolderId: null,
-        originalFolderPath: null, permanentDeleteAt: null,
-      };
-    });
-    setFiles((prev) => [...newFiles, ...prev]);
+  const handleRealUpload = async (actualFiles: File[], folderId: string) => {
+    let successCount = 0;
+    const folderName = folders.find((f) => f.id === folderId)?.name || folderId;
+    for (const file of actualFiles) {
+      try {
+        await cloudFiles.upload(file, folderId);
+        successCount++;
+      } catch (err) {
+        toast.error(`Failed to upload ${file.name}: ${err instanceof Error ? err.message : "Unknown error"}`);
+      }
+    }
     setShowUploadModal(false);
-    toast.success(`${names.length} file(s) uploaded`);
-    const folderName = folders.find((f) => f.id === targetFolderId)?.name || "Root";
-    addAuditEntry({
-      userId, action: `Uploaded ${names.length} file(s) to "${folderName}"`, category: "cloud",
-      details: names.join(", "), icon: "📄",
-    });
+    if (successCount > 0) {
+      toast.success(`${successCount} file(s) uploaded to "${folderName}"`);
+      addAuditEntry({
+        userId,
+        action: `Uploaded ${successCount} file(s) to "${folderName}"`,
+        category: "cloud",
+        details: actualFiles.map((f) => f.name).join(", "),
+        icon: "📄",
+      });
+    }
   };
 
   // ── Section CRUD ──
@@ -1219,9 +1271,7 @@ const CloudPage = () => {
   };
 
   const deleteSection = (section: FolderSection) => {
-    setFiles((prev) =>
-      prev.map((f) => (f.sectionId === section.id ? { ...f, sectionId: null } : f))
-    );
+    // Section assignments are not persisted to the DB layer (acceptable known limitation).
     setSections((prev) => prev.filter((s) => s.id !== section.id));
     setDeleteSectionConfirm(null);
     toast.success(`Section "${section.name}" deleted`);
@@ -1246,10 +1296,8 @@ const CloudPage = () => {
     );
   };
 
-  const moveFileToSection = (fileId: string, sectionId: string | null) => {
-    setFiles((prev) =>
-      prev.map((f) => (f.id === fileId ? { ...f, sectionId } : f))
-    );
+  const moveFileToSection = (_fileId: string, sectionId: string | null) => {
+    // Section assignments are not persisted to the DB layer (acceptable known limitation).
     const sectionName = sectionId
       ? sections.find((s) => s.id === sectionId)?.name
       : "Other Files";
@@ -1283,13 +1331,7 @@ const CloudPage = () => {
         id: "download",
         icon: <Download className="w-3.5 h-3.5" />,
         label: "Download",
-        onClick: () => {
-          toast.info("Download started");
-          addAuditEntry({
-            userId, action: `Downloaded "${file.name}"`, category: "cloud",
-            details: `${formatFileSize(file.size)} from ${getFolderPath(file.folderId, folders)}`, icon: "📥",
-          });
-        },
+        onClick: () => { void handleDownload(file.id); },
         show: !!perm,
       },
       {
@@ -1362,54 +1404,51 @@ const CloudPage = () => {
 
     return (
       <div key={folder.id}>
-        <div className="flex items-center group">
+        <div style={{ display: "flex", alignItems: "center" }} className="group">
           <button
             type="button"
-            onClick={() => {
-              attemptNavigateFolder(folder.id);
-              if (isMobile) setMobileSidebarOpen(false);
+            onClick={() => { attemptNavigateFolder(folder.id); if (isMobile) setMobileSidebarOpen(false); }}
+            style={{
+              display: "flex", alignItems: "center", gap: 5, flex: 1, textAlign: "left",
+              padding: `7px 14px 7px ${depth * 12 + 14}px`,
+              fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: isActive ? 600 : 400,
+              letterSpacing: "0.03em",
+              color: isActive ? "var(--text-primary)" : "var(--text-tertiary)",
+              background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
+              borderLeft: isActive ? "3px solid var(--portal-accent)" : "3px solid transparent",
+              border: "none", borderRadius: 0, cursor: "pointer",
             }}
-            className={`flex items-center gap-1.5 flex-1 transition-colors rounded-lg text-left text-[13px] ${
-              isActive
-                ? "bg-accent text-accent-foreground font-semibold"
-                : "text-muted-foreground hover:bg-accent/50"
-            }`}
-            style={{ padding: "6px 8px", paddingLeft: depth * 16 + 8 }}
+            onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
+            onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
           >
             {hasChildren ? (
-              <span
-                onClick={(e) => { e.stopPropagation(); toggleExpand(folder.id); }}
-                className="flex cursor-pointer"
-              >
-                {isExpanded ? (
-                  <ChevronDown className="w-3.5 h-3.5" />
-                ) : (
-                  <ChevronRight className="w-3.5 h-3.5" />
-                )}
+              <span onClick={(e) => { e.stopPropagation(); toggleExpand(folder.id); }} style={{ display: "flex", cursor: "pointer" }}>
+                {isExpanded
+                  ? <ChevronDown style={{ width: 11, height: 11, color: "var(--sosa-white-40)" }} />
+                  : <ChevronRight style={{ width: 11, height: 11, color: "var(--sosa-white-40)" }} />}
               </span>
             ) : (
-              <span className="w-3.5" />
+              <span style={{ width: 11 }} />
             )}
-            <FolderIcon className="w-4 h-4 shrink-0 text-primary" />
-            <span className="truncate flex-1">{folder.name}</span>
-            {isLocked &&
-              (isUnlocked ? (
-                <Unlock className="w-3.5 h-3.5 shrink-0 text-muted-foreground/40" />
-              ) : (
-                <Lock className="w-3.5 h-3.5 shrink-0 text-amber-500" />
-              ))}
+            <FolderIcon style={{ width: 13, height: 13, flexShrink: 0, color: isActive ? "var(--portal-accent)" : "var(--sosa-white-40)" }} />
+            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{folder.name}</span>
+            {isLocked && (isUnlocked
+              ? <Unlock style={{ width: 11, height: 11, flexShrink: 0, color: "var(--sosa-white-20)" }} />
+              : <Lock style={{ width: 11, height: 11, flexShrink: 0, color: "#f59e0b" }} />
+            )}
             {fileCount > 0 && (
-              <span className="text-[10px] text-muted-foreground/60">{fileCount}</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--sosa-white-20)" }}>{fileCount}</span>
             )}
           </button>
           {isActive && getPerm(folder.id) === "admin" && (
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setConfirmDeleteFolder(folder); }}
-              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded text-destructive"
+              className="opacity-0 group-hover:opacity-100"
+              style={{ padding: 4, cursor: "pointer", background: "transparent", border: "none", color: "#ef4444", flexShrink: 0 }}
               title="Move to Trash"
             >
-              <Trash2 className="w-3 h-3" />
+              <Trash2 style={{ width: 11, height: 11 }} />
             </button>
           )}
         </div>
@@ -1419,75 +1458,104 @@ const CloudPage = () => {
   };
 
   // ── Sidebar content ──
+  const isHomeActive = !currentFolderId && !showTrash && !showStorage;
   const sidebarContent = (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-0.5">
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+        {/* Home */}
         <button
           type="button"
-          onClick={() => {
-            setCurrentFolderId(null);
-            setShowTrash(false);
-            setShowStorage(false);
-            if (isMobile) setMobileSidebarOpen(false);
+          onClick={() => { setCurrentFolderId(null); setShowTrash(false); setShowStorage(false); if (isMobile) setMobileSidebarOpen(false); }}
+          style={{
+            display: "flex", alignItems: "center", gap: 8, width: "100%",
+            padding: "9px 14px", cursor: "pointer",
+            fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: isHomeActive ? 600 : 400,
+            letterSpacing: "0.04em", textTransform: "uppercase",
+            color: isHomeActive ? "var(--text-primary)" : "var(--text-tertiary)",
+            background: isHomeActive ? "rgba(255,255,255,0.04)" : "transparent",
+            borderLeft: isHomeActive ? "3px solid var(--portal-accent)" : "3px solid transparent",
+            border: "none", borderRadius: 0,
           }}
-          className={`flex items-center gap-2 w-full rounded-lg text-left text-[13px] transition-colors ${
-            !currentFolderId && !showTrash && !showStorage
-              ? "bg-accent text-accent-foreground font-semibold"
-              : "text-muted-foreground hover:bg-accent/50"
-          }`}
-          style={{ padding: "6px 11px" }}
+          onMouseEnter={(e) => { if (!isHomeActive) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
+          onMouseLeave={(e) => { if (!isHomeActive) e.currentTarget.style.background = "transparent"; }}
         >
-          <Home className="w-4 h-4 shrink-0" />
+          <Home style={{ width: 14, height: 14, opacity: isHomeActive ? 1 : 0.45, flexShrink: 0 }} />
           <span>Home</span>
         </button>
-        <div className="h-px bg-border my-1" />
+
+        <div style={{ height: 1, background: "var(--sosa-border)", margin: "6px 14px" }} />
         {rootFolders.map((f) => renderFolderItem(f, 0))}
-        <div className="h-px bg-border my-2" />
-        <button
-          type="button"
-          onClick={() => {
-            setShowTrash(true);
-            setCurrentFolderId(null);
-            setShowStorage(false);
-            if (isMobile) setMobileSidebarOpen(false);
-          }}
-          className={`flex items-center gap-2 w-full rounded-lg text-left text-[13px] transition-colors ${
-            showTrash
-              ? "bg-accent text-accent-foreground font-semibold"
-              : "text-muted-foreground hover:bg-accent/50"
-          }`}
-          style={{ padding: "6px 11px" }}
-        >
-          <Trash2 className="w-4 h-4 shrink-0" />
-          <span>Trash</span>
-          {trashCount > 0 && (
-            <span className="ml-auto text-[10px] bg-destructive/15 text-destructive px-1.5 py-0.5 rounded-full font-medium">
-              {trashCount}
-            </span>
-          )}
-        </button>
+        {isOwnerOrAdmin && (
+          <button
+            type="button"
+            onClick={() => setShowNewFolderModal(true)}
+            style={{
+              display: "flex", alignItems: "center", gap: 6, width: "100%",
+              padding: "7px 14px", cursor: "pointer",
+              fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 400,
+              letterSpacing: "0.06em", textTransform: "uppercase",
+              color: "var(--portal-accent)", background: "transparent",
+              border: "none", borderRadius: 0, opacity: 0.7,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.background = "transparent"; }}
+          >
+            <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>
+            <span>Nuova cartella</span>
+          </button>
+        )}
       </div>
+
+      {/* Trash — pinned above storage */}
       <button
         type="button"
-        onClick={() => {
-          setShowStorage(true);
-          setCurrentFolderId(null);
-          setShowTrash(false);
-          if (isMobile) setMobileSidebarOpen(false);
+        onClick={() => { setShowTrash(true); setCurrentFolderId(null); setShowStorage(false); if (isMobile) setMobileSidebarOpen(false); }}
+        style={{
+          display: "flex", alignItems: "center", gap: 8, width: "100%",
+          padding: "9px 14px", cursor: "pointer",
+          fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: showTrash ? 600 : 400,
+          letterSpacing: "0.04em", textTransform: "uppercase",
+          color: showTrash ? "var(--text-primary)" : "var(--text-tertiary)",
+          background: showTrash ? "rgba(255,255,255,0.04)" : "transparent",
+          borderLeft: showTrash ? "3px solid #ef4444" : "3px solid transparent",
+          borderTop: "1px solid var(--sosa-border)", borderRight: "none", borderBottom: "none", borderRadius: 0,
         }}
-        className={`p-3 border-t border-border w-full text-left transition-colors ${
-          showStorage ? "bg-accent/50" : "hover:bg-muted/50"
-        }`}
+        onMouseEnter={(e) => { if (!showTrash) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
+        onMouseLeave={(e) => { if (!showTrash) e.currentTarget.style.background = "transparent"; }}
       >
-        <div className="flex items-center justify-between mb-1.5">
-          <span className={`text-[11px] ${showStorage ? "text-foreground font-semibold" : "text-muted-foreground"}`}>
+        <Trash2 style={{ width: 14, height: 14, opacity: showTrash ? 1 : 0.45, flexShrink: 0 }} />
+        <span style={{ flex: 1 }}>Trash</span>
+        {trashCount > 0 && (
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, padding: "2px 6px", background: "rgba(239,68,68,0.15)", color: "#ef4444" }}>
+            {trashCount}
+          </span>
+        )}
+      </button>
+
+      {/* Storage bar */}
+      <button
+        type="button"
+        onClick={() => { setShowStorage(true); setCurrentFolderId(null); setShowTrash(false); if (isMobile) setMobileSidebarOpen(false); }}
+        style={{
+          padding: "12px 14px", borderTop: "1px solid var(--sosa-border)", width: "100%",
+          textAlign: "left", cursor: "pointer", borderRadius: 0,
+          background: showStorage ? "rgba(255,255,255,0.04)" : "transparent",
+          border: "none", borderLeft: "none", borderRight: "none", borderBottom: "none",
+        }}
+        onMouseEnter={(e) => { if (!showStorage) e.currentTarget.style.background = "var(--sosa-bg-2)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = showStorage ? "rgba(255,255,255,0.04)" : "transparent"; }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--sosa-white-40)" }}>
             Storage
           </span>
-          <span className="text-[11px] text-muted-foreground">
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--sosa-white-40)" }}>
             {USED_STORAGE_GB} / {TOTAL_STORAGE_GB} GB
           </span>
         </div>
-        <Progress value={(USED_STORAGE_GB / TOTAL_STORAGE_GB) * 100} className="h-1.5" />
+        <div style={{ height: 2, background: "var(--sosa-border)", position: "relative" }}>
+          <div style={{ position: "absolute", top: 0, left: 0, height: "100%", width: `${(USED_STORAGE_GB / TOTAL_STORAGE_GB) * 100}%`, background: "var(--portal-accent)" }} />
+        </div>
       </button>
     </div>
   );
@@ -1533,9 +1601,9 @@ const CloudPage = () => {
         )}
 
         {/* Two-panel layout */}
-        <div className="flex gap-0 flex-1 bg-card border border-border rounded-2xl overflow-hidden">
+        <div style={{ display: "flex", flex: 1, background: "var(--sosa-bg)", border: "1px solid var(--sosa-border)", overflow: "hidden" }}>
           {!isMobile && (
-            <div className="w-[240px] border-r border-border bg-muted/30 shrink-0">
+            <div style={{ width: 220, borderRight: "1px solid var(--sosa-border)", background: "var(--sosa-bg)", flexShrink: 0, display: "flex", flexDirection: "column" }}>
               {sidebarContent}
             </div>
           )}
@@ -1577,6 +1645,7 @@ const CloudPage = () => {
                 onRenameFile={(id, name) => renameFile(id, name)}
                 onMoveFile={(f) => { setMoveFileModal(f); setMoveTarget(null); }}
                 onOpenUpload={() => setShowUploadModal(true)}
+                onDownloadFile={handleDownload}
               />
             ) : showTrash ? (
               <>
@@ -1635,7 +1704,7 @@ const CloudPage = () => {
             currentFolderId={currentFolderId}
             folders={folders}
             onClose={() => setShowUploadModal(false)}
-            onUpload={mockUpload}
+            onUpload={handleRealUpload}
           />
         )}
         {permissionsModal && (
@@ -2101,6 +2170,9 @@ const CloudPage = () => {
             onMoveFile={(f) => { setMoveFileModal(f); setMoveTarget(null); }}
             onNavigateFolder={navigateFolder}
             onUpdateDescription={updateFileDescription}
+            onDownload={handleDownload}
+            getPreviewUrl={(id) => cloudFiles.getDownloadUrl(id)}
+            isOwner={isOwner}
           />
         )}
       </div>

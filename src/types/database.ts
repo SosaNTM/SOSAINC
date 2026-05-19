@@ -55,6 +55,7 @@ export interface DbBudgetLimit {
   category: string;
   category_id: string | null;
   monthly_limit: number;
+  year_month: string;  // "YYYY-MM" — one row per category per month
   color: string | null;
   icon_name: string | null;
   created_at: string;
@@ -223,13 +224,17 @@ export interface DbSocialConnection {
   id: string;
   portal_id: string;
   user_id: string;
+  connected_by: string | null;
   platform: string;
   account_handle: string | null;
   account_name: string | null;
+  account_avatar_url: string | null;
   access_token: string | null;
   refresh_token: string | null;
   token_expires_at: string | null;
   is_active: boolean;
+  connected_at: string | null;
+  last_synced_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -416,6 +421,7 @@ export interface DbNoteFolder {
   id: string;
   portal_id: string;
   user_id: string;
+  parent_id: string | null;
   name: string;
   color: string | null;
   icon: string | null;
@@ -437,6 +443,11 @@ export interface DbNote {
   is_archived: boolean;
   color: string | null;
   tags: string[] | null;
+  source: string | null;
+  file_url: string | null;
+  file_name: string | null;
+  file_type: string | null;
+  transcription: string | null;
   created_at: string;
   updated_at: string;
   created_by: string | null;

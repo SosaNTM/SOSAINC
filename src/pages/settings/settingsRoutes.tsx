@@ -7,6 +7,7 @@ import SettingsLayout from "./SettingsLayout";
 // ── Lazy-loaded settings pages ──────────────────────────────────────────────
 const PortalProfile = React.lazy(() => import("./general/PortalProfile"));
 const Appearance = React.lazy(() => import("./general/Appearance"));
+const PortalAccess = React.lazy(() => import("./general/PortalAccess"));
 const IncomeCategories = React.lazy(() => import("./finance/IncomeCategories"));
 const ExpenseCategories = React.lazy(() => import("./finance/ExpenseCategories"));
 const SubscriptionCategories = React.lazy(() => import("./finance/SubscriptionCategories"));
@@ -20,11 +21,14 @@ const TaskTemplates = React.lazy(() => import("./projects/TaskTemplates"));
 const SocialAccountsSettings = React.lazy(() => import("./social/SocialAccountsSettings"));
 const PublishingRules = React.lazy(() => import("./social/PublishingRules"));
 const ContentCategories = React.lazy(() => import("./social/ContentCategories"));
+const Members = React.lazy(() => import("./team/Members"));
 const RolesPermissions = React.lazy(() => import("./team/RolesPermissions"));
 const Departments = React.lazy(() => import("./team/Departments"));
 const NotificationChannels = React.lazy(() => import("./notifications/NotificationChannels"));
 const AlertRules = React.lazy(() => import("./notifications/AlertRules"));
 const DangerZone = React.lazy(() => import("./DangerZone"));
+const LeadgenSettingsPage = React.lazy(() => import("../leadgen/LeadgenSettings"));
+const LeadgenTeamPage = React.lazy(() => import("./leadgen/TeamManagement"));
 
 function SettingsLoader() {
   return (
@@ -47,6 +51,7 @@ export function SettingsRoutes() {
         {/* General */}
         <Route path="general/profile"               element={<SLazy><PortalProfile /></SLazy>} />
         <Route path="general/aspetto"               element={<SLazy><Appearance /></SLazy>} />
+        <Route path="general/accesso"               element={<SLazy><PortalAccess /></SLazy>} />
         {/* Finanza */}
         <Route path="finance/categorie-entrate"     element={<SLazy><IncomeCategories /></SLazy>} />
         <Route path="finance/categorie-uscite"      element={<SLazy><ExpenseCategories /></SLazy>} />
@@ -64,11 +69,15 @@ export function SettingsRoutes() {
         <Route path="social/regole-pubblicazione"   element={<SLazy><PublishingRules /></SLazy>} />
         <Route path="social/categorie-contenuti"    element={<SLazy><ContentCategories /></SLazy>} />
         {/* Team */}
+        <Route path="team/membri"                   element={<SLazy><Members /></SLazy>} />
+        <Route path="team/dipartimenti"             element={<SLazy><Departments /></SLazy>} />
         <Route path="team/ruoli-permessi"           element={<SLazy><RolesPermissions /></SLazy>} />
-        <Route path="team/reparti"                  element={<SLazy><Departments /></SLazy>} />
         {/* Notifiche */}
         <Route path="notifiche/canali"              element={<SLazy><NotificationChannels /></SLazy>} />
         <Route path="notifiche/regole-alert"        element={<SLazy><AlertRules /></SLazy>} />
+        {/* Lead Generation — REDX only */}
+        <Route path="leadgen/impostazioni"          element={<SLazy><LeadgenSettingsPage /></SLazy>} />
+        <Route path="leadgen/team"                  element={<SLazy><LeadgenTeamPage /></SLazy>} />
         {/* Danger Zone */}
         <Route path="danger-zone"                   element={<SLazy><DangerZone /></SLazy>} />
       </Route>

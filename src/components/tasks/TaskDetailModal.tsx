@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { ALL_USERS, getUserById } from "@/lib/authContext";
 import { useAuth } from "@/lib/authContext";
+import { usePortalUsers } from "@/hooks/usePortalUsers";
 import { STATUSES, PRIORITIES, LABEL_OPTIONS, LABEL_COLORS, type Task, type TaskStatus, type TaskPriority } from "@/lib/tasksStore";
 import { X, Paperclip, Send, Trash2 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
@@ -15,13 +15,14 @@ interface TaskDetailModalProps {
 
 export function TaskDetailModal({ task, onClose, onUpdate, onDelete, canDelete }: TaskDetailModalProps) {
   const { user } = useAuth();
+  const { users: portalUsers } = usePortalUsers();
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
   const [comment, setComment] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const creator = getUserById(task.creatorId);
-  const assignee = task.assigneeId ? getUserById(task.assigneeId) : null;
+  const creator = portalUsers.find((u) => u.id === task.creatorId);
+  const assignee = task.assigneeId ? portalUsers.find((u) => u.id === task.assigneeId) : null;
   const priority = PRIORITIES.find((p) => p.key === task.priority)!;
 
   const handleAddComment = () => {
@@ -101,7 +102,7 @@ export function TaskDetailModal({ task, onClose, onUpdate, onDelete, canDelete }
               <span style={{ fontSize: 11, color: "var(--text-quaternary)" }}>Assignee</span>
               <select className="glass-input" value={task.assigneeId || ""} onChange={(e) => onUpdate(task.id, { assigneeId: e.target.value || null })} style={{ fontSize: 12, padding: "6px 8px" }}>
                 <option value="">Unassigned</option>
-                {ALL_USERS.map((u) => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+                {portalUsers.map((u) => <option key={u.id} value={u.id}>{u.displayName}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1">
@@ -132,7 +133,7 @@ export function TaskDetailModal({ task, onClose, onUpdate, onDelete, canDelete }
             <span style={{ fontSize: 11, color: "var(--text-quaternary)" }}>Watchers</span>
             <div className="flex flex-wrap gap-1.5">
               {task.watcherIds.map((id) => {
-                const w = getUserById(id);
+                const w = portalUsers.find((u) => u.id === id);
                 return w ? <span key={id} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: "var(--glass-bg)", color: "var(--text-tertiary)" }}>{w.displayName}</span> : null;
               })}
               {task.watcherIds.length === 0 && <span style={{ fontSize: 11, color: "var(--text-quaternary)" }}>None</span>}
@@ -159,7 +160,7 @@ export function TaskDetailModal({ task, onClose, onUpdate, onDelete, canDelete }
 
             <div className="flex flex-col gap-3 mb-4">
               {task.comments.map((c) => {
-                const author = getUserById(c.authorId);
+                const author = portalUsers.find((u) => u.id === c.authorId);
                 return (
                   <div key={c.id} className="flex gap-2.5">
                     <div className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center" style={{ background: "var(--accent-color-dim, rgba(110,231,183,0.15))", fontSize: 10, fontWeight: 700, color: "var(--accent-color)" }}>

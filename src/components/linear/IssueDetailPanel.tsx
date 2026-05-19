@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { ALL_USERS, getUserById, useAuth } from "@/lib/authContext";
+import { useAuth } from "@/lib/authContext";
+import { usePortalUsers } from "@/hooks/usePortalUsers";
 import {
   ISSUE_STATUSES, ISSUE_PRIORITIES, ISSUE_LABELS, ESTIMATE_OPTIONS,
   type Issue, type IssueStatus, type IssuePriority, type Project,
@@ -26,6 +27,7 @@ export function IssueDetailPanel({
   issue, allIssues, projects, onUpdate, onDelete, onClose, onSelectIssue, onCreateSubIssue, breadcrumb = [],
 }: Props) {
   const { user } = useAuth();
+  const { users: portalUsers } = usePortalUsers();
   const [title, setTitle] = useState(issue.title);
   const [description, setDescription] = useState(issue.description);
   const [comment, setComment] = useState("");
@@ -38,7 +40,7 @@ export function IssueDetailPanel({
   const project = projects.find(p => p.id === issue.projectId);
   const subIssues = allIssues.filter(i => i.parentId === issue.id);
   const subDone = subIssues.filter(i => i.status === "done").length;
-  const creator = getUserById(issue.creatorId);
+  const creator = portalUsers.find(u => u.id === issue.creatorId);
 
   // Depth check for sub-issues (max 2 levels)
   const depth = breadcrumb.length;
@@ -48,7 +50,7 @@ export function IssueDetailPanel({
     if (!comment.trim() || !user) return;
     const c = { id: `ic_${Date.now()}`, authorId: user.id, content: comment.trim(), createdAt: new Date() };
     onUpdate(issue.id, { comments: [...issue.comments, c] });
-    addAuditEntry({ userId: user.id, action: `Commented on "${issue.title}"`, category: "tasks", details: comment.trim().slice(0, 80), icon: "💬" });
+    addAuditEntry({ userId: user.id, action: `Commented on "${issue.title}"`, category: "tasks", details: comment.trim().slice(0, 80), icon: "◆" });
     setComment("");
   };
 
@@ -129,7 +131,7 @@ export function IssueDetailPanel({
           {propertyRow("Assignee", (
             <select value={issue.assigneeId || ""} onChange={e => onUpdate(issue.id, { assigneeId: e.target.value || null })} style={{ fontSize: 12, background: "transparent", border: "none", color: "#374151", cursor: "pointer", outline: "none" }}>
               <option value="">Unassigned</option>
-              {ALL_USERS.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+              {portalUsers.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
             </select>
           ))}
           {propertyRow("Labels", (
@@ -223,7 +225,7 @@ export function IssueDetailPanel({
                 <span className="flex-1 truncate" style={{ fontSize: 12, color: "#374151" }}>{sub.title}</span>
                 {sub.assigneeId && (
                   <div style={{ width: 18, height: 18, borderRadius: "50%", background: "var(--glass-bg-hover)", fontSize: 8, fontWeight: 700, color: "var(--text-tertiary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    {getUserById(sub.assigneeId)?.displayName.charAt(0)}
+                    {portalUsers.find(u => u.id === sub.assigneeId)?.displayName.charAt(0)}
                   </div>
                 )}
               </button>
@@ -261,7 +263,7 @@ export function IssueDetailPanel({
             </div>
 
             {issue.comments.map(c => {
-              const author = getUserById(c.authorId);
+              const author = portalUsers.find(u => u.id === c.authorId);
               return (
                 <div key={c.id} className="flex gap-2.5">
                   <div className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "#e5e7eb", fontSize: 8, fontWeight: 700, color: "#374151" }}>
@@ -296,9 +298,6 @@ export function IssueDetailPanel({
 
         {/* Actions */}
         <div className="flex items-center gap-3 pt-2" style={{ borderTop: "0.5px solid #e5e7eb", paddingTop: 12 }}>
-          <button type="button" onClick={() => {}} style={{ fontSize: 11, color: "#9ca3af", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-            <Copy className="w-3 h-3" /> Duplicate
-          </button>
           <button type="button" onClick={() => { navigator.clipboard?.writeText(issue.id); }} style={{ fontSize: 11, color: "#9ca3af", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
             <Link2 className="w-3 h-3" /> Copy ID
           </button>

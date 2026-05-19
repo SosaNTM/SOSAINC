@@ -6,7 +6,7 @@ import {
 } from "recharts";
 import { ChannelDetailPanel } from "./ChannelDetailPanel";
 
-/* ── KPI Card ── */
+/* â”€â”€ KPI Card â”€â”€ */
 function KpiCard({ ch, onClick }: { ch: Channel; onClick: () => void }) {
   const total = getChannelTotalRevenue(ch);
   const h1 = ch.monthlyRevenue.slice(0, 6).reduce((s, v) => s + v, 0);
@@ -15,13 +15,13 @@ function KpiCard({ ch, onClick }: { ch: Channel; onClick: () => void }) {
 
   return (
     <div onClick={onClick} style={{
-      background: "var(--glass-bg)", border: "1px solid var(--glass-border)",
-      borderRadius: 16, padding: "16px 18px", cursor: "pointer",
+      background: "var(--sosa-bg-2)", border: "1px solid var(--glass-border)",
+      borderRadius: 0, padding: "16px 18px", cursor: "pointer",
       borderLeft: `3px solid ${ch.color}`, transition: "all 0.2s",
-      flex: "1 1 180px", minWidth: 160, backdropFilter: "blur(16px)",
+      flex: "1 1 180px", minWidth: 160,
       boxShadow: "var(--glass-shadow)",
     }}
-      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.10)"; }}
+      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = ""; }}
       onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "var(--glass-shadow)"; }}
     >
       <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>{ch.icon} {ch.name}</p>
@@ -32,7 +32,7 @@ function KpiCard({ ch, onClick }: { ch: Channel; onClick: () => void }) {
           background: change >= 0 ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
           color: change >= 0 ? "#22c55e" : "#ef4444",
         }}>
-          {change >= 0 ? "↗" : "↘"} {change >= 0 ? "+" : ""}{change.toFixed(0)}%
+          {change >= 0 ? "â†—" : "â†˜"} {change >= 0 ? "+" : ""}{change.toFixed(0)}%
         </span>
         <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>{ch.orders} orders</span>
       </div>
@@ -40,16 +40,16 @@ function KpiCard({ ch, onClick }: { ch: Channel; onClick: () => void }) {
   );
 }
 
-// NOTE: Custom tooltip — too specialized for GlassTooltip (multi-field layout: revenue, margin, orders)
-function GlassTooltip({ active, payload }: any) {
+// NOTE: Custom tooltip â€” too specialized for GlassTooltip (multi-field layout: revenue, margin, orders)
+type ChartTooltipProps = { active?: boolean; payload?: Array<{ name: string; value: number; color?: string }> };
+function GlassTooltip({ active, payload }: ChartTooltipProps) {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
   if (!d) return null;
   return (
     <div style={{
-      background: "rgba(255, 255, 255, 0.85)", border: "1px solid rgba(255, 255, 255, 0.40)",
-      borderRadius: 12, padding: "10px 14px", boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
-      backdropFilter: "blur(16px)",
+      background: "var(--sosa-bg-3)", border: "1px solid var(--sosa-border)",
+      borderRadius: 0, padding: "10px 14px",
     }}>
       <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{d.name}</p>
       <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>Revenue: {fmtEur(d.revenue)}</p>
@@ -59,7 +59,7 @@ function GlassTooltip({ active, payload }: any) {
   );
 }
 
-/* ── ANALYTICS TAB ── */
+/* â”€â”€ ANALYTICS TAB â”€â”€ */
 export function AnalyticsTab() {
   const channels = useChannels();
   const [detailChannel, setDetailChannel] = useState<Channel | null>(null);
@@ -112,8 +112,8 @@ export function AnalyticsTab() {
 
       {/* Ranking Table */}
       <div style={{
-        background: "var(--glass-bg)", border: "1px solid var(--glass-border)",
-        borderRadius: 16, overflow: "hidden", backdropFilter: "blur(16px)",
+        background: "var(--sosa-bg-2)", border: "1px solid var(--glass-border)",
+        borderRadius: 0, overflow: "hidden",
         boxShadow: "var(--glass-shadow)",
       }}>
         <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", padding: "18px 20px 0" }}>Performance Ranking</h3>
@@ -124,16 +124,16 @@ export function AnalyticsTab() {
                 <th style={{ ...headerStyle("net"), textAlign: "left", width: 40 }}>#</th>
                 <th style={{ ...headerStyle("net"), textAlign: "left" }}>Channel</th>
                 <th onClick={() => toggleSort("revenue")} style={headerStyle("revenue")}>
-                  Revenue {sortKey === "revenue" ? (sortDir === "desc" ? "↓" : "↑") : ""}
+                  Revenue {sortKey === "revenue" ? (sortDir === "desc" ? "â†“" : "â†‘") : ""}
                 </th>
                 <th onClick={() => toggleSort("net")} style={headerStyle("net")}>
-                  Net Rev. {sortKey === "net" ? (sortDir === "desc" ? "↓" : "↑") : ""}
+                  Net Rev. {sortKey === "net" ? (sortDir === "desc" ? "â†“" : "â†‘") : ""}
                 </th>
                 <th onClick={() => toggleSort("margin")} style={headerStyle("margin")}>
-                  Margin {sortKey === "margin" ? (sortDir === "desc" ? "↓" : "↑") : ""}
+                  Margin {sortKey === "margin" ? (sortDir === "desc" ? "â†“" : "â†‘") : ""}
                 </th>
                 <th onClick={() => toggleSort("orders")} style={headerStyle("orders")}>
-                  Orders {sortKey === "orders" ? (sortDir === "desc" ? "↓" : "↑") : ""}
+                  Orders {sortKey === "orders" ? (sortDir === "desc" ? "â†“" : "â†‘") : ""}
                 </th>
                 <th style={{ ...headerStyle("net"), textAlign: "right" }}>Trend</th>
               </tr>
@@ -164,7 +164,7 @@ export function AnalyticsTab() {
                       background: d.change >= 0 ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
                       color: d.change >= 0 ? "#22c55e" : "#ef4444",
                     }}>
-                      {d.change >= 0 ? "↗" : "↘"} {d.change >= 0 ? "+" : ""}{d.change.toFixed(1)}%
+                      {d.change >= 0 ? "â†—" : "â†˜"} {d.change >= 0 ? "+" : ""}{d.change.toFixed(1)}%
                     </span>
                   </td>
                 </tr>
@@ -176,8 +176,8 @@ export function AnalyticsTab() {
 
       {/* Profitability Scatter */}
       <div style={{
-        background: "var(--glass-bg)", border: "1px solid var(--glass-border)",
-        borderRadius: 16, padding: 20, backdropFilter: "blur(16px)",
+        background: "var(--sosa-bg-2)", border: "1px solid var(--glass-border)",
+        borderRadius: 0, padding: 20,
         boxShadow: "var(--glass-shadow)",
       }}>
         <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>Profitability Matrix</h3>
@@ -191,7 +191,7 @@ export function AnalyticsTab() {
             <YAxis type="number" dataKey="margin" name="Margin" unit="%" tick={{ fill: "var(--chart-axis)", fontSize: 11 }} domain={[80, 100]} />
             <ZAxis type="number" dataKey="orders" range={[200, 800]} name="Orders" />
             <Tooltip content={<GlassTooltip />} />
-            <Scatter data={scatterData} cursor="pointer" onClick={(d: any) => { if (d?.ch) setDetailChannel(d.ch); }}>
+            <Scatter data={scatterData} cursor="pointer" onClick={(d: Record<string, unknown>) => { if (d?.ch) setDetailChannel(d.ch as string); }}>
               {scatterData.map((d, i) => <Cell key={i} fill={d.color} />)}
             </Scatter>
           </ScatterChart>

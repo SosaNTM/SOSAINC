@@ -187,7 +187,7 @@ export default function RecurrenceRulesPage() {
   ];
 
   return (
-    <div style={{ maxWidth: 860 }}>
+    <div style={{ maxWidth: "100%" }}>
       <SettingsPageHeader
         icon={Repeat}
         title="Regole di Ricorrenza"

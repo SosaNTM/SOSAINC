@@ -4,6 +4,7 @@ import { PostDetailModal } from "@/components/social/PostDetailModal";
 import { PlatformIcon } from "@/components/social/PlatformIcon";
 import { Heart, MessageCircle, Repeat2, Bookmark, Eye, Trophy, Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, List } from "lucide-react";
 import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
+import { SocialBetaBanner } from "@/components/social/SocialBetaBanner";
 
 type ViewMode = "feed" | "calendar";
 
@@ -81,6 +82,7 @@ export default function SocialContent() {
 
   return (
     <ModuleErrorBoundary moduleName="Social Content">
+      <SocialBetaBanner />
     <div style={{ paddingBottom: 40, maxWidth: 1400, margin: "0 auto" }}>
 
       {/* ── Header ── */}

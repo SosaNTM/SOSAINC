@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { X, ArrowLeft, Search, ChevronDown } from "lucide-react";
 import type { CoinOption, CryptoPrice, EnrichedHolding } from "@/portals/finance/types/crypto";
 import { useCoinSelector } from "@/portals/finance/hooks/useCoinSelector";
+import { fetchPricesFromCoinGecko } from "@/portals/finance/services/cryptoService";
 import { formatEUR } from "@/portals/finance/utils/currency";
 
 const GOLD = "#e8ff00";
@@ -34,6 +35,10 @@ export function CryptoHoldingModal({ open, onClose, onSave, editing, existingCoi
   const [avgBuyPrice, setAvgBuyPrice] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // On-demand price fetch when a coin is selected but has no known price
+  const [fetchedPrice, setFetchedPrice] = useState<number | null>(null);
+  const [fetchedChange24h, setFetchedChange24h] = useState<number | null>(null);
 
   // Reset on open
   useEffect(() => {
@@ -71,6 +76,23 @@ export function CryptoHoldingModal({ open, onClose, onSave, editing, existingCoi
     return () => document.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
+  // Fetch live price when a coin is selected and its price is unknown (0)
+  useEffect(() => {
+    if (!selectedCoin) { setFetchedPrice(null); setFetchedChange24h(null); return; }
+    const known = getPriceForCoin(selectedCoin.coin_id)?.price_eur ?? selectedCoin.price_eur;
+    if (known > 0) { setFetchedPrice(null); setFetchedChange24h(null); return; }
+
+    let cancelled = false;
+    fetchPricesFromCoinGecko([selectedCoin.coin_id])
+      .then((prices) => {
+        if (cancelled || !prices[0]) return;
+        setFetchedPrice(prices[0].price_eur);
+        setFetchedChange24h(prices[0].price_change_24h);
+      })
+      .catch(() => { /* leave null — user can still add with manual avg price */ });
+    return () => { cancelled = true; };
+  }, [selectedCoin?.coin_id, getPriceForCoin]);
+
   if (!open) return null;
 
   function selectCoin(coin: CoinOption & { alreadyOwned?: boolean }) {
@@ -84,10 +106,10 @@ export function CryptoHoldingModal({ open, onClose, onSave, editing, existingCoi
     setSelectedCoin(null);
   }
 
-  // Live calculations
+  // Live calculations — priority: prices map > on-demand fetch > coin's own price_eur
   const priceData = selectedCoin ? getPriceForCoin(selectedCoin.coin_id) : null;
-  const currentPrice = priceData?.price_eur ?? selectedCoin?.price_eur ?? 0;
-  const change24h = priceData?.price_change_24h ?? selectedCoin?.price_change_24h ?? 0;
+  const currentPrice = priceData?.price_eur ?? fetchedPrice ?? selectedCoin?.price_eur ?? 0;
+  const change24h = priceData?.price_change_24h ?? fetchedChange24h ?? selectedCoin?.price_change_24h ?? 0;
   const qty = parseFloat(quantity) || 0;
   const buyP = parseFloat(avgBuyPrice) || 0;
   const liveValue = qty * currentPrice;

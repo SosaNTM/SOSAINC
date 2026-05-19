@@ -1,6 +1,11 @@
-﻿// ── Centralized localStorage / sessionStorage key constants ──────────────────
-// Every raw string used with localStorage or sessionStorage is defined here.
-// Import from "@/constants/storageKeys" and use the constant instead of inline strings.
+// ── Centralized localStorage / sessionStorage key constants ──────────────────
+//
+// Only UI preferences and ephemeral session flags live in localStorage. All
+// portal-scoped business data (finance, vault items, audit log, inventory,
+// crypto holdings, gift cards, leadgen caches, etc.) is stored in Supabase.
+//
+// Notes/Tasks/Cloud pages still keep some legacy localStorage state — those
+// pages will be migrated to Supabase in a follow-up.
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 export const STORAGE_AUTH_USER = "SOSA INC_auth_user";
@@ -19,22 +24,20 @@ export const STORAGE_ACCENT = "SOSA INC-accent";
 // ── App Reset ────────────────────────────────────────────────────────────────
 export const STORAGE_APP_RESET_VERSION = "app_reset_version";
 
-// ── Audit ────────────────────────────────────────────────────────────────────
-export const STORAGE_AUDIT_LOG = "SOSA INC_audit_log";
+// ── Tasks & Projects (legacy — TasksPage now Supabase-only via taskSync) ─────
+// Kept temporarily because notesStore + linearStore still reference these
+// helpers; they are no longer written to by current code paths.
+export const tasksKey = (portalId: string) => `SOSA INC_tasks_${portalId}`;
+export const projectsKey = (portalId: string) => `SOSA INC_projects_${portalId}`;
 
-// ── Tasks & Projects ─────────────────────────────────────────────────────────
-export const STORAGE_TASKS = "SOSA INC_tasks";
-export const STORAGE_PROJECTS = "SOSA INC_projects";
-
-// ── Notes ────────────────────────────────────────────────────────────────────
-export const STORAGE_NOTES = "SOSA INC_notes";
-export const STORAGE_NOTE_FOLDERS = "SOSA INC_note_folders";
+// ── Notes (NotesPage — pending Supabase migration) ───────────────────────────
+export const notesKey = (portalId: string, userId: string) => `SOSA INC_notes_${portalId}_${userId}`;
+export const noteFoldersKey = (portalId: string, userId: string) => `SOSA INC_note_folders_${portalId}_${userId}`;
 
 // ── Vault ────────────────────────────────────────────────────────────────────
-export const STORAGE_VAULT_ITEMS = "SOSA INC_vault_items";
 export const SESSION_VAULT_UNLOCKED = "vault_locked_unlocked";
 
-// ── Cloud ────────────────────────────────────────────────────────────────────
+// ── Cloud (CloudPage — pending Supabase migration) ───────────────────────────
 export const STORAGE_CLOUD_FOLDERS = "SOSA INC_cloud_folders";
 export const STORAGE_CLOUD_FILES = "SOSA INC_cloud_files";
 export const STORAGE_CLOUD_SECTIONS = "SOSA INC_cloud_sections";
@@ -42,57 +45,11 @@ export const STORAGE_CLOUD_COLLAPSED_SECTIONS = "cloud_collapsed_sections";
 export const SESSION_CLOUD_UNLOCK_PREFIX = "cloud_unlock_";
 export const STORAGE_CLOUD_UNLOCK_TIMED_PREFIX = "cloud_unlock_timed_";
 
-// ── Dashboard ────────────────────────────────────────────────────────────────
+// ── Dashboard / UI prefs ─────────────────────────────────────────────────────
 export const STORAGE_DASHBOARD_PERIOD = "dashboardPeriod";
 export const STORAGE_DASHBOARD_CUSTOM_RANGE = "dashboardCustomRange";
 export const STORAGE_NUMBER_FORMAT = "numberFormat";
+export const STORAGE_CURRENCY = "primaryCurrency";
 
 // ── Portal ───────────────────────────────────────────────────────────────────
 export const STORAGE_PORTAL_LAST_ACCESSED_PREFIX = "portal_last_accessed_";
-
-// ── Finance: Personal Transactions ───────────────────────────────────────────
-export const STORAGE_PERSONAL_TX_PREFIX = "personal_transactions_local";
-export const STORAGE_PERSONAL_TX_LEGACY = "personal_transactions_local";
-
-// ── Finance: Categories ──────────────────────────────────────────────────────
-export const STORAGE_FINANCE_CATEGORIES_PREFIX = "finance_categories";
-export const STORAGE_FINANCE_CATEGORIES_LEGACY = "finance_categories";
-export const STORAGE_FINANCE_TX_CATEGORIES_PREFIX = "finance_tx_categories";
-
-// ── Finance: Investments ─────────────────────────────────────────────────────
-export const STORAGE_INVESTMENTS_PREFIX = "finance_investments";
-export const STORAGE_INVESTMENTS_LEGACY = "finance_investments";
-
-// ── Finance: Goals ───────────────────────────────────────────────────────────
-export const STORAGE_GOALS_PREFIX = "finance_goals";
-export const STORAGE_GOALS_LEGACY = "finance_goals";
-
-// ── Finance: Subscriptions ───────────────────────────────────────────────────
-export const STORAGE_SUBSCRIPTIONS_PREFIX = "finance_subscriptions";
-export const STORAGE_SUBSCRIPTIONS_LEGACY = "finance_subscriptions";
-
-// ── Finance: Budgets ─────────────────────────────────────────────────────────
-export const STORAGE_BUDGET_LIMITS_PREFIX = "finance_budget_limits";
-export const STORAGE_BUDGET_TOTAL_PREFIX = "finance_total_budget";
-export const STORAGE_BUDGET_LIMITS_LEGACY = "finance_budget_limits";
-export const STORAGE_BUDGET_TOTAL_LEGACY = "finance_total_budget";
-export const STORAGE_BUDGET_OLD_ARRAY_LEGACY = "finance_budgets";
-
-// ── Finance: Crypto ──────────────────────────────────────────────────────────
-export const STORAGE_CRYPTO_HOLDINGS_PREFIX = "crypto_holdings";
-export const STORAGE_CRYPTO_HOLDINGS_LEGACY = "crypto_holdings";
-export const STORAGE_CRYPTO_TX_HISTORY_PREFIX = "crypto_tx_history";
-export const STORAGE_CRYPTO_TX_HISTORY_LEGACY = "crypto_tx_history";
-export const STORAGE_CRYPTO_TX_MIGRATED_PREFIX = "crypto_tx_migrated_";
-
-// ── Finance: Gift Cards ──────────────────────────────────────────────────────
-export const STORAGE_GIFT_CARDS_PREFIX = "gift_cards";
-export const STORAGE_GIFT_CARDS_LEGACY = "gift_cards";
-export const STORAGE_GIFT_CARD_TX_PREFIX = "gift_card_transactions";
-export const STORAGE_GIFT_CARD_TX_LEGACY = "gift_card_transactions";
-
-// ── Finance: Exchange Rates ──────────────────────────────────────────────────
-export const STORAGE_EXCHANGE_RATES = "SOSA INC_exchange_rates";
-
-// ── Inventory ────────────────────────────────────────────────────────────────
-export const STORAGE_INVENTORY_PREFIX = "SOSA INC_inventory_";

@@ -1,105 +1,40 @@
-// ── Crypto Service — Supabase CRUD with localStorage fallback ────────────────
-// If Supabase is not configured OR the table doesn't exist yet, all operations
-// transparently fall back to localStorage so the UI always works.
+// ── Crypto Service — Supabase only (no localStorage) ─────────────────────────
 
 import { supabase } from "@/lib/supabase";
 import { toPortalUUID } from "@/lib/portalUUID";
-import { STORAGE_CRYPTO_HOLDINGS_PREFIX, STORAGE_CRYPTO_HOLDINGS_LEGACY } from "@/constants/storageKeys";
+import { toast } from "sonner";
 import type { CryptoHolding, CryptoPrice, CoinOption } from "../types/crypto";
-
-// ── Local Storage Fallback (portal-scoped) ───────────────────────────────────
-
-function lsKey(portalId: string): string {
-  return `${STORAGE_CRYPTO_HOLDINGS_PREFIX}_${portalId}`;
-}
-
-function isSupabaseConfigured(): boolean {
-  const url = import.meta.env.VITE_SUPABASE_URL as string;
-  return !!url && !url.includes("placeholder");
-}
-
-function readLocalHoldings(portalId: string): CryptoHolding[] {
-  try {
-    const raw = localStorage.getItem(lsKey(portalId));
-    if (raw) return JSON.parse(raw);
-    // Migrate from old global key on first access
-    const legacy = localStorage.getItem(STORAGE_CRYPTO_HOLDINGS_LEGACY);
-    if (legacy) {
-      localStorage.setItem(lsKey(portalId), legacy);
-      return JSON.parse(legacy);
-    }
-    return [];
-  } catch {
-    return [];
-  }
-}
-
-function writeLocalHoldings(holdings: CryptoHolding[], portalId: string): void {
-  localStorage.setItem(lsKey(portalId), JSON.stringify(holdings));
-}
-
-function makeLocalHolding(holding: {
-  coin_id: string; symbol: string; name: string;
-  quantity: number; avg_buy_price_eur?: number; notes?: string;
-}): CryptoHolding {
-  const now = new Date().toISOString();
-  return {
-    id: crypto.randomUUID(),
-    user_id: "local",
-    coin_id: holding.coin_id,
-    symbol: holding.symbol,
-    name: holding.name,
-    quantity: holding.quantity,
-    avg_buy_price_eur: holding.avg_buy_price_eur ?? null,
-    notes: holding.notes ?? null,
-    created_at: now,
-    updated_at: now,
-  };
-}
 
 // ── Holdings ─────────────────────────────────────────────────────────────────
 
 export async function fetchHoldings(portalId: string): Promise<CryptoHolding[]> {
-  if (!isSupabaseConfigured()) return readLocalHoldings(portalId);
-  try {
-    const { data, error } = await supabase
-      .from("crypto_holdings")
-      .select("*")
-      .eq("portal_id", toPortalUUID(portalId))
-      .order("created_at", { ascending: true });
-    if (error) throw error;
-    return data || [];
-  } catch {
-    return readLocalHoldings(portalId);
+  const { data, error } = await supabase
+    .from("crypto_holdings")
+    .select("*")
+    .eq("portal_id", toPortalUUID(portalId))
+    .order("created_at", { ascending: true });
+  if (error) {
+    console.error("fetchHoldings:", error.message);
+    toast.error(`Crypto load failed: ${error.message}`);
+    return [];
   }
+  return data ?? [];
 }
 
 export async function addHolding(holding: {
   coin_id: string; symbol: string; name: string;
   quantity: number; avg_buy_price_eur?: number; notes?: string;
 }, portalId: string): Promise<CryptoHolding> {
-  if (!isSupabaseConfigured()) {
-    const newH = makeLocalHolding(holding);
-    const all = readLocalHoldings(portalId);
-    all.push(newH);
-    writeLocalHoldings(all, portalId);
-    return newH;
+  const { data, error } = await supabase
+    .from("crypto_holdings")
+    .insert({ ...holding, portal_id: toPortalUUID(portalId) })
+    .select()
+    .single();
+  if (error) {
+    toast.error(`Holding not saved: ${error.message}`);
+    throw error;
   }
-  try {
-    const { data, error } = await supabase
-      .from("crypto_holdings")
-      .insert({ ...holding, portal_id: toPortalUUID(portalId) })
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  } catch {
-    const newH = makeLocalHolding(holding);
-    const all = readLocalHoldings(portalId);
-    all.push(newH);
-    writeLocalHoldings(all, portalId);
-    return newH;
-  }
+  return data;
 }
 
 export async function updateHolding(
@@ -107,50 +42,29 @@ export async function updateHolding(
   updates: { quantity?: number; avg_buy_price_eur?: number; notes?: string },
   portalId: string,
 ): Promise<CryptoHolding> {
-  if (!isSupabaseConfigured()) {
-    const all = readLocalHoldings(portalId);
-    const idx = all.findIndex((h) => h.id === id);
-    if (idx === -1) throw new Error("Holding not found");
-    const updated = { ...all[idx], ...updates, updated_at: new Date().toISOString() };
-    all[idx] = updated;
-    writeLocalHoldings(all, portalId);
-    return updated;
+  const { data, error } = await supabase
+    .from("crypto_holdings")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("portal_id", toPortalUUID(portalId))
+    .select()
+    .single();
+  if (error) {
+    toast.error(`Holding not updated: ${error.message}`);
+    throw error;
   }
-  try {
-    const { data, error } = await supabase
-      .from("crypto_holdings")
-      .update(updates)
-      .eq("id", id)
-      .eq("portal_id", toPortalUUID(portalId))
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  } catch {
-    const all = readLocalHoldings(portalId);
-    const idx = all.findIndex((h) => h.id === id);
-    if (idx === -1) throw new Error("Holding not found");
-    const updated = { ...all[idx], ...updates, updated_at: new Date().toISOString() };
-    all[idx] = updated;
-    writeLocalHoldings(all, portalId);
-    return updated;
-  }
+  return data;
 }
 
 export async function deleteHolding(id: string, portalId: string): Promise<void> {
-  if (!isSupabaseConfigured()) {
-    writeLocalHoldings(readLocalHoldings(portalId).filter((h) => h.id !== id), portalId);
-    return;
-  }
-  try {
-    const { error } = await supabase
-      .from("crypto_holdings")
-      .delete()
-      .eq("id", id)
-      .eq("portal_id", toPortalUUID(portalId));
-    if (error) throw error;
-  } catch {
-    writeLocalHoldings(readLocalHoldings(portalId).filter((h) => h.id !== id), portalId);
+  const { error } = await supabase
+    .from("crypto_holdings")
+    .delete()
+    .eq("id", id)
+    .eq("portal_id", toPortalUUID(portalId));
+  if (error) {
+    toast.error(`Holding not deleted: ${error.message}`);
+    throw error;
   }
 }
 
@@ -163,6 +77,7 @@ export async function fetchPricesFromCoinGecko(coinIds: string[]): Promise<Crypt
     `https://api.coingecko.com/api/v3/coins/markets?vs_currency=eur&ids=${encodeURIComponent(ids)}&price_change_percentage=24h,7d&order=market_cap_desc&sparkline=false`,
   );
   if (!res.ok) throw new Error(`CoinGecko prices error: ${res.status}`);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const json: any[] = await res.json();
   return json.map((c) => ({
     coin_id: c.id,
@@ -181,37 +96,34 @@ export async function fetchPricesFromCoinGecko(coinIds: string[]): Promise<Crypt
 }
 
 export async function fetchAllPrices(portalId: string): Promise<CryptoPrice[]> {
-  if (!isSupabaseConfigured()) {
-    const holdings = readLocalHoldings(portalId);
-    if (holdings.length === 0) return [];
-    return fetchPricesFromCoinGecko([...new Set(holdings.map((h) => h.coin_id))]);
+  const holdings = await fetchHoldings(portalId);
+  if (holdings.length === 0) return [];
+  const coinIds = [...new Set(holdings.map((h) => h.coin_id))];
+
+  // Supabase price cache first (covers all + <15min old)
+  const { data, error } = await supabase
+    .from("crypto_prices")
+    .select("*")
+    .in("coin_id", coinIds);
+  if (!error && data && data.length > 0) {
+    const covered = coinIds.every((id) => data.some((p) => p.coin_id === id));
+    const newestMs = Math.max(...data.map((p) => new Date(p.last_updated).getTime()));
+    if (covered && Date.now() - newestMs < 15 * 60 * 1000) return data;
   }
-  try {
-    const { data, error } = await supabase
-      .from("crypto_prices")
-      .select("*")
-      .order("market_cap_eur", { ascending: false, nullsFirst: false });
-    if (error) throw error;
-    return data || [];
-  } catch {
-    const holdings = readLocalHoldings(portalId);
-    if (holdings.length === 0) return [];
-    return fetchPricesFromCoinGecko([...new Set(holdings.map((h) => h.coin_id))]);
-  }
+
+  return fetchPricesFromCoinGecko(coinIds);
 }
 
 export async function fetchAvailableCoins(): Promise<CoinOption[]> {
-  if (!isSupabaseConfigured()) return [];
-  try {
-    const { data, error } = await supabase
-      .from("crypto_prices")
-      .select("coin_id, symbol, name, image_url, price_eur, price_change_24h, market_cap_eur")
-      .order("market_cap_eur", { ascending: false, nullsFirst: false });
-    if (error) throw error;
-    return (data || []).map((c) => ({ ...c, market_cap_rank: null }));
-  } catch {
+  const { data, error } = await supabase
+    .from("crypto_prices")
+    .select("coin_id, symbol, name, image_url, price_eur, price_change_24h, market_cap_eur")
+    .order("market_cap_eur", { ascending: false, nullsFirst: false });
+  if (error) {
+    console.error("fetchAvailableCoins:", error.message);
     return [];
   }
+  return (data ?? []).map((c) => ({ ...c, market_cap_rank: null }));
 }
 
 export async function searchCoinsRemote(query: string): Promise<CoinOption[]> {
@@ -220,6 +132,7 @@ export async function searchCoinsRemote(query: string): Promise<CoinOption[]> {
   );
   if (!res.ok) throw new Error(`CoinGecko search error: ${res.status}`);
   const json = await res.json();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return ((json.coins as any[]) || []).slice(0, 15).map((c: any) => ({
     coin_id: c.id,
     symbol: (c.symbol as string).toUpperCase(),
@@ -247,18 +160,8 @@ export async function fetchCoinHistory(
 }
 
 export async function refreshPrices(portalId: string): Promise<CryptoPrice[]> {
-  if (!isSupabaseConfigured()) {
-    const holdings = readLocalHoldings(portalId);
-    if (holdings.length === 0) return [];
-    return fetchPricesFromCoinGecko([...new Set(holdings.map((h) => h.coin_id))]);
-  }
-  try {
-    const { error } = await supabase.functions.invoke("update-crypto-prices");
-    if (error) throw error;
-    return [];
-  } catch {
-    const holdings = readLocalHoldings(portalId);
-    if (holdings.length === 0) return [];
-    return fetchPricesFromCoinGecko([...new Set(holdings.map((h) => h.coin_id))]);
-  }
+  const holdings = await fetchHoldings(portalId);
+  if (holdings.length === 0) return [];
+  const coinIds = [...new Set(holdings.map((h) => h.coin_id))];
+  return fetchPricesFromCoinGecko(coinIds);
 }

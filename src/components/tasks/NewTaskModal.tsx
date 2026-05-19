@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ALL_USERS, getUserById } from "@/lib/authContext";
+import { usePortalUsers } from "@/hooks/usePortalUsers";
 import { LABEL_OPTIONS, LABEL_COLORS, STATUSES, PRIORITIES, type Task, type TaskStatus, type TaskPriority } from "@/lib/tasksStore";
 import { X, Calendar } from "lucide-react";
 
@@ -18,6 +18,8 @@ export function NewTaskModal({ onClose, onCreate, creatorId }: NewTaskModalProps
   const [dueDate, setDueDate] = useState("");
   const [labels, setLabels] = useState<string[]>([]);
   const [watcherIds, setWatcherIds] = useState<string[]>([]);
+
+  const { users: portalUsers } = usePortalUsers();
 
   const toggleLabel = (l: string) => setLabels((p) => p.includes(l) ? p.filter((x) => x !== l) : [...p, l]);
   const toggleWatcher = (id: string) => setWatcherIds((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
@@ -93,7 +95,7 @@ export function NewTaskModal({ onClose, onCreate, creatorId }: NewTaskModalProps
               <label style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)" }}>Assignee</label>
               <select className="glass-input w-full" value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)} style={{ fontSize: 13, padding: "8px 10px" }}>
                 <option value="">Unassigned</option>
-                {ALL_USERS.map((u) => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+                {portalUsers.map((u) => <option key={u.id} value={u.id}>{u.displayName}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
@@ -128,7 +130,7 @@ export function NewTaskModal({ onClose, onCreate, creatorId }: NewTaskModalProps
           <div className="flex flex-col gap-1.5">
             <label style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)" }}>Watchers</label>
             <div className="flex flex-wrap gap-1.5">
-              {ALL_USERS.map((u) => (
+              {portalUsers.map((u) => (
                 <button type="button"
                   key={u.id}
                   onClick={() => toggleWatcher(u.id)}

@@ -6,8 +6,6 @@ import { useRealtimeTable } from "@/lib/realtime/useRealtimeTable";
 import { addAuditEntry } from "@/lib/adminStore";
 import {
   type Investment,
-  loadInvestments,
-  saveInvestments,
   calcCurrentValue,
   calcCostBasis,
   calcPnL,
@@ -19,7 +17,6 @@ import {
   deleteInvestment as dbDeleteInvestment,
 } from "@/lib/services/investmentService";
 import type { DbInvestment } from "@/types/database";
-
 
 function dbToInvestment(db: DbInvestment): Investment {
   return {
@@ -40,94 +37,83 @@ export function useInvestments() {
   const { user } = useAuth();
   const portalId = portal?.id ?? "sosa";
 
-  const [investments, setInvestments] = useState<Investment[]>(() => loadInvestments(portalId));
+  const [investments, setInvestments] = useState<Investment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initial load from Supabase; fall back to localStorage cache
   useEffect(() => {
-    setIsLoading(true);
     fetchInvestments(portalId).then((dbInvs) => {
-      if (dbInvs.length > 0) {
-        const mapped = dbInvs.map(dbToInvestment);
-        setInvestments(mapped);
-        saveInvestments(portalId, mapped);
-      } else {
-        setInvestments(loadInvestments(portalId));
-      }
+      setInvestments(dbInvs.map(dbToInvestment));
     }).finally(() => setIsLoading(false));
   }, [portalId]);
 
   function addInvestment(data: Omit<Investment, "id">) {
+    if (!user) return;
+
     const tempId = crypto.randomUUID();
     const inv: Investment = { ...data, id: tempId };
-    // Optimistic update
     setInvestments((prev) => [...prev, inv]);
-    saveInvestments(portalId, [...investments, inv]);
 
-    if (user) {
-      void dbCreateInvestment(
-        {
-          user_id: user.id,
-          name: data.name,
-          ticker: data.ticker || null,
-          type: data.type,
-          units: data.units,
-          avg_buy_price: data.avgBuyPrice,
-          current_price: data.currentPrice,
-          currency: "EUR",
-          color: data.color,
-          emoji: data.emoji,
-          notes: null,
-        },
-        portalId,
-      ).then((created) => {
-        if (created) {
-          setInvestments((prev) => prev.map((i) => i.id === tempId ? dbToInvestment(created) : i));
-          toast.success(`Investment "${data.name}" added`);
-        } else {
-          toast.error(`Failed to save "${data.name}" to database`);
-        }
-      });
-      addAuditEntry({ userId: user.id, action: `Added investment "${data.name}" — €${calcCurrentValue(inv).toLocaleString()}`, category: "finance", details: "", icon: data.emoji, portalId });
-    }
+    void dbCreateInvestment(
+      {
+        user_id: user.id,
+        name: data.name,
+        ticker: data.ticker || null,
+        type: data.type,
+        units: data.units,
+        avg_buy_price: data.avgBuyPrice,
+        current_price: data.currentPrice,
+        currency: "EUR",
+        color: data.color,
+        emoji: data.emoji,
+        notes: null,
+      },
+      portalId,
+    ).then((created) => {
+      if (created) {
+        setInvestments((prev) => prev.map((i) => i.id === tempId ? dbToInvestment(created) : i));
+        toast.success(`Investment "${data.name}" added`);
+      } else {
+        // Roll back optimistic insert
+        setInvestments((prev) => prev.filter((i) => i.id !== tempId));
+      }
+    });
+    addAuditEntry({ userId: user.id, action: `Added investment "${data.name}" — €${calcCurrentValue(inv).toLocaleString()}`, category: "finance", details: "", icon: data.emoji, portalId });
   }
 
   function updateInvestment(id: string, data: Omit<Investment, "id">) {
+    if (!user) return;
+
     setInvestments((prev) => prev.map((inv) => inv.id === id ? { ...data, id } : inv));
 
-    if (user) {
-      void dbUpdateInvestment(
-        id,
-        {
-          name: data.name,
-          ticker: data.ticker || null,
-          type: data.type,
-          units: data.units,
-          avg_buy_price: data.avgBuyPrice,
-          current_price: data.currentPrice,
-          color: data.color,
-          emoji: data.emoji,
-        },
-        portalId,
-      );
-      addAuditEntry({ userId: user.id, action: `Updated investment "${data.name}"`, category: "finance", details: "", icon: data.emoji, portalId });
-    }
+    void dbUpdateInvestment(
+      id,
+      {
+        name: data.name,
+        ticker: data.ticker || null,
+        type: data.type,
+        units: data.units,
+        avg_buy_price: data.avgBuyPrice,
+        current_price: data.currentPrice,
+        color: data.color,
+        emoji: data.emoji,
+      },
+      portalId,
+    );
+    addAuditEntry({ userId: user.id, action: `Updated investment "${data.name}"`, category: "finance", details: "", icon: data.emoji, portalId });
   }
 
   function deleteInvestment(id: string) {
     const inv = investments.find((i) => i.id === id);
     setInvestments((prev) => prev.filter((i) => i.id !== id));
     void dbDeleteInvestment(id, portalId).then((ok) => {
-      if (!ok) {
-        // Rollback optimistic delete
-        if (inv) setInvestments((prev) => [inv, ...prev]);
+      if (!ok && inv) {
+        setInvestments((prev) => [inv, ...prev]);
         toast.error("Failed to delete investment");
       }
     });
     if (user && inv) addAuditEntry({ userId: user.id, action: `Removed investment "${inv.name}"`, category: "finance", details: "", icon: "🗑️", portalId });
   }
 
-  // Real-time Postgres Changes
   const rtOnInsert = useCallback((row: DbInvestment) => {
     setInvestments((prev) => prev.some((i) => i.id === row.id) ? prev : [dbToInvestment(row), ...prev]);
   }, []);

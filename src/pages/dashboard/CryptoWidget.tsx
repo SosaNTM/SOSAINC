@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TrendingUp, Plus, Pencil, Trash2, Check } from "lucide-react";
 import { LiquidGlassCard } from "@/components/ui/liquid-glass-card";
@@ -74,8 +74,8 @@ export function CryptoWidget({
           {[
             { label: "Total Value", value: formatEUR(totalValue), color: "#22d3ee" },
             { label: "Invested", value: formatEUR(totalCost), color: "var(--text-primary)" },
-            { label: "P&L", value: formatEUR(totalPnL, { sign: true }), color: totalPnL >= 0 ? "#2ECC71" : "#FF5A5A" },
-            { label: "Return", value: `${totalROI >= 0 ? "+" : ""}${totalROI.toFixed(1)}%`, color: totalROI >= 0 ? "#2ECC71" : "#FF5A5A" },
+            { label: "P&L", value: formatEUR(totalPnL, { sign: true }), color: totalPnL >= 0 ? "var(--color-success)" : "var(--color-error)" },
+            { label: "Return", value: `${totalROI >= 0 ? "+" : ""}${totalROI.toFixed(1)}%`, color: totalROI >= 0 ? "var(--color-success)" : "var(--color-error)" },
           ].map((s) => (
             <div key={s.label} style={{ padding: "12px 16px", borderRadius: 12, background: "var(--glass-bg-subtle, rgba(255,255,255,0.03))", border: "0.5px solid var(--glass-border)" }}>
               <p style={{ fontSize: 10, color: "var(--text-quaternary)", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" }}>{s.label}</p>
@@ -121,7 +121,7 @@ export function CryptoWidget({
                     {/* Value + P&L */}
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{"\u20AC"}{value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                      <p style={{ fontSize: 11, fontWeight: 600, color: pnl >= 0 ? "#2ECC71" : "#FF5A5A" }}>
+                      <p style={{ fontSize: 11, fontWeight: 600, color: pnl >= 0 ? "var(--color-success)" : "var(--color-error)" }}>
                         {pnl >= 0 ? "+" : ""}{"\u20AC"}{Math.abs(pnl).toFixed(0)} ({roi >= 0 ? "+" : ""}{roi.toFixed(1)}%)
                       </p>
                     </div>
@@ -141,18 +141,18 @@ export function CryptoWidget({
                             type="button"
                             title="Delete"
                             onClick={() => setDeleteInvId(inv.id)}
-                            style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "rgba(255,90,90,0.08)", color: "#FF5A5A", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                            style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "rgba(255,90,90,0.08)", color: "var(--color-error)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                           >
                             <Trash2 style={{ width: 11, height: 11 }} />
                           </button>
                         </>
                       ) : (
                         <div className="flex items-center gap-1">
-                          <span style={{ fontSize: 10, color: "#FF5A5A", marginRight: 2 }}>Delete?</span>
+                          <span style={{ fontSize: 10, color: "var(--color-error)", marginRight: 2 }}>Delete?</span>
                           <button
                             type="button"
                             onClick={() => { deleteInvestment(inv.id); setDeleteInvId(null); }}
-                            style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "rgba(255,90,90,0.2)", color: "#FF5A5A", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                            style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "rgba(255,90,90,0.2)", color: "var(--color-error)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                           >
                             <Check style={{ width: 11, height: 11 }} />
                           </button>

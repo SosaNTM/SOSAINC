@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Target, Plus, Pencil, Trash2, Check } from "lucide-react";
+import { Target, Plus, Pencil, Trash2, Check, Loader2 } from "lucide-react";
 import { LiquidGlassCard, LiquidGlassFilter } from "@/components/ui/liquid-glass-card";
 import { NewGoalModal, type NewGoalData } from "@/components/NewGoalModal";
 import { usePortal } from "@/lib/portalContext";
@@ -49,13 +49,17 @@ export default function Goals() {
   const { netWorth } = useNetWorth();
 
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
 
   // Load from Supabase (falls back to localStorage cache inside service)
   useEffect(() => {
-    fetchGoals(portalId).then((data) => setGoals(data.map(dbToGoal)));
+    setIsLoading(true);
+    fetchGoals(portalId)
+      .then((data) => setGoals(data.map(dbToGoal)))
+      .finally(() => setIsLoading(false));
   }, [portalId]);
 
   function openCreate() {
@@ -79,7 +83,7 @@ export default function Goals() {
       await svcUpdate(editingGoal.id, data, portalId);
       if (user) addAuditEntry({ userId: user.id, action: `Updated goal "${data.name}"`, category: "finance", details: "", icon: "🎯", portalId });
     } else {
-      const created = await svcCreate({ ...data, saved: 0, user_id: user?.id ?? "" }, portalId);
+      const created = await svcCreate({ ...data, saved: 0, user_id: user?.id ?? "", is_achieved: false }, portalId);
       const newId = created?.id ?? crypto.randomUUID();
       setGoals(prev => [...prev, { ...data, id: newId }]);
       if (user) addAuditEntry({ userId: user.id, action: `Created goal "${data.name}" — €${data.target.toLocaleString()} target`, category: "finance", details: "", icon: "🎯", portalId });
@@ -107,10 +111,10 @@ export default function Goals() {
         initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
         {[
-          { label: "Total Goals",      value: String(goals.length),                        color: "#4A9EFF" },
+          { label: "Total Goals",      value: String(goals.length),                        color: "var(--color-info)" },
           { label: "Total Target",     value: `€${totalTarget.toLocaleString("en-US")}`,   color: "var(--text-primary)" },
-          { label: "Net Worth",        value: `€${Math.round(netWorth).toLocaleString("en-US")}`, color: "#2ECC71" },
-          { label: "Overall Progress", value: `${overallPct}%`,                             color: "#e8ff00" },
+          { label: "Net Worth",        value: `€${Math.round(netWorth).toLocaleString("en-US")}`, color: "var(--color-success)" },
+          { label: "Overall Progress", value: `${overallPct}%`,                             color: "var(--sosa-yellow)" },
         ].map((s) => (
           <div key={s.label} style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 14, padding: "14px 18px" }}>
             <p style={{ fontSize: 11, color: "var(--text-quaternary)", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" }}>{s.label}</p>
@@ -122,11 +126,11 @@ export default function Goals() {
       {/* Goals grid */}
       <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}>
-        <LiquidGlassCard accentColor="#2ECC71" hover={false}>
+        <LiquidGlassCard accentColor="var(--color-success)" hover={false}>
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2.5">
               <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(46,204,113,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Target style={{ width: 16, height: 16, color: "#2ECC71" }} />
+                <Target style={{ width: 16, height: 16, color: "var(--color-success)" }} />
               </div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Financial Goals</h3>
             </div>
@@ -135,7 +139,11 @@ export default function Goals() {
             </button>
           </div>
 
-          {goals.length === 0 ? (
+          {isLoading ? (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 0", color: "var(--text-quaternary)" }}>
+              <Loader2 style={{ width: 24, height: 24, animation: "spin 1s linear infinite" }} />
+            </div>
+          ) : goals.length === 0 ? (
             <EmptyState
               icon={<Target style={{ width: 48, height: 48 }} />}
               title="NO GOALS YET"
@@ -147,7 +155,7 @@ export default function Goals() {
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             <AnimatePresence>
               {goals.map((goal, i) => {
-                const pct = Math.min(100, Math.max(0, Math.round((netWorth / goal.target) * 100)));
+                const pct = goal.target > 0 ? Math.min(100, Math.max(0, Math.round((netWorth / goal.target) * 100))) : 0;
                 const isConfirm = deleteId === goal.id;
                 return (
                   <motion.div key={goal.id} layout
@@ -171,14 +179,14 @@ export default function Goals() {
                             <button type="button" title="Edit" onClick={() => openEdit(goal)} style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "rgba(255,255,255,0.05)", color: "var(--text-quaternary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                               <Pencil style={{ width: 11, height: 11 }} />
                             </button>
-                            <button type="button" title="Delete" onClick={() => setDeleteId(goal.id)} style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "rgba(255,90,90,0.08)", color: "#FF5A5A", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <button type="button" title="Delete" onClick={() => setDeleteId(goal.id)} style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "rgba(255,90,90,0.08)", color: "var(--color-error)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                               <Trash2 style={{ width: 11, height: 11 }} />
                             </button>
                           </>
                         ) : (
                           <div className="flex items-center gap-1">
-                            <span style={{ fontSize: 10, color: "#FF5A5A", marginRight: 2 }}>Delete?</span>
-                            <button type="button" onClick={() => handleDelete(goal.id)} style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "rgba(255,90,90,0.2)", color: "#FF5A5A", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <span style={{ fontSize: 10, color: "var(--color-error)", marginRight: 2 }}>Delete?</span>
+                            <button type="button" onClick={() => handleDelete(goal.id)} style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "rgba(255,90,90,0.2)", color: "var(--color-error)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                               <Check style={{ width: 11, height: 11 }} />
                             </button>
                             <button type="button" onClick={() => setDeleteId(null)} style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "rgba(255,255,255,0.06)", color: "var(--text-quaternary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>✕</button>
@@ -200,7 +208,7 @@ export default function Goals() {
                       </div>
                       <div style={{ textAlign: "center" }}>
                         <p style={{ fontSize: 10, color: "var(--text-quaternary)" }}>Progress</p>
-                        <p style={{ fontSize: 18, fontWeight: 700, color: pct >= 100 ? "#2ECC71" : "var(--text-primary)", letterSpacing: "-0.5px" }}>
+                        <p style={{ fontSize: 18, fontWeight: 700, color: pct >= 100 ? "var(--color-success)" : "var(--text-primary)", letterSpacing: "-0.5px" }}>
                           {pct >= 100 ? "🎉 " : ""}{pct}%
                         </p>
                       </div>

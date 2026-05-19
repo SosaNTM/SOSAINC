@@ -1,8 +1,15 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
-import { useAuth, ALL_USERS } from "@/lib/authContext";
-import { STORAGE_NOTES, STORAGE_NOTE_FOLDERS } from "@/constants/storageKeys";
+﻿import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useAuth } from "@/lib/authContext";
+import { usePortalUsers } from "@/hooks/usePortalUsers";
+import { usePortalDB } from "@/lib/portalContextDB";
 import { addAuditEntry } from "@/lib/adminStore";
-import { INITIAL_NOTES, INITIAL_FOLDERS, TAG_PRESETS, type Note, type NoteFolder, INITIAL_TELEGRAM_NOTES, telegramNoteToNote } from "@/lib/notesStore";
+import { TAG_PRESETS, type Note, type NoteFolder } from "@/lib/notesStore";
+import {
+  fetchNotes, fetchNoteFolders,
+  createNote as svcCreateNote, updateNote as svcUpdateNote, deleteNote as svcDeleteNote,
+  createNoteFolder as svcCreateFolder, updateNoteFolder as svcUpdateFolder, deleteNoteFolder as svcDeleteFolder,
+} from "@/lib/services/notesService";
+import type { DbNote, DbNoteFolder } from "@/types/database";
 import {
   Plus, Search, Pin, Lock, Trash2, Copy, Archive, MoreVertical,
   Bold, Italic, Strikethrough, Heading1, Heading2, List, ListOrdered,
@@ -35,7 +42,7 @@ function TagPill({ tag, onRemove }: { tag: string; onRemove?: () => void }) {
 }
 
 // ─── Toolbar Button ───
-function ToolBtn({ icon: Icon, active, onClick, title }: { icon: any; active?: boolean; onClick: () => void; title?: string }) {
+function ToolBtn({ icon: Icon, active, onClick, title }: { icon: React.ComponentType<{ size?: number; className?: string }>; active?: boolean; onClick: () => void; title?: string }) {
   return (
     <button type="button"
       onClick={onClick}
@@ -64,34 +71,62 @@ type ViewFilter =
   | { type: "folder"; folderId: string };
 
 // ─── Main Page ───
+// ─── DB ↔ UI mappers ───
+function dbToNote(r: DbNote): Note {
+  return {
+    id: r.id,
+    ownerId: r.user_id,
+    folderId: r.folder_id,
+    title: r.title,
+    content: r.content ?? "",
+    tags: r.tags ?? [],
+    isPinned: r.is_pinned,
+    isArchived: r.is_archived,
+    createdAt: new Date(r.created_at),
+    updatedAt: new Date(r.updated_at),
+    ...(r.source ? { source: r.source as "telegram" } : {}),
+    file_url: r.file_url,
+    file_name: r.file_name,
+    file_type: r.file_type as "voice" | "document" | null,
+    transcription: r.transcription,
+  };
+}
+
+function dbToFolder(r: DbNoteFolder): NoteFolder {
+  return {
+    id: r.id,
+    name: r.name,
+    parentId: r.parent_id,
+    ownerId: r.user_id,
+    icon: r.icon ?? "📁",
+    color: r.color ?? "#60a5fa",
+    sortOrder: r.sort_order,
+    createdAt: new Date(r.created_at),
+    updatedAt: new Date(r.updated_at),
+  };
+}
+
 const NotesPage = () => {
   const { user } = useAuth();
-  const isOwner = user?.role === "owner";
+  const { users: portalUsers } = usePortalUsers();
+  const { currentPortalId, userRole } = usePortalDB();
+  const isOwner = userRole === "owner";
 
-  const [notes, setNotes] = useState<Note[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_NOTES);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return parsed.map((n: any) => ({ ...n, createdAt: new Date(n.createdAt), updatedAt: new Date(n.updatedAt) }));
-      }
-    } catch {}
-    return [...INITIAL_NOTES, ...INITIAL_TELEGRAM_NOTES.map(telegramNoteToNote)];
-  });
-  const [folders, setFolders] = useState<NoteFolder[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_NOTE_FOLDERS);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return parsed.map((f: any) => ({ ...f, createdAt: new Date(f.createdAt), updatedAt: new Date(f.updatedAt) }));
-      }
-    } catch {}
-    return INITIAL_FOLDERS;
-  });
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [folders, setFolders] = useState<NoteFolder[]>([]);
 
-  // Persist notes & folders to localStorage on change
-  useEffect(() => { localStorage.setItem(STORAGE_NOTES, JSON.stringify(notes)); }, [notes]);
-  useEffect(() => { localStorage.setItem(STORAGE_NOTE_FOLDERS, JSON.stringify(folders)); }, [folders]);
+  // Hydrate from Supabase on portal/user change
+  useEffect(() => {
+    if (!currentPortalId || !user?.id) return;
+    void (async () => {
+      const [dbNotes, dbFolders] = await Promise.all([
+        fetchNotes(currentPortalId),
+        fetchNoteFolders(currentPortalId),
+      ]);
+      setNotes(dbNotes.map(dbToNote));
+      setFolders(dbFolders.map(dbToFolder));
+    })();
+  }, [currentPortalId, user?.id]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [viewingUserId, setViewingUserId] = useState(user?.id || "");
@@ -143,19 +178,46 @@ const NotesPage = () => {
   // ─── Actions ───
   const updateNote = useCallback((id: string, updates: Partial<Note>) => {
     setNotes((prev) => prev.map((n) => n.id === id ? { ...n, ...updates, updatedAt: new Date() } : n));
-  }, []);
+    if (!currentPortalId) return;
+    const dbUpdates: Partial<DbNote> = {};
+    if ("title" in updates) dbUpdates.title = updates.title ?? "";
+    if ("content" in updates) dbUpdates.content = updates.content ?? null;
+    if ("folderId" in updates) dbUpdates.folder_id = updates.folderId ?? null;
+    if ("tags" in updates) dbUpdates.tags = updates.tags ?? null;
+    if ("isPinned" in updates) dbUpdates.is_pinned = !!updates.isPinned;
+    if ("isArchived" in updates) dbUpdates.is_archived = !!updates.isArchived;
+    void svcUpdateNote(id, dbUpdates, currentPortalId);
+  }, [currentPortalId]);
 
-  const createNote = () => {
+  const createNote = async () => {
+    if (!currentPortalId || !user?.id) return;
     const folderId = viewFilter.type === "folder" ? viewFilter.folderId : null;
-    const id = `note_${Date.now()}`;
-    const newNote: Note = {
-      id, ownerId: user?.id || "", folderId, title: "", content: "", tags: [],
-      isPinned: false, isArchived: false, createdAt: new Date(), updatedAt: new Date(),
-    };
-    setNotes((prev) => [newNote, ...prev]);
-    setSelectedId(id);
+    const row = await svcCreateNote(
+      {
+        user_id: user.id,
+        folder_id: folderId,
+        title: "",
+        content: "",
+        is_pinned: false,
+        is_archived: false,
+        color: null,
+        tags: null,
+        source: null,
+        file_url: null,
+        file_name: null,
+        file_type: null,
+        transcription: null,
+        created_by: user.id,
+        updated_by: null,
+      },
+      currentPortalId,
+    );
+    if (!row) return;
+    const note = dbToNote(row);
+    setNotes((prev) => [note, ...prev]);
+    setSelectedId(note.id);
     setMobileListOpen(false);
-    if (user) addAuditEntry({ userId: user.id, action: "Created new note", category: "tasks", details: "", icon: "📝" });
+    addAuditEntry({ userId: user.id, action: "Created new note", category: "tasks", details: "", icon: "📝" });
     setTimeout(() => document.getElementById("note-title-input")?.focus(), 50);
   };
 
@@ -172,9 +234,30 @@ const NotesPage = () => {
         if (user) addAuditEntry({ userId: user.id, action: `${note.isArchived ? "Unarchived" : "Archived"} note "${note.title || "Untitled"}"`, category: "tasks", details: "", icon: "📦" });
         break;
       case "duplicate": {
-        const dup: Note = { ...note, id: `note_${Date.now()}`, title: note.title + " (copy)", createdAt: new Date(), updatedAt: new Date() };
-        setNotes((prev) => [dup, ...prev]);
-        if (user) addAuditEntry({ userId: user.id, action: `Duplicated note "${note.title || "Untitled"}"`, category: "tasks", details: "", icon: "📋" });
+        if (!currentPortalId || !user?.id) break;
+        void svcCreateNote(
+          {
+            user_id: user.id,
+            folder_id: note.folderId,
+            title: note.title + " (copy)",
+            content: note.content,
+            is_pinned: false,
+            is_archived: false,
+            color: null,
+            tags: note.tags,
+            source: null,
+            file_url: null,
+            file_name: null,
+            file_type: null,
+            transcription: null,
+            created_by: user.id,
+            updated_by: null,
+          },
+          currentPortalId,
+        ).then((row) => {
+          if (row) setNotes((prev) => [dbToNote(row), ...prev]);
+        });
+        addAuditEntry({ userId: user.id, action: `Duplicated note "${note.title || "Untitled"}"`, category: "tasks", details: "", icon: "📋" });
         break;
       }
       case "delete": setDeleteConfirm(noteId); break;
@@ -184,28 +267,30 @@ const NotesPage = () => {
   };
 
   const confirmDelete = () => {
-    if (deleteConfirm) {
-      const note = notes.find((n) => n.id === deleteConfirm);
-      setNotes((prev) => prev.filter((n) => n.id !== deleteConfirm));
-      if (selectedId === deleteConfirm) setSelectedId(null);
-      if (user && note) addAuditEntry({ userId: user.id, action: `Deleted note "${note.title || "Untitled"}"`, category: "tasks", details: "", icon: "🗑️" });
-      setDeleteConfirm(null);
-    }
+    if (!deleteConfirm) return;
+    const note = notes.find((n) => n.id === deleteConfirm);
+    setNotes((prev) => prev.filter((n) => n.id !== deleteConfirm));
+    if (selectedId === deleteConfirm) setSelectedId(null);
+    if (currentPortalId) void svcDeleteNote(deleteConfirm, currentPortalId);
+    if (user && note) addAuditEntry({ userId: user.id, action: `Deleted note "${note.title || "Untitled"}"`, category: "tasks", details: "", icon: "🗑️" });
+    setDeleteConfirm(null);
   };
 
   const confirmDeleteFolder = () => {
-    if (!deleteFolderConfirm) return;
+    if (!deleteFolderConfirm || !currentPortalId) return;
     const fid = deleteFolderConfirm;
-    // Get all descendant folder ids
     const getDescendants = (parentId: string): string[] => {
       const children = folders.filter((f) => f.parentId === parentId);
       return children.flatMap((c) => [c.id, ...getDescendants(c.id)]);
     };
     const allIds = [fid, ...getDescendants(fid)];
-    // Move notes from these folders to unfiled
+    // Move notes from these folders to unfiled — both in state + DB
+    notes.forEach((n) => { if (n.folderId && allIds.includes(n.folderId)) void svcUpdateNote(n.id, { folder_id: null }, currentPortalId); });
     setNotes((prev) => prev.map((n) => allIds.includes(n.folderId || "") ? { ...n, folderId: null } : n));
-    // Move child folders that aren't being deleted to root
+    // Move child folders that aren't being deleted to root (DB-side, since FK is SET NULL on cascade)
     setFolders((prev) => prev.filter((f) => !allIds.includes(f.id)).map((f) => allIds.includes(f.parentId || "") ? { ...f, parentId: null } : f));
+    // Delete each folder from DB (cascade in DB handles children rows)
+    allIds.forEach((id) => { void svcDeleteFolder(id, currentPortalId); });
     if (viewFilter.type === "folder" && allIds.includes(viewFilter.folderId)) {
       setViewFilter({ type: "all" });
     }
@@ -225,18 +310,26 @@ const NotesPage = () => {
   const toggleFolder = (folderId: string) => {
     setExpandedFolders((prev) => {
       const next = new Set(prev);
-      next.has(folderId) ? next.delete(folderId) : next.add(folderId);
+      if (next.has(folderId)) { next.delete(folderId); } else { next.add(folderId); }
       return next;
     });
   };
 
-  const createFolder = (name: string, parentId: string | null, icon: string) => {
-    const id = `fld_${Date.now()}`;
-    const newFolder: NoteFolder = {
-      id, name, parentId, ownerId: user?.id || "", icon, color: "#60a5fa",
-      sortOrder: userFolders.length, createdAt: new Date(), updatedAt: new Date(),
-    };
-    setFolders((prev) => [...prev, newFolder]);
+  const createFolder = async (name: string, parentId: string | null, icon: string) => {
+    if (!currentPortalId || !user?.id) return;
+    const row = await svcCreateFolder(
+      {
+        user_id: user.id,
+        parent_id: parentId,
+        name,
+        icon,
+        color: "#60a5fa",
+        sort_order: userFolders.length,
+      },
+      currentPortalId,
+    );
+    if (!row) return;
+    setFolders((prev) => [...prev, dbToFolder(row)]);
     if (parentId) setExpandedFolders((prev) => new Set(prev).add(parentId));
   };
 
@@ -331,7 +424,7 @@ const NotesPage = () => {
           )}
         </div>
         <p className="truncate" style={{ fontSize: 11, color: "var(--text-quaternary)", marginTop: 2, paddingLeft: canDrag ? 15 : 0 }}>
-          {note.content.replace(/[#*\-\[\]>]/g, "").slice(0, 60)}
+          {note.content.replace(/[#*\-[\]>]/g, "").slice(0, 60)}
         </p>
       </button>
     );
@@ -387,7 +480,14 @@ const NotesPage = () => {
                 autoFocus
                 value={renameValue}
                 onChange={(e) => setRenameValue(e.target.value)}
-                onBlur={() => { if (renameValue.trim()) setFolders((prev) => prev.map((f) => f.id === folder.id ? { ...f, name: renameValue.trim() } : f)); setRenamingFolderId(null); }}
+                onBlur={() => {
+                  const newName = renameValue.trim();
+                  if (newName) {
+                    setFolders((prev) => prev.map((f) => f.id === folder.id ? { ...f, name: newName } : f));
+                    if (currentPortalId) void svcUpdateFolder(folder.id, { name: newName }, currentPortalId);
+                  }
+                  setRenamingFolderId(null);
+                }}
                 onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setRenamingFolderId(null); }}
                 className="glass-input"
                 style={{ fontSize: 12, padding: "2px 6px", borderRadius: 4, width: "100%" }}
@@ -440,7 +540,7 @@ const NotesPage = () => {
               style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, flex: 1 }}
             >
               <option value={user?.id || ""}>My Notes</option>
-              {ALL_USERS.filter((u) => u.id !== user?.id).map((u) => (
+              {portalUsers.filter((u) => u.id !== user?.id).map((u) => (
                 <option key={u.id} value={u.id}>{u.displayName}'s Notes</option>
               ))}
             </select>
@@ -475,7 +575,7 @@ const NotesPage = () => {
             >
               📌 Pinned ({pinnedNotes.length})
             </button>
-            {(viewFilter.type === "pinned" || true) && pinnedNotes.map((n) => renderNoteItem(n))}
+            {pinnedNotes.map((n) => renderNoteItem(n))}
           </div>
         )}
 
@@ -847,7 +947,7 @@ const NotesPage = () => {
               style={{
                 padding: "7px 12px", borderRadius: 6, fontSize: 13, border: "none", cursor: "pointer",
                 background: "transparent",
-                color: (item as any).danger ? "#ef4444" : "var(--text-secondary)",
+                color: (item as { danger?: boolean }).danger ? "var(--color-error)" : "var(--text-secondary)",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface-hover, var(--nav-hover-bg))"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
@@ -888,7 +988,7 @@ const NotesPage = () => {
               style={{
                 padding: "7px 12px", borderRadius: 6, fontSize: 13, border: "none", cursor: "pointer",
                 background: "transparent",
-                color: (item as any).danger ? "#ef4444" : "var(--text-secondary)",
+                color: (item as { danger?: boolean }).danger ? "var(--color-error)" : "var(--text-secondary)",
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface-hover, var(--nav-hover-bg))"; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
@@ -965,7 +1065,7 @@ const NotesPage = () => {
             <p style={{ fontSize: 13, color: "var(--text-tertiary)", marginBottom: 20 }}>This action cannot be undone.</p>
             <div className="flex gap-2 justify-end">
               <button type="button" onClick={() => setDeleteConfirm(null)} className="glass-btn" style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8 }}>Cancel</button>
-              <button type="button" onClick={confirmDelete} style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8, background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: 600 }}>Delete</button>
+              <button type="button" onClick={confirmDelete} style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8, background: "var(--color-error)", color: "white", border: "none", cursor: "pointer", fontWeight: 600 }}>Delete</button>
             </div>
           </div>
         </>
@@ -992,7 +1092,7 @@ const NotesPage = () => {
             </p>
             <div className="flex gap-2 justify-end">
               <button type="button" onClick={() => setDeleteFolderConfirm(null)} className="glass-btn" style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8 }}>Cancel</button>
-              <button type="button" onClick={confirmDeleteFolder} style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8, background: "#ef4444", color: "white", border: "none", cursor: "pointer", fontWeight: 600 }}>Delete</button>
+              <button type="button" onClick={confirmDeleteFolder} style={{ fontSize: 13, padding: "7px 16px", borderRadius: 8, background: "var(--color-error)", color: "white", border: "none", cursor: "pointer", fontWeight: 600 }}>Delete</button>
             </div>
           </div>
         </>

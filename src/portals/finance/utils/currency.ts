@@ -1,33 +1,23 @@
 // ── Currency Conversion & Formatting ─────────────────────────────────────────
 // Base currency: EUR. All net-worth calculations happen in EUR.
-// USD → EUR conversion uses a static fallback rate unless overridden.
+// USD → EUR conversion uses a static fallback rate unless overridden in memory.
 
 const FALLBACK_USD_EUR = 0.92;
 
-import { STORAGE_EXCHANGE_RATES } from "@/constants/storageKeys";
-
-const LS_KEY = STORAGE_EXCHANGE_RATES;
-
 export interface ExchangeRates {
   USD_EUR: number;
-  updated_at: string; // ISO timestamp
+  updated_at: string;
 }
 
-/** Read persisted rates from localStorage (if any). */
+let _rates: ExchangeRates = { USD_EUR: FALLBACK_USD_EUR, updated_at: "" };
+
 function loadRates(): ExchangeRates {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as ExchangeRates;
-      if (parsed.USD_EUR > 0) return parsed;
-    }
-  } catch { /* corrupted */ }
-  return { USD_EUR: FALLBACK_USD_EUR, updated_at: "" };
+  return _rates;
 }
 
-/** Persist a new rate (called by an optional edge-function refresh). */
+/** Override in-memory exchange rate (e.g. fetched from an edge function). */
 export function saveRates(rates: ExchangeRates): void {
-  localStorage.setItem(LS_KEY, JSON.stringify(rates));
+  _rates = rates;
 }
 
 const SUPPORTED_CURRENCIES = new Set(["EUR", "USD"]);
@@ -37,7 +27,6 @@ export function convertToEUR(amount: number, currency: string): number {
   const cur = (currency || "EUR").toUpperCase();
   if (cur === "EUR") return amount;
   if (cur === "USD") return amount * loadRates().USD_EUR;
-  // Unknown/unsupported currency — default to EUR (1:1) and log warning
   if (!SUPPORTED_CURRENCIES.has(cur)) {
     console.warn(`[convertToEUR] Unsupported currency "${cur}" — defaulting to EUR (1:1)`);
   }

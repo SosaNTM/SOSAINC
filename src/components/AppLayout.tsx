@@ -1,28 +1,31 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { PortalShell } from "./sosa/PortalShell";
+import { usePortal } from "@/lib/portalContext";
 
 export function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { portal } = usePortal();
   const location = useLocation();
+  const workspace = portal?.id ?? "sosa";
+  const isCloud = location.pathname.endsWith("/cloud");
+  const isStaticPage = isCloud || location.pathname.endsWith("/leadgen/search");
+  const mainRef = useRef<HTMLElement>(null);
 
   useKeyboardShortcuts();
 
-  return (
-    <div className="h-screen w-full relative flex items-center justify-center p-2 md:p-4 overflow-hidden">
-      {/* Ambient orbs background */}
-      <div className="ambient-orbs">
-        <div className="ambient-orb-1" />
-        <div className="ambient-orb-2" />
-        <div className="ambient-orb-3" />
-        <div className="ambient-orb-4" />
-      </div>
+  // Reset scroll on route change without remounting the element
+  useEffect(() => {
+    mainRef.current?.scrollTo(0, 0);
+  }, [location.pathname]);
 
-      {/* Main glass container — fills viewport with small margin */}
-      <div className="liquid-glass-container relative z-10 flex w-full h-full">
+  return (
+    <PortalShell workspace={workspace} showHeader={false}>
+      <div style={{ display: "flex", height: "calc(100dvh - 36px)", overflow: "hidden" }}>
         <AppSidebar
           collapsed={collapsed}
           onToggle={() => setCollapsed(!collapsed)}
@@ -30,18 +33,23 @@ export function AppLayout() {
           onMobileClose={() => setMobileOpen(false)}
         />
 
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
           <AppHeader onMenuClick={() => setMobileOpen(true)} />
           <main
-            className={`flex-1 p-3 sm:p-4 md:p-5 lg:p-7 ${location.pathname.endsWith("/cloud") ? "overflow-hidden flex flex-col" : "overflow-y-auto"}`}
-            key={location.pathname}
-            style={{ animation: "fadeInUp 0.3s ease-out" }}
+            ref={mainRef}
+            style={{
+              flex:      1,
+              padding:   isStaticPage ? 0 : "16px 24px 24px",
+              overflowY: isStaticPage ? "hidden" : "auto",
+              display:   isStaticPage ? "flex" : "block",
+              flexDirection: isStaticPage ? "column" : undefined,
+            }}
           >
             <Outlet />
-            {!location.pathname.endsWith("/cloud") && <div className="h-10" />}
+            {!isStaticPage && <div style={{ height: 48 }} />}
           </main>
         </div>
       </div>
-    </div>
+    </PortalShell>
   );
 }

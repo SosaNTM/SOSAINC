@@ -136,7 +136,7 @@ export default function PrioritiesLabels() {
   ];
 
   return (
-    <div style={{ maxWidth: 860 }}>
+    <div style={{ maxWidth: "100%" }}>
       <SettingsPageHeader
         icon={Tags}
         title="Priorita e Label"

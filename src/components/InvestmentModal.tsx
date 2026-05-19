@@ -61,7 +61,7 @@ export function InvestmentModal({ open, onClose, onSave, initial }: Props) {
         <motion.div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)" }}
+          style={{ background: "rgba(0,0,0,0.75)" }}
           onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
           <motion.div
@@ -69,7 +69,7 @@ export function InvestmentModal({ open, onClose, onSave, initial }: Props) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 16 }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            style={{ width: "100%", maxWidth: 480, background: "var(--glass-bg)", backdropFilter: "blur(24px)", border: "1px solid var(--glass-border)", borderRadius: 20, padding: 28, boxShadow: "0 24px 64px rgba(0,0,0,0.4)" }}
+            style={{ width: "100%", maxWidth: 480, background: "var(--sosa-bg-3)", border: "1px solid var(--sosa-border)", borderRadius: 0, padding: 28 }}
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-6">

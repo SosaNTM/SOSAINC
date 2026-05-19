@@ -1,7 +1,6 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { CheckSquare, Clock, RefreshCw } from "lucide-react";
 import { format, isPast, isToday } from "date-fns";
-import { STORAGE_TASKS } from "@/constants/storageKeys";
 import { loadTasksFromSupabase } from "@/lib/taskSync";
 import { ISSUE_PRIORITIES, type Issue } from "@/lib/linearStore";
 import { usePortal } from "@/lib/portalContext";
@@ -14,23 +13,6 @@ const STATUS_COLS: { key: string; label: string; color: string; match: string[] 
   { key: "done",        label: "Done",        color: "#10b981", match: ["done"] },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
-function parseStoredTasks(): Issue[] {
-  try {
-    const saved = localStorage.getItem(STORAGE_TASKS);
-    if (!saved) return [];
-    return JSON.parse(saved).map((t: any) => ({
-      ...t,
-      createdAt: new Date(t.createdAt),
-      updatedAt: new Date(t.updatedAt),
-      dueDate: t.dueDate ? new Date(t.dueDate) : null,
-    }));
-  } catch {
-    return [];
-  }
-}
-
 // ── Component ──────────────────────────────────────────────────────────────────
 
 interface ProfileTasksCardProps {
@@ -41,27 +23,26 @@ export function ProfileTasksCard({ userId }: ProfileTasksCardProps) {
   const { portal } = usePortal();
   const portalId = portal?.id ?? "sosa";
 
-  const [allTasks, setAllTasks] = useState<Issue[]>(parseStoredTasks);
-  const [syncing, setSyncing] = useState(false);
+  const [allTasks, setAllTasks] = useState<Issue[]>([]);
+  const [syncing, setSyncing] = useState(true);
 
-  // Initial Supabase fetch
-  useEffect(() => {
+  const load = useCallback(async () => {
     setSyncing(true);
-    loadTasksFromSupabase(portalId)
-      .then((tasks) => { if (tasks.length > 0) setAllTasks(tasks); })
-      .finally(() => setSyncing(false));
+    const tasks = await loadTasksFromSupabase(portalId);
+    setAllTasks(tasks);
+    setSyncing(false);
   }, [portalId]);
 
-  // Live sync: re-read localStorage whenever TasksPage writes to it
+  useEffect(() => { void load(); }, [load]);
+
+  // Live sync: re-load whenever TasksPage broadcasts a change
   useEffect(() => {
-    const sync = () => setAllTasks(parseStoredTasks());
-    window.addEventListener("SOSA INC:tasks-changed", sync);
-    window.addEventListener("storage", sync); // cross-tab fallback
+    const handler = () => { void load(); };
+    window.addEventListener("SOSA INC:tasks-changed", handler);
     return () => {
-      window.removeEventListener("SOSA INC:tasks-changed", sync);
-      window.removeEventListener("storage", sync);
+      window.removeEventListener("SOSA INC:tasks-changed", handler);
     };
-  }, []);
+  }, [load]);
 
   // Filter: assigned to this user, exclude backlog & cancelled
   const myTasks = allTasks.filter(

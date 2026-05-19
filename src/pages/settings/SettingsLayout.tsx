@@ -1,20 +1,22 @@
-import { useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  Building2, Palette, TrendingUp, TrendingDown, RefreshCw, CreditCard,
-  Repeat, Coins, Columns3, Tags, FileStack, Share2, CalendarClock,
-  Layers, Shield, Network, Bell, AlertTriangle, Trash2, Settings2,
+  TrendingUp, TrendingDown, RefreshCw, CreditCard,
+  Repeat, Columns3, Tags, FileStack, Share2, CalendarClock,
+  Layers, Bell, AlertTriangle, Trash2, Settings2, Crosshair, Users,
+  Building2, Palette, Lock, UserCog, Shield,
 } from "lucide-react";
+import { usePortal } from "@/lib/portalContext";
 
-interface NavItemDef { title: string; path: string; icon: React.FC<any>; danger?: boolean }
+interface NavItemDef { title: string; path: string; icon: React.ComponentType<{ size?: number; className?: string }>; danger?: boolean }
 
 const NAV_SECTIONS: { label: string; items: NavItemDef[] }[] = [
   {
     label: "GENERALE",
     items: [
-      { title: "Profilo Portale",  path: "general/profile",  icon: Building2 },
-      { title: "Aspetto",          path: "general/aspetto",  icon: Palette   },
+      { title: "Profilo Portale", path: "general/profile",  icon: Building2 },
+      { title: "Aspetto",         path: "general/aspetto",  icon: Palette   },
+      { title: "Accesso",         path: "general/accesso",  icon: Lock      },
     ],
   },
   {
@@ -25,7 +27,6 @@ const NAV_SECTIONS: { label: string; items: NavItemDef[] }[] = [
       { title: "Categorie Abbonamenti",  path: "finance/categorie-abbonamenti",  icon: RefreshCw    },
       { title: "Metodi di Pagamento",    path: "finance/metodi-pagamento",       icon: CreditCard   },
       { title: "Regole Ricorrenza",      path: "finance/regole-ricorrenze",      icon: Repeat       },
-      { title: "Valuta e Tasse",         path: "finance/valute-tasse",           icon: Coins        },
       { title: "Categorie Transazioni", path: "finance/categorie-transazioni",  icon: Tags         },
     ],
   },
@@ -48,8 +49,8 @@ const NAV_SECTIONS: { label: string; items: NavItemDef[] }[] = [
   {
     label: "TEAM",
     items: [
-      { title: "Ruoli e Permessi", path: "team/ruoli-permessi", icon: Shield  },
-      { title: "Dipartimenti",     path: "team/reparti",        icon: Network },
+      { title: "Membri",              path: "team/membri",       icon: UserCog },
+      { title: "Dipartimenti",        path: "team/dipartimenti", icon: Users   },
     ],
   },
   {
@@ -59,6 +60,10 @@ const NAV_SECTIONS: { label: string; items: NavItemDef[] }[] = [
       { title: "Regole Avviso",   path: "notifiche/regole-alert", icon: AlertTriangle },
     ],
   },
+];
+
+const ACCOUNT_SECTION: NavItemDef[] = [
+  { title: "Privacy e Dati", path: "../../account/privacy", icon: Shield },
 ];
 
 const DANGER_SECTION: NavItemDef[] = [
@@ -98,9 +103,10 @@ function SidebarNavItem({ item }: { item: NavItemDef }) {
 
 export default function SettingsLayout() {
   const location = useLocation();
+  const { portal } = usePortal();
 
   return (
-    <div style={{
+    <div className="settings-shell" style={{
       display: "flex", height: "100%", overflow: "hidden",
       background: "var(--glass-bg-elevated)",
       backdropFilter: "var(--glass-blur-heavy)",
@@ -108,6 +114,48 @@ export default function SettingsLayout() {
       border: "0.5px solid var(--glass-border)",
       borderRadius: "var(--radius-xl)",
     }}>
+      <style>{`
+        .settings-shell .glass-input,
+        .settings-shell input.glass-input,
+        .settings-shell select.glass-input,
+        .settings-shell textarea.glass-input {
+          border-radius: 10px !important;
+          font-family: var(--font-body) !important;
+          background: var(--glass-bg, rgba(255,255,255,0.04)) !important;
+          border: 1px solid var(--glass-border) !important;
+          padding: 10px 14px !important;
+          font-size: 13.5px !important;
+          color: var(--text-primary) !important;
+          transition: border-color 0.15s, box-shadow 0.15s, background 0.15s !important;
+        }
+        .settings-shell .glass-input::placeholder {
+          color: var(--text-quaternary) !important;
+          font-family: var(--font-body) !important;
+        }
+        .settings-shell .glass-input:focus,
+        .settings-shell .glass-input:focus-visible {
+          outline: none !important;
+          border-color: var(--accent-primary) !important;
+          box-shadow: 0 0 0 3px var(--accent-primary-soft, rgba(59,130,246,0.15)) !important;
+        }
+        .settings-shell .glass-input:hover:not(:focus) {
+          background: var(--glass-bg-hover, rgba(255,255,255,0.06)) !important;
+        }
+        .settings-shell .glass-segment {
+          border-radius: 10px !important;
+        }
+        .settings-shell .glass-segment-item {
+          border-radius: 8px !important;
+          font-family: var(--font-body) !important;
+        }
+        .settings-shell .btn-primary {
+          border-radius: 10px !important;
+        }
+        .settings-shell .btn-glass-ds {
+          border-radius: 10px !important;
+          font-family: var(--font-body) !important;
+        }
+      `}</style>
       {/* Settings Sidebar */}
       <aside style={{
         width: 220, flexShrink: 0, height: "100%", overflowY: "auto",
@@ -144,6 +192,30 @@ export default function SettingsLayout() {
             {section.items.map((item) => <SidebarNavItem key={item.path} item={item} />)}
           </div>
         ))}
+
+        {/* Lead Generation — REDX only */}
+        {portal?.id === "redx" && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ height: 1, background: "var(--divider)", margin: "16px 8px 14px" }} />
+            <p style={{
+              fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 500,
+              textTransform: "uppercase", letterSpacing: "0.08em",
+              color: "var(--text-tertiary)",
+              padding: "0 8px 6px",
+            }}>LEAD GENERATION</p>
+            <SidebarNavItem item={{ title: "API & Token", path: "leadgen/impostazioni", icon: Crosshair }} />
+            <SidebarNavItem item={{ title: "Team",        path: "leadgen/team",         icon: Users      }} />
+          </div>
+        )}
+
+        {/* Divider + Account */}
+        <div style={{ height: 1, background: "var(--divider)", margin: "16px 8px" }} />
+        <p style={{
+          fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 500,
+          textTransform: "uppercase", letterSpacing: "0.08em",
+          color: "var(--text-tertiary)", padding: "0 8px 6px",
+        }}>ACCOUNT</p>
+        {ACCOUNT_SECTION.map((item) => <SidebarNavItem key={item.path} item={item} />)}
 
         {/* Divider + Danger Zone */}
         <div style={{

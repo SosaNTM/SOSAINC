@@ -1,0 +1,149 @@
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useLeadgenSearches } from "@/hooks/leadgen/useLeadgenSearches";
+import { useLeadgenSettings } from "@/hooks/leadgen/useLeadgenSettings";
+import { SearchProgressIndicator } from "@/components/leadgen/SearchProgressIndicator";
+import { usePortal } from "@/lib/portalContext";
+import { Square } from "lucide-react";
+import { toast } from "sonner";
+import type { LeadgenSearch } from "@/types/leadgen";
+
+function duration(search: LeadgenSearch): string {
+  if (!search.completed_at) return "—";
+  const ms = new Date(search.completed_at).getTime() - new Date(search.started_at).getTime();
+  const s = Math.round(ms / 1000);
+  return s < 60 ? `${s}s` : `${Math.round(s / 60)}m ${s % 60}s`;
+}
+
+export default function LeadgenSearchHistory() {
+  const { searches, loading, refetch, startPolling, stopPolling, abortSearch } = useLeadgenSearches();
+  const { data: settings } = useLeadgenSettings();
+  const { portal } = usePortal();
+  const [searchParams] = useSearchParams();
+  const highlight = searchParams.get("highlight");
+  const [aborting, setAborting] = useState<string | null>(null);
+
+  const hasRunning = searches.some((s) => s.status === "running");
+
+  useEffect(() => {
+    if (hasRunning && settings?.apify_token) {
+      startPolling(settings.apify_token);
+    } else {
+      stopPolling();
+    }
+  }, [hasRunning, settings, startPolling, stopPolling]);
+
+  // Refresh counts every 10s while a search is running
+  useEffect(() => {
+    if (!hasRunning) return;
+    const id = setInterval(refetch, 10000);
+    return () => clearInterval(id);
+  }, [hasRunning, refetch]);
+
+  const handleAbort = async (s: LeadgenSearch) => {
+    if (!s.apify_run_id || !settings?.apify_token) return;
+    setAborting(s.id);
+    const { error } = await abortSearch(s.id, s.apify_run_id, settings.apify_token);
+    setAborting(null);
+    if (error) toast.error(error);
+    else toast.success("Ricerca annullata");
+  };
+
+  if (loading) {
+    return <div style={{ padding: 32, color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", fontSize: 13 }}>Caricamento...</div>;
+  }
+
+  return (
+    <div style={{ padding: "24px 32px" }}>
+      <h1 style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, color: "var(--text-primary)", marginBottom: 24 }}>
+        Storico ricerche
+      </h1>
+
+      {searches.length === 0 ? (
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-tertiary)" }}>Nessuna ricerca avviata.</p>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: 12 }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid var(--glass-border)" }}>
+                {["Paese", "CAP", "Categorie", "Status", "Salvate", "Catene", "No-contatti", "Con sito", "Senza sito", "Data", "Durata", ""].map((h) => (
+                  <th key={h} style={{ padding: "8px 12px", textAlign: "left", color: "var(--text-tertiary)", fontWeight: 600, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", whiteSpace: "nowrap" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {searches.flatMap((s) => {
+                const rows = [
+                  <tr
+                    key={s.id}
+                    style={{
+                      borderBottom: "1px solid var(--glass-border)",
+                      background: s.id === highlight ? "color-mix(in srgb, var(--accent-primary) 8%, transparent)" : "transparent",
+                    }}
+                  >
+                    <td style={{ padding: "10px 12px", color: "var(--text-primary)" }}>{s.country_code}</td>
+                    <td style={{ padding: "10px 12px", color: "var(--text-primary)" }}>{s.postal_code}</td>
+                    <td style={{ padding: "10px 12px", color: "var(--text-primary)" }}>
+                      {s.categories?.length > 0 ? s.categories.join(", ") : (s.category ?? "—")}
+                    </td>
+                    <td style={{ padding: "10px 12px" }}><SearchProgressIndicator status={s.status} /></td>
+                    <td style={{ padding: "10px 12px", color: "var(--text-primary)", textAlign: "center" }}>{s.total_results}</td>
+                    <td style={{ padding: "10px 12px", color: "var(--color-error)", textAlign: "center" }}>
+                      {s.excluded_count ?? 0}
+                    </td>
+                    <td style={{ padding: "10px 12px", color: "var(--text-tertiary)", textAlign: "center" }}>
+                      {s.discarded_no_contact_count ?? 0}
+                    </td>
+                    <td style={{ padding: "10px 12px", color: "var(--color-success)", textAlign: "center" }}>{s.with_website}</td>
+                    <td style={{ padding: "10px 12px", color: "var(--color-error)", textAlign: "center" }}>{s.without_website}</td>
+                    <td style={{ padding: "10px 12px", color: "var(--text-tertiary)", whiteSpace: "nowrap" }}>{new Date(s.started_at).toLocaleDateString("it-IT")}</td>
+                    <td style={{ padding: "10px 12px", color: "var(--text-tertiary)" }}>{duration(s)}</td>
+                    <td style={{ padding: "10px 12px" }}>
+                      {s.status === "running" && (
+                        <button
+                          type="button"
+                          onClick={() => handleAbort(s)}
+                          disabled={aborting === s.id}
+                          title="Annulla ricerca"
+                          style={{
+                            display: "inline-flex", alignItems: "center", justifyContent: "center",
+                            width: 26, height: 26,
+                            background: "color-mix(in srgb, var(--color-error) 12%, transparent)",
+                            border: "1px solid var(--color-error)",
+                            color: "var(--color-error)",
+                            cursor: aborting === s.id ? "not-allowed" : "pointer",
+                            opacity: aborting === s.id ? 0.5 : 1,
+                          }}
+                        >
+                          <Square size={11} fill="currentColor" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>,
+                ];
+
+                if (s.status === "completed" && ((s.excluded_count ?? 0) > 0 || (s.discarded_no_contact_count ?? 0) > 0)) {
+                  const parts: string[] = [];
+                  if ((s.excluded_count ?? 0) > 0) parts.push(`${s.excluded_count} catene`);
+                  if ((s.discarded_no_contact_count ?? 0) > 0) parts.push(`${s.discarded_no_contact_count} senza contatti`);
+                  rows.push(
+                    <tr key={`${s.id}-excl`} style={{ borderBottom: "1px solid var(--glass-border)" }}>
+                      <td colSpan={12} style={{ padding: "0 12px 8px", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-tertiary)" }}>
+                        Escluse: {parts.join(", ")} —{" "}
+                        <a href={`/${portal?.id ?? "redx"}/leadgen/settings`} style={{ color: "var(--accent-primary)", textDecoration: "none" }}>
+                          Gestisci blacklist
+                        </a>
+                      </td>
+                    </tr>
+                  );
+                }
+
+                return rows;
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}

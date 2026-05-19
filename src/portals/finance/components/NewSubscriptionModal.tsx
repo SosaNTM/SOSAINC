@@ -6,7 +6,7 @@ import {
   BILLING_CYCLE_LABELS,
   getFirstBillingDateFromStart,
 } from "../services/subscriptionCycles";
-import { useCategories } from "@/hooks/useCategories";
+import { useSubscriptionCategories } from "@/hooks/settings";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -78,16 +78,17 @@ interface FormErrors {
 
 const inputBase: React.CSSProperties = {
   width: "100%",
-  background: "#f9fafb",
-  border: "1px solid #e5e7eb",
+  background: "var(--btn-glass-bg, rgba(255,255,255,0.05))",
+  border: "1px solid var(--btn-glass-border, rgba(255,255,255,0.1))",
   borderRadius: 10,
   padding: "12px 16px",
   fontSize: 13.5,
-  color: "#111827",
+  color: "var(--text-primary)",
   outline: "none",
   fontFamily: "inherit",
   transition: "border-color 0.15s, box-shadow 0.15s",
   boxSizing: "border-box",
+  colorScheme: "dark",
 };
 
 const labelStyle: React.CSSProperties = {
@@ -95,7 +96,7 @@ const labelStyle: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 600,
   letterSpacing: "0.08em",
-  color: "#6b7280",
+  color: "var(--text-quaternary)",
   textTransform: "uppercase",
   marginBottom: 7,
 };
@@ -114,7 +115,7 @@ function blurBorder(
   e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   isError = false,
 ) {
-  e.target.style.borderColor = isError ? "#FF5A5A" : "#e5e7eb";
+  e.target.style.borderColor = isError ? "#FF5A5A" : "rgba(255,255,255,0.1)";
   e.target.style.boxShadow = "none";
 }
 
@@ -122,8 +123,8 @@ function blurBorder(
 
 export function NewSubscriptionModal({ isOpen, onClose, onSave, initialData }: Props) {
   const isEditing = !!initialData;
-  const { activeExpenseCategories } = useCategories();
-  const defaultCategory = activeExpenseCategories[0]?.name ?? "Subscriptions";
+  const { data: subscriptionCategories } = useSubscriptionCategories();
+  const defaultCategory = subscriptionCategories[0]?.name ?? "";
   const [form, setForm] = useState<FormState>({
     name: "", icon: "🎬", amount: "", currency: "EUR",
     billing_cycle: "monthly", billing_day: "1",
@@ -230,8 +231,8 @@ export function NewSubscriptionModal({ isOpen, onClose, onSave, initialData }: P
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: "#ffffff",
-          border: "1px solid #e5e7eb",
+          background: "var(--glass-bg-elevated, #1a1a1a)",
+          border: "1px solid var(--glass-border, rgba(255,255,255,0.08))",
           borderRadius: 20,
           padding: "36px",
           width: "100%",
@@ -240,7 +241,7 @@ export function NewSubscriptionModal({ isOpen, onClose, onSave, initialData }: P
           overflowY: "auto",
           animation: "subSlideUp 0.22s ease-out",
           position: "relative",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
         }}
       >
         {/* ── Header ── */}
@@ -252,8 +253,8 @@ export function NewSubscriptionModal({ isOpen, onClose, onSave, initialData }: P
             {isEditing ? "Edit Subscription" : "New Subscription"}
           </h2>
           <button type="button" onClick={onClose}
-            style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "#f3f4f6", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <X style={{ width: 14, height: 14, color: "#6b7280" }} />
+            style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "var(--btn-glass-bg)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <X style={{ width: 14, height: 14, color: "var(--text-secondary)" }} />
           </button>
         </div>
 
@@ -262,39 +263,17 @@ export function NewSubscriptionModal({ isOpen, onClose, onSave, initialData }: P
           {/* ── Nome + Emoji ── */}
           <div>
             <label style={labelStyle}>Subscription Name *</label>
-            <div style={{ display: "flex", gap: 8, position: "relative" }}>
+            <div style={{ display: "flex", gap: 8 }}>
               {/* Emoji button */}
               <button type="button"
                 onClick={() => setShowEmojiPicker((p) => !p)}
                 style={{
-                  width: 48, height: 48, flexShrink: 0, borderRadius: 10, border: "1px solid #e5e7eb",
-                  background: "#f9fafb", cursor: "pointer", fontSize: 20,
+                  width: 48, height: 48, flexShrink: 0, borderRadius: 10, border: "1px solid var(--btn-glass-border)",
+                  background: "var(--btn-glass-bg)", cursor: "pointer", fontSize: 20,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                 {form.icon}
               </button>
-              {/* Emoji picker popover */}
-              {showEmojiPicker && (
-                <div style={{
-                  position: "absolute", top: 54, left: 0, zIndex: 10,
-                  background: "#ffffff", border: "1px solid #e5e7eb",
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
-                  borderRadius: 12, padding: 10,
-                  display: "grid", gridTemplateColumns: "repeat(10,1fr)", gap: 4, width: 300,
-                }}>
-                  {EMOJIS.map((em) => (
-                    <button key={em} type="button"
-                      onClick={() => { set("icon", em); setShowEmojiPicker(false); }}
-                      style={{
-                        width: 26, height: 26, borderRadius: 6, border: "none", background: "transparent",
-                        cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center",
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                    >{em}</button>
-                  ))}
-                </div>
-              )}
               {/* Name input */}
               <input
                 type="text" placeholder="e.g. Netflix, Spotify, Adobe..."
@@ -305,6 +284,28 @@ export function NewSubscriptionModal({ isOpen, onClose, onSave, initialData }: P
                 onBlur={(e) => blurBorder(e, !!errors.name)}
               />
             </div>
+            {/* Emoji picker — inline flow, no clipping */}
+            {showEmojiPicker && (
+              <div style={{
+                marginTop: 8,
+                background: "var(--glass-bg-elevated, #1e1e1e)", border: "1px solid var(--glass-border)",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+                borderRadius: 12, padding: 10,
+                display: "grid", gridTemplateColumns: "repeat(10,1fr)", gap: 4,
+              }}>
+                {EMOJIS.map((em) => (
+                  <button key={em} type="button"
+                    onClick={() => { set("icon", em); setShowEmojiPicker(false); }}
+                    style={{
+                      width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent",
+                      cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >{em}</button>
+                ))}
+              </div>
+            )}
             {errors.name && <p style={errorStyle}>{errors.name}</p>}
           </div>
 
@@ -315,7 +316,7 @@ export function NewSubscriptionModal({ isOpen, onClose, onSave, initialData }: P
               <div style={{ position: "relative" }}>
                 <span style={{
                   position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)",
-                  color: "#9ca3af", fontSize: 14, pointerEvents: "none",
+                  color: "var(--text-quaternary)", fontSize: 14, pointerEvents: "none",
                 }}>€</span>
                 <input
                   type="number" min="0.01" step="0.01" placeholder="0.00"
@@ -333,7 +334,7 @@ export function NewSubscriptionModal({ isOpen, onClose, onSave, initialData }: P
               <select
                 value={form.currency}
                 onChange={(e) => set("currency", e.target.value)}
-                style={{ ...inputBase, width: 90, cursor: "pointer", colorScheme: "light" }}
+                style={{ ...inputBase, width: 90, cursor: "pointer", colorScheme: "dark" }}
                 onFocus={focusBorder} onBlur={(e) => blurBorder(e)}
               >
                 {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -347,7 +348,7 @@ export function NewSubscriptionModal({ isOpen, onClose, onSave, initialData }: P
             <select
               value={form.billing_cycle}
               onChange={(e) => set("billing_cycle", e.target.value as BillingCycle)}
-              style={{ ...inputBase, cursor: "pointer", colorScheme: "light" }}
+              style={{ ...inputBase, cursor: "pointer", colorScheme: "dark" }}
               onFocus={focusBorder} onBlur={(e) => blurBorder(e)}
             >
               {BILLING_CYCLES.map((c) => (
@@ -384,7 +385,7 @@ export function NewSubscriptionModal({ isOpen, onClose, onSave, initialData }: P
                 type="date"
                 value={form.start_date}
                 onChange={(e) => set("start_date", e.target.value)}
-                style={{ ...inputBase, colorScheme: "light", borderColor: errors.start_date ? "#FF5A5A" : "rgba(255,255,255,0.08)" }}
+                style={{ ...inputBase, colorScheme: "dark", borderColor: errors.start_date ? "#FF5A5A" : "rgba(255,255,255,0.08)" }}
                 onFocus={focusBorder}
                 onBlur={(e) => blurBorder(e, !!errors.start_date)}
               />
@@ -398,10 +399,15 @@ export function NewSubscriptionModal({ isOpen, onClose, onSave, initialData }: P
             <select
               value={form.category}
               onChange={(e) => set("category", e.target.value)}
-              style={{ ...inputBase, cursor: "pointer", colorScheme: "light" }}
+              style={{ ...inputBase, cursor: "pointer", colorScheme: "dark" }}
               onFocus={focusBorder} onBlur={(e) => blurBorder(e)}
             >
-              {activeExpenseCategories.map((c) => <option key={c.id} value={c.name}>{c.icon} {c.name}</option>)}
+              {subscriptionCategories.length === 0 && (
+                <option value="">No categories — add in Settings</option>
+              )}
+              {subscriptionCategories.map((c) => (
+                <option key={c.id} value={c.name}>{c.icon} {c.name}</option>
+              ))}
             </select>
           </div>
 
@@ -447,12 +453,12 @@ export function NewSubscriptionModal({ isOpen, onClose, onSave, initialData }: P
           <button type="button" onClick={onClose}
             style={{
               flex: 1, height: 48, borderRadius: 10,
-              border: "1px solid #e5e7eb",
-              background: "transparent", color: "#6b7280",
+              border: "1px solid var(--glass-border)",
+              background: "transparent", color: "var(--text-quaternary)",
               fontSize: 13, cursor: "pointer", fontWeight: 500,
               transition: "background 0.15s",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             Cancel

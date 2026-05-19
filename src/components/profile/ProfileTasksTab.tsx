@@ -41,7 +41,7 @@ function TaskCard({ task }: { task: ProfileTask }) {
       <div className="mt-2">
         <select
           value={status}
-          onChange={(e) => setStatus(e.target.value as any)}
+          onChange={(e) => setStatus(e.target.value as (typeof statusOptions)[number])}
           className="glass-input"
           style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6 }}
         >

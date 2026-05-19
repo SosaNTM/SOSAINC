@@ -5,7 +5,6 @@ import type {
 } from "../types/giftCards";
 import {
   fetchGiftCards, fetchBrands, createGiftCard, updateGiftCard, deleteGiftCard, toggleFavorite,
-  setGiftCardPortal,
 } from "../services/giftCardService";
 import { convertToEur, getDaysUntilExpiry } from "../utils/giftCardUtils";
 import { usePortal } from "@/lib/portalContext";
@@ -15,8 +14,6 @@ export function useGiftCards() {
   const { portal } = usePortal();
   const portalId = portal?.id ?? "sosa";
 
-  // Scope localStorage keys to current portal
-  useEffect(() => { setGiftCardPortal(portalId); }, [portalId]);
   const [cards, setCards] = useState<GiftCard[]>([]);
   const [brands, setBrands] = useState<GiftCardBrand[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,7 +25,7 @@ export function useGiftCards() {
     try {
       setIsLoading(true);
       setError(null);
-      const [cardsData, brandsData] = await Promise.all([fetchGiftCards(), fetchBrands()]);
+      const [cardsData, brandsData] = await Promise.all([fetchGiftCards(portalId), fetchBrands()]);
       setCards(cardsData);
       setBrands(brandsData);
     } catch (err) {
@@ -38,7 +35,7 @@ export function useGiftCards() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [portalId]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -110,24 +107,24 @@ export function useGiftCards() {
     expiry_date?: string;
     notes?: string;
   }) => {
-    await createGiftCard(data);
+    await createGiftCard(data, portalId);
     await loadData();
-  }, [loadData]);
+  }, [loadData, portalId]);
 
   const handleUpdate = useCallback(async (id: string, updates: Partial<GiftCard>) => {
-    await updateGiftCard(id, updates);
+    await updateGiftCard(id, updates, portalId);
     await loadData();
-  }, [loadData]);
+  }, [loadData, portalId]);
 
   const handleDelete = useCallback(async (id: string) => {
-    await deleteGiftCard(id);
+    await deleteGiftCard(id, portalId);
     await loadData();
-  }, [loadData]);
+  }, [loadData, portalId]);
 
   const handleToggleFavorite = useCallback(async (id: string, isFav: boolean) => {
-    await toggleFavorite(id, isFav);
+    await toggleFavorite(id, isFav, portalId);
     await loadData();
-  }, [loadData]);
+  }, [loadData, portalId]);
 
   return {
     cards: enrichedCards,

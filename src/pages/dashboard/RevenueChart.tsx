@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, Wallet, Target } from "lucide-react";
 import { formatEUR } from "@/portals/finance/utils/currency";
@@ -59,7 +59,7 @@ export function RevenueChart({ waterfallMetrics, period }: RevenueChartProps) {
           {
             label: "Margine Lordo",
             value: waterfallMetrics?.grossProfit ?? 0,
-            color: "#e8ff00",
+            color: "var(--sosa-yellow)",
             accent: "rgba(232,255,0,0.10)",
             border: "rgba(232,255,0,0.18)",
             icon: <Wallet style={{ width: 18, height: 18 }} />,
@@ -185,7 +185,7 @@ export function RevenueChart({ waterfallMetrics, period }: RevenueChartProps) {
               sub: "Revenue - COGS",
               value: null,
               pct: waterfallMetrics ? waterfallMetrics.grossMarginPct.toFixed(1) : "0.0",
-              color: "#e8ff00",
+              color: "var(--sosa-yellow)",
               barBg: "rgba(232,255,0,0.08)",
               barFill: "rgba(232,255,0,0.55)",
             },

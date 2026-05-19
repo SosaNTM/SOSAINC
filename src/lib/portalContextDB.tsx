@@ -10,6 +10,7 @@ interface PortalContextValue {
   isAdmin: boolean;
   isOwner: boolean;
   loadingPortals: boolean;
+  loadingRole: boolean;
   setCurrentPortalBySlug: (slug: string) => void;
   setCurrentPortal: (portal: Portal) => void;
   refreshPortals: () => Promise<void>;
@@ -22,25 +23,27 @@ export function PortalDBProvider({ children }: { children: ReactNode }) {
   const [currentPortal, setCurrentPortalState] = useState<Portal | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<PortalMember["role"] | null>(null);
+  const [loadingRole, setLoadingRole] = useState(false);
   const currentPortalRef = useRef<Portal | null>(null);
   const portalsRef = useRef<Portal[]>([]);
   const pendingSlugRef = useRef<string | null>(null);
 
   // Recompute userRole whenever currentPortal changes by reading portal_members
   useEffect(() => {
-    if (!currentPortal) { setUserRole(null); return; }
+    if (!currentPortal) { setUserRole(null); setLoadingRole(false); return; }
     let cancelled = false;
+    setLoadingRole(true);
     (async () => {
       const { data: auth } = await supabase.auth.getUser();
       const uid = auth?.user?.id;
-      if (!uid) { if (!cancelled) setUserRole(null); return; }
+      if (!uid) { if (!cancelled) { setUserRole(null); setLoadingRole(false); } return; }
       const { data: row } = await supabase
         .from("portal_members")
         .select("role")
         .eq("portal_id", currentPortal.id)
         .eq("user_id", uid)
         .maybeSingle();
-      if (!cancelled) setUserRole((row?.role as PortalMember["role"] | undefined) ?? null);
+      if (!cancelled) { setUserRole((row?.role as PortalMember["role"] | undefined) ?? null); setLoadingRole(false); }
     })();
     return () => { cancelled = true; };
   }, [currentPortal]);
@@ -86,7 +89,7 @@ export function PortalDBProvider({ children }: { children: ReactNode }) {
     // Re-fetch when auth session becomes available (handles post-login case
     // where this provider mounted before the Supabase JWT was established).
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") fetchPortals();
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") fetchPortals();
       if (event === "SIGNED_OUT") {
         setPortals([]);
         portalsRef.current = [];
@@ -124,6 +127,7 @@ export function PortalDBProvider({ children }: { children: ReactNode }) {
       isAdmin: userRole === "owner" || userRole === "admin",
       isOwner: userRole === "owner",
       loadingPortals: loading,
+      loadingRole,
       setCurrentPortal,
       setCurrentPortalBySlug,
       refreshPortals: fetchPortals,

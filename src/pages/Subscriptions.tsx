@@ -1,13 +1,16 @@
-import { useState, useEffect, useCallback } from "react";
-import { STORAGE_SUBSCRIPTIONS_PREFIX, STORAGE_SUBSCRIPTIONS_LEGACY } from "@/constants/storageKeys";
+﻿import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Pause, Play, Zap, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { LiquidGlassCard, LiquidGlassFilter } from "@/components/ui/liquid-glass-card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
+import { usePortalDB } from "@/lib/portalContextDB";
 import { addAuditEntry } from "@/lib/adminStore";
-import { localAdd, localGetAll } from "@/lib/personalTransactionStore";
+import { supabase as _supabase } from "@/lib/supabase";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase = _supabase as any;
 import { broadcastFinanceUpdate } from "@/lib/financeRealtime";
 import {
   type Subscription,
@@ -18,6 +21,7 @@ import {
   toMonthlyAmount,
 } from "@/portals/finance/services/subscriptionCycles";
 import { useSubscriptionProcessor } from "@/portals/finance/hooks/useSubscriptionProcessor";
+import { useSubscriptions } from "@/hooks/useSubscriptions";
 import {
   NewSubscriptionModal,
   type NewSubFormData,
@@ -25,29 +29,6 @@ import {
 import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
 import { GlassTooltip } from "@/components/ui/GlassTooltip";
 import { EmptyState } from "@/components/ui/EmptyState";
-
-// ── Persistence ───────────────────────────────────────────────────────────────
-
-const STORAGE_KEY_PREFIX = STORAGE_SUBSCRIPTIONS_PREFIX;
-
-function subsStorageKey(portalId: string): string {
-  return `${STORAGE_KEY_PREFIX}_${portalId}`;
-}
-
-const INITIAL_SUBS: Subscription[] = [];
-
-function loadSubs(portalId: string): Subscription[] {
-  try {
-    const raw = localStorage.getItem(subsStorageKey(portalId));
-    if (raw) return JSON.parse(raw) as Subscription[];
-    // Legacy migration for sosa portal
-    if (portalId === "sosa") {
-      const legacy = localStorage.getItem(STORAGE_SUBSCRIPTIONS_LEGACY);
-      if (legacy) return JSON.parse(legacy) as Subscription[];
-    }
-  } catch {}
-  return INITIAL_SUBS;
-}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -85,29 +66,22 @@ function ToastList({ toasts }: { toasts: { id: string; msg: string }[] }) {
 export default function Subscriptions() {
   const { user } = useAuth();
   const { portal } = usePortal();
+  const { currentPortalId } = usePortalDB();
   const portalId = portal?.id ?? "sosa";
 
-  const [subs, setSubs] = useState<Subscription[]>(() => loadSubs(portalId));
+  const { subs, setSubs, syncSub, softDeleteSub } = useSubscriptions();
+  const [balance, setBalance] = useState<number>(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSub, setEditingSub] = useState<Subscription | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<{ id: string; msg: string }[]>([]);
-
-  // Reload when portal switches
-  useEffect(() => {
-    setSubs(loadSubs(portalId));
-  }, [portalId]);
-
-  // Persist to portal-scoped localStorage
-  useEffect(() => {
-    localStorage.setItem(subsStorageKey(portalId), JSON.stringify(subs));
-  }, [subs, portalId]);
 
   // Close context menu on outside click
   useEffect(() => {
     if (!openMenuId) return;
-    const handler = () => setOpenMenuId(null);
+    const handler = () => { setOpenMenuId(null); setMenuPos(null); };
     document.addEventListener("click", handler);
     return () => document.removeEventListener("click", handler);
   }, [openMenuId]);
@@ -130,13 +104,23 @@ export default function Subscriptions() {
   const totalMonthly = activeSubs.reduce((acc, s) => acc + toMonthlyAmount(s), 0);
   const totalAnnual  = totalMonthly * 12;
 
-  // Compute balance from personal transactions to detect insufficient funds
-  const balance = localGetAll(portalId)
-    .filter(() => true) // portal-shared: all portal transactions
-    .reduce(
-      (acc: number, t) => (t.type === "income" ? acc + Number(t.amount) : acc - Number(t.amount)),
-      0,
-    );
+  // Compute balance from personal transactions (Supabase) to detect insufficient funds
+  useEffect(() => {
+    if (!currentPortalId) return;
+    void (async () => {
+      const { data } = await supabase
+        .from("personal_transactions")
+        .select("type, amount")
+        .eq("portal_id", currentPortalId);
+      if (!data) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sum = (data as any[]).reduce(
+        (acc, t) => (t.type === "income" ? acc + Number(t.amount) : acc - Number(t.amount)),
+        0,
+      );
+      setBalance(sum);
+    })();
+  }, [currentPortalId, subs.length]);
 
   // Pie chart data
   const catMap: Record<string, { value: number; color: string }> = {};
@@ -158,6 +142,7 @@ export default function Subscriptions() {
     setEditingSub(sub);
     setIsModalOpen(true);
     setOpenMenuId(null);
+    setMenuPos(null);
   }
 
   function closeModal() {
@@ -168,13 +153,9 @@ export default function Subscriptions() {
   function handleSave(data: NewSubFormData) {
     if (editingSub) {
       // Update existing
-      setSubs((prev) =>
-        prev.map((s) =>
-          s.id === editingSub.id
-            ? { ...s, ...data, updated_at: new Date().toISOString() }
-            : s,
-        ),
-      );
+      const updated = { ...editingSub, ...data, updated_at: new Date().toISOString() };
+      setSubs((prev) => prev.map((s) => s.id === editingSub.id ? updated : s));
+      void syncSub(updated);
       addToast(`✓ ${data.name} updated`);
     } else {
       // Compute first billing date
@@ -196,6 +177,7 @@ export default function Subscriptions() {
       };
 
       setSubs((prev) => [...prev, newSub]);
+      void syncSub(newSub);
 
       // Process immediately if start_date is today or past
       if (startDate <= today && user) {
@@ -205,22 +187,23 @@ export default function Subscriptions() {
             `⚠ ${data.name} added but first charge skipped — insufficient balance (€${balance.toFixed(2)})`,
           );
         } else {
-          localAdd(
-            {
-              user_id: user.id,
-              type: "expense",
-              amount: data.amount,
-              currency: data.currency ?? "EUR",
-              category: data.category,
-              description: `Subscription: ${data.name}`,
-              date: today.toISOString().slice(0, 10),
-              is_recurring: true,
-              recurring_interval: "monthly",
-            },
-            user.id,
-            portalId,
-          );
-          broadcastFinanceUpdate("transaction_added");
+          if (currentPortalId) {
+            void supabase
+              .from("personal_transactions")
+              .insert({
+                user_id: user.id,
+                portal_id: currentPortalId,
+                type: "expense",
+                amount: data.amount,
+                currency: data.currency ?? "EUR",
+                category: data.category,
+                description: `Subscription: ${data.name}`,
+                date: today.toISOString().slice(0, 10),
+                is_recurring: true,
+                recurring_interval: "monthly",
+              })
+              .then(() => broadcastFinanceUpdate("transaction_added"));
+          }
 
           // Advance next_billing_date past today
           const nextDate = calculateNextBillingDate(
@@ -253,9 +236,13 @@ export default function Subscriptions() {
 
   function togglePause(id: string) {
     const sub = subs.find(s => s.id === id);
-    setSubs((prev) => prev.map((s) => (s.id === id ? { ...s, is_active: !s.is_active } : s)));
+    if (!sub) return;
+    const toggled = { ...sub, is_active: !sub.is_active, updated_at: new Date().toISOString() };
+    setSubs((prev) => prev.map((s) => (s.id === id ? toggled : s)));
+    void syncSub(toggled);
     setOpenMenuId(null);
-    if (user && sub) addAuditEntry({ userId: user.id, action: `${sub.is_active ? "Paused" : "Resumed"} subscription "${sub.name}"`, category: "finance", details: "", icon: sub.is_active ? "⏸️" : "▶️", portalId });
+    setMenuPos(null);
+    if (user) addAuditEntry({ userId: user.id, action: `${sub.is_active ? "Paused" : "Resumed"} subscription "${sub.name}"`, category: "finance", details: "", icon: sub.is_active ? "⏸️" : "▶️", portalId });
   }
 
   function softDelete(id: string) {
@@ -265,8 +252,10 @@ export default function Subscriptions() {
         s.id === id ? { ...s, is_active: false, deleted_at: new Date().toISOString() } : s,
       ),
     );
+    void softDeleteSub(id);
     setDeleteConfirmId(null);
     setOpenMenuId(null);
+    setMenuPos(null);
     if (user && sub) addAuditEntry({ userId: user.id, action: `Deleted subscription "${sub.name}"`, category: "finance", details: "", icon: "🗑️", portalId });
   }
 
@@ -285,9 +274,9 @@ export default function Subscriptions() {
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       >
         {[
-          { label: "Active",           value: String(activeSubs.length),                                        color: "#4A9EFF" },
-          { label: "Monthly Total",   value: `€${totalMonthly.toFixed(2)}`,                                    color: "#e8ff00" },
-          { label: "Annual Cost",     value: `€${totalAnnual.toLocaleString("en-US", { minimumFractionDigits: 2 })}`, color: "#FF5A5A" },
+          { label: "Active",           value: String(activeSubs.length),                                        color: "var(--color-info)" },
+          { label: "Monthly Total",   value: `€${totalMonthly.toFixed(2)}`,                                    color: "var(--sosa-yellow)" },
+          { label: "Annual Cost",     value: `€${totalAnnual.toLocaleString("en-US", { minimumFractionDigits: 2 })}`, color: "var(--color-error)" },
         ].map((s) => (
           <div key={s.label} style={{ background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", borderRadius: 14, padding: "14px 18px" }}>
             <p style={{ fontSize: 11, color: "var(--text-quaternary)", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase" }}>{s.label}</p>
@@ -392,17 +381,17 @@ export default function Subscriptions() {
 
                           {/* Status badge */}
                           {status === "active" && (
-                            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: "rgba(46,204,113,0.12)", color: "#2ECC71", whiteSpace: "nowrap" }}>
+                            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: "rgba(46,204,113,0.12)", color: "var(--color-success)", whiteSpace: "nowrap" }}>
                               Active
                             </span>
                           )}
                           {status === "due_soon" && (
-                            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: "rgba(245,158,11,0.15)", color: "#f59e0b", whiteSpace: "nowrap" }}>
+                            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: "rgba(245,158,11,0.15)", color: "var(--color-warning)", whiteSpace: "nowrap" }}>
                               {days === 0 ? "Today" : `In ${days}d`}
                             </span>
                           )}
                           {status === "overdue" && (
-                            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: "rgba(255,90,90,0.12)", color: "#FF5A5A", whiteSpace: "nowrap" }}>
+                            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: "rgba(255,90,90,0.12)", color: "var(--color-error)", whiteSpace: "nowrap" }}>
                               Overdue
                             </span>
                           )}
@@ -415,9 +404,9 @@ export default function Subscriptions() {
                           {/* Context menu button */}
                           {isDeleteConfirm ? (
                             <div className="flex items-center gap-1">
-                              <span style={{ fontSize: 10, color: "#FF5A5A" }}>Delete?</span>
+                              <span style={{ fontSize: 10, color: "var(--color-error)" }}>Delete?</span>
                               <button type="button" onClick={() => softDelete(sub.id)}
-                                style={{ padding: "3px 8px", fontSize: 10, borderRadius: 6, border: "none", background: "rgba(255,90,90,0.2)", color: "#FF5A5A", cursor: "pointer" }}>
+                                style={{ padding: "3px 8px", fontSize: 10, borderRadius: 6, border: "none", background: "rgba(255,90,90,0.2)", color: "var(--color-error)", cursor: "pointer" }}>
                                 Yes
                               </button>
                               <button type="button" onClick={() => setDeleteConfirmId(null)}
@@ -426,47 +415,26 @@ export default function Subscriptions() {
                               </button>
                             </div>
                           ) : (
-                            <div style={{ position: "relative" }}>
-                              <button type="button"
-                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(isMenu ? null : sub.id); }}
-                                style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: "rgba(255,255,255,0.05)", color: "var(--text-quaternary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                <MoreHorizontal style={{ width: 13, height: 13 }} />
-                              </button>
-                              {isMenu && (
-                                <div onClick={(e) => e.stopPropagation()}
-                                  style={{ position: "absolute", right: 0, top: 34, zIndex: 50, background: "var(--glass-bg, rgba(20,20,20,0.97))", border: "0.5px solid var(--glass-border)", borderRadius: 10, padding: 4, minWidth: 150, boxShadow: "0 8px 32px rgba(0,0,0,0.35)" }}>
-                                  <button type="button" onClick={() => openEdit(sub)}
-                                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 7, border: "none", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", fontSize: 12, textAlign: "left" }}
-                                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
-                                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-                                    <Pencil style={{ width: 12, height: 12 }} /> Edit
-                                  </button>
-                                  <button type="button" onClick={() => togglePause(sub.id)}
-                                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 7, border: "none", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", fontSize: 12, textAlign: "left" }}
-                                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
-                                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-                                    {sub.is_active
-                                      ? <><Pause style={{ width: 12, height: 12 }} /> Pause</>
-                                      : <><Play  style={{ width: 12, height: 12 }} /> Resume</>
-                                    }
-                                  </button>
-                                  <div style={{ height: "0.5px", background: "var(--glass-border)", margin: "3px 8px" }} />
-                                  <button type="button" onClick={() => { setDeleteConfirmId(sub.id); setOpenMenuId(null); }}
-                                    style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 7, border: "none", background: "transparent", color: "#FF5A5A", cursor: "pointer", fontSize: 12, textAlign: "left" }}
-                                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,90,90,0.08)")}
-                                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-                                    <Trash2 style={{ width: 12, height: 12 }} /> Delete
-                                  </button>
-                                </div>
-                              )}
-                            </div>
+                            <button type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isMenu) { setOpenMenuId(null); setMenuPos(null); }
+                                else {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  setOpenMenuId(sub.id);
+                                  setMenuPos({ x: rect.right, y: rect.bottom + 4 });
+                                }
+                              }}
+                              style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: "rgba(255,255,255,0.05)", color: "var(--text-quaternary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <MoreHorizontal style={{ width: 13, height: 13 }} />
+                            </button>
                           )}
                         </div>
                       </div>
 
                       {/* Insufficient balance warning */}
                       {insufficientBalance && (
-                        <p style={{ fontSize: 10.5, color: "#f59e0b", marginTop: 8, paddingTop: 8, borderTop: "0.5px solid rgba(245,158,11,0.15)" }}>
+                        <p style={{ fontSize: 10.5, color: "var(--color-warning)", marginTop: 8, paddingTop: 8, borderTop: "0.5px solid rgba(245,158,11,0.15)" }}>
                           ⚠ Insufficient balance at charge time (balance: €{balance.toFixed(2)})
                         </p>
                       )}
@@ -489,7 +457,7 @@ export default function Subscriptions() {
         </div>
 
         {/* ── Pie chart ── */}
-        <LiquidGlassCard accentColor="#e8ff00" hover={false}>
+        <LiquidGlassCard accentColor="var(--sosa-yellow)" hover={false}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>By Category</h3>
           {catData.length > 0 ? (
             <ResponsiveContainer width="100%" height={160}>
@@ -519,7 +487,7 @@ export default function Subscriptions() {
           <div style={{ marginTop: 14, paddingTop: 12, borderTop: "0.5px solid var(--glass-border)" }}>
             <div className="flex justify-between">
               <span style={{ fontSize: 12, color: "var(--text-quaternary)" }}>Monthly (norm.)</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#e8ff00" }}>€{totalMonthly.toFixed(2)}/mo</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--sosa-yellow)" }}>€{totalMonthly.toFixed(2)}/mo</span>
             </div>
             <div className="flex justify-between mt-1">
               <span style={{ fontSize: 12, color: "var(--text-quaternary)" }}>Annual</span>
@@ -546,12 +514,59 @@ export default function Subscriptions() {
                 start_date: editingSub.start_date,
                 category: editingSub.category,
                 description: editingSub.description ?? "",
-                color: editingSub.color ?? "#e8ff00",
+                color: editingSub.color ?? "var(--sosa-yellow)",
                 is_active: editingSub.is_active,
               }
             : undefined
         }
       />
+
+      {/* ── Portaled context menu (escapes overflow:hidden on LiquidGlassCard) ── */}
+      {openMenuId && menuPos && (() => {
+        const sub = subs.find(s => s.id === openMenuId);
+        if (!sub) return null;
+        return createPortal(
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "fixed",
+              right: window.innerWidth - menuPos.x,
+              top: menuPos.y,
+              zIndex: 9998,
+              background: "var(--glass-bg-elevated, rgba(20,20,20,0.97))",
+              border: "0.5px solid var(--glass-border)",
+              borderRadius: 10,
+              padding: 4,
+              minWidth: 150,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+            }}
+          >
+            <button type="button" onClick={() => openEdit(sub)}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 7, border: "none", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", fontSize: 12, textAlign: "left" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+              <Pencil style={{ width: 12, height: 12 }} /> Edit
+            </button>
+            <button type="button" onClick={() => togglePause(sub.id)}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 7, border: "none", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", fontSize: 12, textAlign: "left" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+              {sub.is_active
+                ? <><Pause style={{ width: 12, height: 12 }} /> Pause</>
+                : <><Play  style={{ width: 12, height: 12 }} /> Resume</>
+              }
+            </button>
+            <div style={{ height: "0.5px", background: "var(--glass-border)", margin: "3px 8px" }} />
+            <button type="button" onClick={() => { setDeleteConfirmId(sub.id); setOpenMenuId(null); setMenuPos(null); }}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 7, border: "none", background: "transparent", color: "var(--color-error)", cursor: "pointer", fontSize: 12, textAlign: "left" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,90,90,0.08)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+              <Trash2 style={{ width: 12, height: 12 }} /> Delete
+            </button>
+          </div>,
+          document.body,
+        );
+      })()}
     </div>
     </ModuleErrorBoundary>
   );

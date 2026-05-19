@@ -1,10 +1,9 @@
 ﻿import { useState, useCallback, useEffect, useRef } from "react";
-import { useAuth, ALL_USERS, getUserById } from "@/lib/authContext";
+import { useAuth } from "@/lib/authContext";
+import { usePortalUsers } from "@/hooks/usePortalUsers";
 import { usePortal } from "@/lib/portalContext";
-import { STORAGE_TASKS, STORAGE_PROJECTS } from "@/constants/storageKeys";
 import {
   getInitialIssues, getInitialProjects, ISSUE_STATUSES, ISSUE_PRIORITIES, ISSUE_LABELS, ESTIMATE_OPTIONS,
-  generateIssueId,
   type Issue, type IssueStatus, type IssuePriority, type Project, type ProjectStatus,
 } from "@/lib/linearStore";
 import {
@@ -23,47 +22,27 @@ import { Plus, LayoutGrid, List, Filter, ChevronDown, ChevronRight, SlidersHoriz
 
 const TasksPage = () => {
   const { user } = useAuth();
+  const { users: portalUsers } = usePortalUsers();
   const { portal } = usePortal();
   const portalId = portal?.id ?? "sosa";
-  const [issues, setIssues] = useState<Issue[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_TASKS);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return parsed.map((t: any) => ({
-          ...t,
-          createdAt: new Date(t.createdAt),
-          updatedAt: new Date(t.updatedAt),
-          dueDate: t.dueDate ? new Date(t.dueDate) : null,
-        }));
-      }
-    } catch {}
-    return getInitialIssues();
-  });
-  const [projects, setProjects] = useState<Project[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_PROJECTS);
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return getInitialProjects();
-  });
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [syncReady, setSyncReady] = useState(false);
 
-  // Persist tasks & projects to localStorage on change; broadcast so ProfileTasksCard updates live
+  // Broadcast change event so ProfileTasksCard can react
   useEffect(() => {
-    localStorage.setItem(STORAGE_TASKS, JSON.stringify(issues));
-    window.dispatchEvent(new CustomEvent("SOSA INC:tasks-changed"));
-  }, [issues]);
-  useEffect(() => { localStorage.setItem(STORAGE_PROJECTS, JSON.stringify(projects)); }, [projects]);
+    window.dispatchEvent(new CustomEvent("SOSA INC:tasks-changed", { detail: { portalId } }));
+  }, [issues, portalId]);
 
-  // Load live data from Supabase on mount — replaces static seed
+  // Load live data from Supabase on mount
   useEffect(() => {
+    setSyncReady(false);
     Promise.all([loadTasksFromSupabase(portalId), loadProjectsFromSupabase(portalId)]).then(([sbTasks, sbProjects]) => {
-      if (sbTasks.length > 0) setIssues(sbTasks);
-      if (sbProjects.length > 0) setProjects(sbProjects);
+      setIssues(sbTasks.length > 0 ? sbTasks : getInitialIssues());
+      setProjects(sbProjects.length > 0 ? sbProjects : getInitialProjects());
       setSyncReady(true);
     });
-  }, [portalId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [portalId]);
   const [sidebarView, setSidebarView] = useState<SidebarView>("all");
   const [viewMode, setViewMode] = useState<"list" | "board">("list");
   const [groupBy, setGroupBy] = useState<"status" | "priority" | "assignee" | "project">("status");
@@ -125,7 +104,7 @@ const TasksPage = () => {
           addAuditEntry({ userId: uid, action: `Changed priority of "${original.title}" to ${updates.priority}`, category: "tasks", details: `Issue ${original.id}`, icon: "🚩" });
         }
         if ("assigneeId" in updates && updates.assigneeId !== original.assigneeId) {
-          const assigneeName = ALL_USERS.find(u => u.id === updates.assigneeId)?.displayName || "Unassigned";
+          const assigneeName = portalUsers.find(u => u.id === updates.assigneeId)?.displayName || "Unassigned";
           addAuditEntry({ userId: uid, action: `Assigned "${original.title}" to ${assigneeName}`, category: "tasks", details: `Issue ${original.id}`, icon: "👤" });
         }
         if (updates.title && updates.title !== original.title) {
@@ -153,16 +132,15 @@ const TasksPage = () => {
       const toRemove = new Set<string>();
       const collect = (iid: string) => { toRemove.add(iid); updated.filter(i => i.parentId === iid).forEach(i => collect(i.id)); };
       collect(id);
-      if (syncReady) toRemove.forEach(rid => deleteTask(rid));
+      if (syncReady) toRemove.forEach(rid => deleteTask(rid, portalId));
       if (issue) addAuditEntry({ userId: user?.id ?? "unknown", action: `Deleted issue "${issue.title}"`, category: "tasks", details: `Issue ${issue.id} and ${toRemove.size - 1} sub-issue(s) removed`, icon: "🗑️" });
       return updated.filter(i => !toRemove.has(i.id));
     });
     setSelectedIssueId(null);
-  }, [syncReady, user]);
+  }, [syncReady, user, portalId]);
 
   const createIssue = useCallback((data: Omit<Issue, "id" | "createdAt" | "updatedAt" | "comments" | "subIssueIds">) => {
-    const prefix = data.projectId ? projects.find(p => p.id === data.projectId)?.name.substring(0, 3).toUpperCase() || "ISS" : "ISS";
-    const id = generateIssueId(prefix);
+    const id = crypto.randomUUID();
     const newIssue: Issue = { ...data, id, subIssueIds: [], comments: [], createdAt: new Date(), updatedAt: new Date() };
     setIssues(prev => {
       let updated = [newIssue, ...prev];
@@ -188,7 +166,7 @@ const TasksPage = () => {
   }, [issues, user, createIssue]);
 
   const createProject = useCallback((data: Omit<Project, "id" | "milestones">) => {
-    const id = `prj_${Date.now().toString(36)}`;
+    const id = crypto.randomUUID();
     const newProject: Project = { ...data, id, milestones: [] };
     setProjects(prev => [...prev, newProject]);
     if (syncReady) upsertProject(newProject, user?.id ?? "", portalId);
@@ -231,7 +209,7 @@ const TasksPage = () => {
   const toggleGroup = (key: string) => {
     setCollapsedGroups(prev => {
       const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
+      if (next.has(key)) { next.delete(key); } else { next.add(key); }
       return next;
     });
   };
@@ -251,7 +229,7 @@ const TasksPage = () => {
       }));
     }
     if (groupBy === "assignee") {
-      const groups = ALL_USERS.map(u => ({
+      const groups = portalUsers.map(u => ({
         key: u.id, label: u.displayName,
         issues: filtered.filter(i => i.assigneeId === u.id),
       }));
@@ -274,7 +252,7 @@ const TasksPage = () => {
   const defaultProjectId = sidebarView !== "all" && sidebarView !== "my_issues" && sidebarView !== "backlog" ? sidebarView : null;
 
   return (
-    <div className="flex h-full" style={{ minHeight: "calc(100vh - 56px)" }}>
+    <div className="flex h-full overflow-hidden">
       {/* Sidebar — inline on lg+, drawer overlay on mobile */}
       {showSidebar && (
         <>
@@ -354,10 +332,10 @@ const TasksPage = () => {
               <option value="">Priority</option>
               {ISSUE_PRIORITIES.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
             </select>
-            {/* TODO: Fetch team members from Supabase portal_members table instead of hardcoded ALL_USERS */}
+
             <select value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)} style={{ fontSize: 11, padding: "5px 7px", borderRadius: 6, background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", color: "var(--text-tertiary)", cursor: "pointer" }}>
               <option value="">Assignee</option>
-              {ALL_USERS.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+              {portalUsers.map(u => <option key={u.id} value={u.id}>{u.displayName}</option>)}
             </select>
             <select value={filterLabel} onChange={e => setFilterLabel(e.target.value)} style={{ fontSize: 11, padding: "5px 7px", borderRadius: 6, background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", color: "var(--text-tertiary)", cursor: "pointer" }}>
               <option value="">Label</option>
@@ -365,7 +343,7 @@ const TasksPage = () => {
             </select>
 
             {viewMode === "list" && (
-              <select value={groupBy} onChange={e => setGroupBy(e.target.value as any)} style={{ fontSize: 11, padding: "5px 7px", borderRadius: 6, background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", color: "var(--text-tertiary)", cursor: "pointer" }}>
+              <select value={groupBy} onChange={e => setGroupBy(e.target.value as "status" | "priority" | "assignee" | "project")} style={{ fontSize: 11, padding: "5px 7px", borderRadius: 6, background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", color: "var(--text-tertiary)", cursor: "pointer" }}>
                 <option value="status">Group: Status</option>
                 <option value="priority">Group: Priority</option>
                 <option value="assignee">Group: Assignee</option>
@@ -483,7 +461,7 @@ const TasksPage = () => {
             </div>
           )}
 
-          {filtered.length === 0 && (
+          {filtered.length === 0 && syncReady && (
             <div className="flex flex-col items-center justify-center py-16" style={{ color: "var(--text-quaternary)" }}>
               <p style={{ fontSize: 14 }}>No issues found</p>
               <p style={{ fontSize: 12, marginTop: 4 }}>Press <kbd style={{ padding: "1px 4px", borderRadius: 4, background: "var(--glass-bg)", border: "0.5px solid var(--glass-border)", fontSize: 11 }}>C</kbd> to create one</p>

@@ -1,10 +1,8 @@
 // ── useFinancialGoals ────────────────────────────────────────────────────────
 //
-// Portal-scoped: each portal has its own isolated goals data.
-// Primary: Supabase via goalsService. Fallback: portal-scoped localStorage cache.
+// Portal-scoped goals — Supabase only.
 
 import { useState, useEffect, useCallback } from "react";
-import { toast } from "sonner";
 import { usePortal } from "@/lib/portalContext";
 import { fetchGoals } from "@/lib/services/goalsService";
 import { useRealtimeTable } from "@/lib/realtime/useRealtimeTable";
@@ -40,28 +38,19 @@ export function useFinancialGoals() {
   const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await fetchGoals(portalId);
-      setGoals(data.map(dbGoalToDisplay));
-    } catch {
-      toast.warning("Goals: using cached data — server unreachable", { id: "goals-offline" });
-    } finally {
-      setIsLoading(false);
-    }
+    const data = await fetchGoals(portalId);
+    setGoals(data.map(dbGoalToDisplay));
+    setIsLoading(false);
   }, [portalId]);
 
-  // Re-load when portal switches
   useEffect(() => { void refresh(); }, [refresh]);
 
-  // Re-read on window focus
   useEffect(() => {
     function onFocus() { void refresh(); }
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [refresh]);
 
-  // Real-time Postgres Changes — live updates from other users/tabs
   useRealtimeTable<DbFinancialGoal>("financial_goals", portalId, {
     onInsert: (row) => setGoals((prev) => [dbGoalToDisplay(row), ...prev]),
     onUpdate: (row) => setGoals((prev) => prev.map((g) => g.id === row.id ? dbGoalToDisplay(row) : g)),

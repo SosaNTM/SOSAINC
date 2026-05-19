@@ -1,5 +1,3 @@
-import { ALL_USERS } from "@/lib/authContext";
-
 export type TaskStatus = "backlog" | "todo" | "in_progress" | "done";
 export type TaskPriority = "urgent" | "high" | "medium" | "low";
 
@@ -37,17 +35,17 @@ export interface Task {
 }
 
 export const STATUSES: { key: TaskStatus; label: string; icon: string }[] = [
-  { key: "backlog", label: "Backlog", icon: "⚪" },
-  { key: "todo", label: "To Do", icon: "🔵" },
-  { key: "in_progress", label: "In Progress", icon: "🟡" },
-  { key: "done", label: "Done", icon: "🟢" },
+  { key: "backlog", label: "Backlog", icon: "○" },
+  { key: "todo", label: "To Do", icon: "●" },
+  { key: "in_progress", label: "In Progress", icon: "◆" },
+  { key: "done", label: "Done", icon: "✓" },
 ];
 
 export const PRIORITIES: { key: TaskPriority; label: string; emoji: string; color: string; bg: string }[] = [
-  { key: "urgent", label: "Urgent", emoji: "🔴", color: "#dc2626", bg: "rgba(220,38,38,0.10)" },
-  { key: "high", label: "High", emoji: "🟠", color: "#ea580c", bg: "rgba(234,88,12,0.10)" },
-  { key: "medium", label: "Medium", emoji: "🟡", color: "#ca8a04", bg: "rgba(202,138,4,0.10)" },
-  { key: "low", label: "Low", emoji: "🟢", color: "#16a34a", bg: "rgba(22,163,74,0.10)" },
+  { key: "urgent", label: "Urgent", emoji: "↑↑", color: "#dc2626", bg: "rgba(220,38,38,0.10)" },
+  { key: "high", label: "High", emoji: "↑", color: "#ea580c", bg: "rgba(234,88,12,0.10)" },
+  { key: "medium", label: "Medium", emoji: "→", color: "#ca8a04", bg: "rgba(202,138,4,0.10)" },
+  { key: "low", label: "Low", emoji: "↓", color: "#16a34a", bg: "rgba(22,163,74,0.10)" },
 ];
 
 export const LABEL_OPTIONS = ["finance", "marketing", "ops", "legal", "product", "design", "hr", "other"];
@@ -98,4 +96,4 @@ export const INITIAL_TASKS: Task[] = [
   { id: "TSK-013", title: "Set up CI/CD pipeline", description: "Configure automated testing and deployment pipeline.", status: "done", priority: "high", assigneeId: "usr_002", creatorId: "usr_001", watcherIds: [], labels: ["ops", "product"], dueDate: d(3), completedAt: d(2), comments: [], attachments: [], createdAt: d(14), updatedAt: d(2) },
   { id: "TSK-014", title: "Create brand style guide", description: "Document all brand assets, colors, typography, and usage guidelines.", status: "done", priority: "medium", assigneeId: "usr_004", creatorId: "usr_001", watcherIds: ["usr_003"], labels: ["design"], dueDate: d(1), completedAt: d(1), comments: [], attachments: [], createdAt: d(10), updatedAt: d(1) },
   { id: "TSK-015", title: "Tax filing preparation", description: "Gather all documents for Q4 tax filing.", status: "done", priority: "urgent", assigneeId: "usr_001", creatorId: "usr_001", watcherIds: ["usr_002"], labels: ["finance", "legal"], dueDate: d(5), completedAt: d(4), comments: [], attachments: [], createdAt: d(20), updatedAt: d(4) },
-]; // eslint-disable-line @typescript-eslint/no-unused-vars
+];

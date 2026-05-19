@@ -17,12 +17,13 @@ const cm = monthlyRecords.map(computeMonth);
 const totals = computeAnnualTotals(monthlyRecords);
 
 // NOTE: Custom tooltip — too specialized for GlassTooltip (mixed percentage/EUR formatting, glass-tooltip CSS class)
-const Tip = ({ active, payload, label }: any) => {
+type ChartTooltipProps = { active?: boolean; payload?: Array<{ name: string; value: number; color?: string; stroke?: string; fill?: string }>; label?: string | number };
+const Tip = ({ active, payload, label }: ChartTooltipProps) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="glass-tooltip">
       <p style={{ fontWeight: 700, color: "var(--text-primary)", marginBottom: 6, fontSize: 14 }}>{label}</p>
-      {payload.map((p: any, i: number) => (
+      {payload.map((p, i: number) => (
         <p key={i} style={{ fontWeight: 600, color: p.color || p.stroke || p.fill, fontSize: 13 }}>
           {p.name}: {typeof p.value === "number" && p.value < 200 ? `${p.value.toFixed(1)}%` : fmtEur(p.value)}
         </p>
@@ -157,7 +158,7 @@ function RevenueDetail() {
 }
 
 function COGSDetail() {
-  const cogsData = cm.map(m => { const row: any = { month: m.month }; cogsSubs.forEach(s => { row[s.name] = m.directCosts * s.pct; }); return row; });
+  const cogsData = cm.map(m => { const row: Record<string, number | string> = { month: m.month }; cogsSubs.forEach(s => { row[s.name] = m.directCosts * s.pct; }); return row; });
   const donutData = cogsSubs.map(s => ({ ...s, value: totals.totalDirectCosts * s.pct }));
   const largest = donutData.sort((a, b) => b.value - a.value)[0];
   const cogsPctRev = (totals.totalDirectCosts / totals.totalRevenue * 100).toFixed(1);
@@ -208,7 +209,7 @@ function MarginTrendDetail() {
 }
 
 function OPEXDetail() {
-  const opexData = cm.map(m => { const row: any = { month: m.month }; opexSubs.forEach(s => { row[s.name] = m.indirectCosts * s.pct; }); return row; });
+  const opexData = cm.map(m => { const row: Record<string, number | string> = { month: m.month }; opexSubs.forEach(s => { row[s.name] = m.indirectCosts * s.pct; }); return row; });
   const donutData = opexSubs.map(s => ({ ...s, value: totals.totalIndirectCosts * s.pct }));
   const largest = [...donutData].sort((a, b) => b.value - a.value)[0];
   const opexPctRev = (totals.totalIndirectCosts / totals.totalRevenue * 100).toFixed(1);

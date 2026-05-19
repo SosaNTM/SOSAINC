@@ -1,46 +1,40 @@
-﻿import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { toPortalUUID } from "@/lib/portalUUID";
 import { newVaultItemSchema, safeValidate } from "@/lib/validation/schemas";
+import { toast } from "sonner";
 import type { DbVaultItem, NewDbVaultItem } from "@/types/database";
+import { encryptVaultData, decryptVaultData } from "@/lib/vaultCrypto";
 
 /**
- * SECURITY NOTE:
- * encrypted_data must be encrypted client-side before calling createVaultItem/updateVaultItem.
- * Never pass plaintext credentials to this service.
- * Recommended: encrypt with AES-256-GCM using a user-derived key before storing.
+ * AES-256-GCM encryption applied to encrypted_data on every write and
+ * transparently decrypted on every read. Key derived from user_id + portal_id
+ * via PBKDF2 (200k iters). See src/lib/vaultCrypto.ts.
  */
-
-const LS_KEY = (portalId: string) => `SOSA INC_vault_items_${portalId}`;
-
-function readLocal(portalId: string): DbVaultItem[] {
-  try { return JSON.parse(localStorage.getItem(LS_KEY(portalId)) ?? "[]"); }
-  catch { return []; }
-}
-function writeLocal(portalId: string, data: DbVaultItem[]): void {
-  localStorage.setItem(LS_KEY(portalId), JSON.stringify(data));
-}
 
 export async function fetchVaultItems(
   portalId: string,
   type?: DbVaultItem["type"],
 ): Promise<DbVaultItem[]> {
-  try {
-    let query = supabase
-      .from("vault_items")
-      .select("*")
-      .eq("portal_id", toPortalUUID(portalId))
-      .order("is_favorite", { ascending: false })
-      .order("name", { ascending: true })
-      .limit(1000);
-    if (type) query = query.eq("type", type);
-    const { data, error } = await query;
-    if (error) throw error;
-    const result = data ?? [];
-    writeLocal(portalId, result);
-    return result;
-  } catch {
-    return readLocal(portalId);
+  let query = supabase
+    .from("vault_items")
+    .select("*")
+    .eq("portal_id", toPortalUUID(portalId))
+    .order("is_favorite", { ascending: false })
+    .order("name", { ascending: true })
+    .limit(1000);
+  if (type) query = query.eq("type", type);
+  const { data, error } = await query;
+  if (error) {
+    console.error("fetchVaultItems:", error.message);
+    toast.error(`Vault load failed: ${error.message}`);
+    return [];
   }
+  const rows = (data ?? []) as DbVaultItem[];
+  // Decrypt encrypted_data on each row
+  return Promise.all(rows.map(async (r) => ({
+    ...r,
+    encrypted_data: await decryptVaultData(r.encrypted_data, r.user_id, portalId),
+  })));
 }
 
 export async function createVaultItem(
@@ -48,24 +42,24 @@ export async function createVaultItem(
   portalId: string,
 ): Promise<DbVaultItem | null> {
   const validation = safeValidate(newVaultItemSchema, item);
-  if (!validation.success) {
+  if (validation.success === false) {
     console.warn("createVaultItem validation failed:", validation.errors);
     return null;
   }
-  try {
-    const { data, error } = await supabase
-      .from("vault_items")
-      .insert({ ...item, portal_id: toPortalUUID(portalId) })
-      .select()
-      .single();
-    if (error) throw error;
-    writeLocal(portalId, [data, ...readLocal(portalId)]);
-    // Log access
-    await logVaultAccess(data.id, "created", portalId);
-    return data;
-  } catch {
+  // Encrypt encrypted_data before insert
+  const ciphertext = await encryptVaultData(item.encrypted_data, item.user_id, portalId);
+  const { data, error } = await supabase
+    .from("vault_items")
+    .insert({ ...item, encrypted_data: ciphertext, portal_id: toPortalUUID(portalId) })
+    .select()
+    .single();
+  if (error) {
+    toast.error(`Vault item not saved: ${error.message}`);
     return null;
   }
+  await logVaultAccess(data.id, "created", portalId);
+  // Return with plaintext so caller's UI shows immediately
+  return { ...data, encrypted_data: item.encrypted_data };
 }
 
 export async function updateVaultItem(
@@ -73,47 +67,58 @@ export async function updateVaultItem(
   updates: Partial<DbVaultItem>,
   portalId: string,
 ): Promise<DbVaultItem | null> {
-  try {
-    const { data, error } = await supabase
-      .from("vault_items")
-      .update(updates)
-      .eq("id", id)
-      .eq("portal_id", toPortalUUID(portalId))
-      .select()
-      .single();
-    if (error) throw error;
-    writeLocal(portalId, readLocal(portalId).map((v) => (v.id === id ? data : v)));
-    await logVaultAccess(id, "updated", portalId);
-    return data;
-  } catch {
+  // Encrypt updated encrypted_data if present
+  const next = { ...updates };
+  if (typeof next.encrypted_data === "string" && next.user_id) {
+    next.encrypted_data = await encryptVaultData(next.encrypted_data, next.user_id, portalId);
+  } else if (typeof next.encrypted_data === "string") {
+    // Need user_id — fetch existing row
+    const { data: existing } = await supabase
+      .from("vault_items").select("user_id").eq("id", id).single();
+    if (existing) {
+      next.encrypted_data = await encryptVaultData(next.encrypted_data, (existing as DbVaultItem).user_id, portalId);
+    }
+  }
+  const { data, error } = await supabase
+    .from("vault_items")
+    .update(next)
+    .eq("id", id)
+    .eq("portal_id", toPortalUUID(portalId))
+    .select()
+    .single();
+  if (error) {
+    toast.error(`Vault item not updated: ${error.message}`);
     return null;
   }
+  await logVaultAccess(id, "updated", portalId);
+  // Decrypt for return
+  if (data) {
+    return { ...data, encrypted_data: await decryptVaultData(data.encrypted_data, data.user_id, portalId) };
+  }
+  return data;
 }
 
 export async function deleteVaultItem(id: string, portalId: string): Promise<boolean> {
-  const snapshot = readLocal(portalId);
-  writeLocal(portalId, snapshot.filter((v) => v.id !== id));
-  try {
-    const { error } = await supabase.from("vault_items").delete().eq("id", id).eq("portal_id", toPortalUUID(portalId));
-    if (error) throw error;
-    await logVaultAccess(id, "deleted", portalId); // log only after success
-    return true;
-  } catch {
-    writeLocal(portalId, snapshot); // rollback optimistic delete
+  const { error } = await supabase
+    .from("vault_items")
+    .delete()
+    .eq("id", id)
+    .eq("portal_id", toPortalUUID(portalId));
+  if (error) {
+    toast.error(`Vault item not deleted: ${error.message}`);
     return false;
   }
+  await logVaultAccess(id, "deleted", portalId);
+  return true;
 }
 
 export async function recordVaultAccess(id: string, portalId: string): Promise<void> {
-  try {
-    const { error } = await supabase
-      .from("vault_items")
-      .update({ last_accessed_at: new Date().toISOString() })
-      .eq("id", id);
-    if (!error) await logVaultAccess(id, "accessed", portalId);
-  } catch {
-    // non-critical — never throw
-  }
+  const { error } = await supabase
+    .from("vault_items")
+    .update({ last_accessed_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("portal_id", toPortalUUID(portalId));
+  if (!error) await logVaultAccess(id, "accessed", portalId);
 }
 
 async function logVaultAccess(
@@ -121,16 +126,12 @@ async function logVaultAccess(
   action: "created" | "updated" | "accessed" | "deleted" | "restored" | "shared",
   portalId: string,
 ): Promise<void> {
-  try {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data?.user) return;
-    await supabase.from("vault_item_history").insert({
-      item_id: itemId,
-      user_id: data.user.id,
-      portal_id: toPortalUUID(portalId),
-      action,
-    });
-  } catch {
-    // non-critical — never throw
-  }
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data?.user) return;
+  await supabase.from("vault_item_history").insert({
+    item_id: itemId,
+    user_id: data.user.id,
+    portal_id: toPortalUUID(portalId),
+    action,
+  });
 }

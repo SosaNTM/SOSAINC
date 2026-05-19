@@ -1,15 +1,14 @@
 // ── useInventory ────────────────────────────────────────────────────────────
 //
-// Portal-scoped: each portal has its own isolated inventory data.
-// Primary: Supabase inventory_items filtered by portal_id.
-// Fallback: portal-scoped localStorage store.
+// Portal-scoped: Supabase inventory_items filtered by portal_id. No localStorage.
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
-import { dynamicSupabase as supabase } from "@/lib/portalDb";
+import { supabase as _supabase } from "@/lib/supabase";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase = _supabase as any;
 import { useAuth } from "@/lib/authContext";
-import { usePortal } from "@/lib/portalContext";
-import { STORAGE_INVENTORY_PREFIX } from "@/constants/storageKeys";
+import { usePortalDB } from "@/lib/portalContextDB";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,7 +36,6 @@ export interface InventoryItem {
   sale_date?: string;
   notes?: string;
   image_url?: string;
-  // Digital Stock Manager fields (added in 20260408000002_inventory_attachments.sql)
   description?: string;
   amount: number;
   item_value: number;
@@ -58,13 +56,6 @@ export interface UseInventoryResult {
   updateItem: (id: string, changes: Partial<NewInventoryItem>) => Promise<boolean>;
   deleteItem: (id: string) => Promise<boolean>;
   refetch: () => void;
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function isSupabaseConfigured(): boolean {
-  const url = (import.meta.env.VITE_SUPABASE_URL as string) ?? "";
-  return !!url && !url.includes("placeholder");
 }
 
 function toInventoryItem(row: Record<string, unknown>): InventoryItem {
@@ -96,60 +87,9 @@ function toInventoryItem(row: Record<string, unknown>): InventoryItem {
   };
 }
 
-function storageKey(portalId: string): string {
-  return `${STORAGE_INVENTORY_PREFIX}${portalId}`;
-}
-
-function localGetAll(portalId: string): InventoryItem[] {
-  try {
-    const raw = localStorage.getItem(storageKey(portalId));
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as InventoryItem[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function localSave(portalId: string, items: InventoryItem[]): void {
-  localStorage.setItem(storageKey(portalId), JSON.stringify(items));
-}
-
-function localAdd(data: NewInventoryItem, portalId: string): InventoryItem {
-  const items = localGetAll(portalId);
-  const now = new Date().toISOString();
-  const newItem: InventoryItem = {
-    amount: 1,
-    item_value: 0,
-    ...data,
-    id: crypto.randomUUID(),
-    portal_id: portalId,
-    created_at: now,
-    updated_at: now,
-  };
-  localSave(portalId, [newItem, ...items]);
-  return newItem;
-}
-
-function localUpdate(id: string, changes: Partial<NewInventoryItem>, portalId: string): void {
-  const items = localGetAll(portalId);
-  const updated = items.map((item) =>
-    item.id === id ? { ...item, ...changes, updated_at: new Date().toISOString() } : item
-  );
-  localSave(portalId, updated);
-}
-
-function localDelete(id: string, portalId: string): void {
-  const items = localGetAll(portalId);
-  localSave(portalId, items.filter((item) => item.id !== id));
-}
-
-// ── Hook ─────────────────────────────────────────────────────────────────────
-
 export function useInventory(): UseInventoryResult {
   const { user } = useAuth();
-  const { portal } = usePortal();
-  const portalId = portal?.id ?? "sosa";
+  const { currentPortalId } = usePortalDB();
 
   const [all, setAll] = useState<InventoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -157,34 +97,26 @@ export function useInventory(): UseInventoryResult {
   const [tick, setTick] = useState(0);
 
   const load = useCallback(async () => {
-    if (!user) { setIsLoading(false); return; }
-    setIsLoading(true);
+    if (!user || !currentPortalId) { setIsLoading(false); return; }
     setError(null);
 
-    if (isSupabaseConfigured()) {
-      const { data, error: err } = await supabase
-        .from("inventory_items")
-        .select("*")
-        .eq("portal_id", portalId)
-        .order("created_at", { ascending: false });
+    const { data, error: err } = await supabase
+      .from("inventory_items")
+      .select("*")
+      .eq("portal_id", currentPortalId)
+      .order("created_at", { ascending: false });
 
-      if (!err && data) {
-        setAll((data as Record<string, unknown>[]).map(toInventoryItem));
-        setIsLoading(false);
-        return;
-      }
+    if (err) {
+      setError(err.message);
+      setAll([]);
+    } else {
+      setAll((data as Record<string, unknown>[] | null ?? []).map(toInventoryItem));
     }
-
-    // Fallback: portal-scoped localStorage
-    setAll(localGetAll(portalId));
     setIsLoading(false);
-  }, [user, portalId, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user, currentPortalId, tick]);
 
-  // Reset and reload when portal changes
-  useEffect(() => { setAll([]); }, [portalId]);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
-  // Derived stats
   const totalItems = all.length;
   const totalValue = useMemo(
     () => all.reduce((sum, item) => sum + item.item_value, 0),
@@ -200,86 +132,57 @@ export function useInventory(): UseInventoryResult {
 
   const addItem = useCallback(
     async (data: NewInventoryItem): Promise<boolean> => {
-      if (!user) return false;
-      try {
-        if (isSupabaseConfigured()) {
-          const { error: err } = await supabase
-            .from("inventory_items")
-            .insert({ ...data, portal_id: portalId });
-          if (err) throw err;
-        } else {
-          localAdd(data, portalId);
-        }
-        setTick((t) => t + 1);
-        toast.success("Item added");
-        return true;
-      } catch {
-        try {
-          localAdd(data, portalId);
-          setTick((t) => t + 1);
-          toast.success("Item saved locally");
-          return true;
-        } catch {
-          toast.error("Error: unable to save item");
-          return false;
-        }
+      if (!user || !currentPortalId) return false;
+      const { error: err } = await supabase
+        .from("inventory_items")
+        .insert({ ...data, portal_id: currentPortalId });
+      if (err) {
+        toast.error(`Item not saved: ${err.message}`);
+        return false;
       }
+      setTick((t) => t + 1);
+      toast.success("Item added");
+      return true;
     },
-    [user, portalId]
+    [user, currentPortalId]
   );
 
   const updateItem = useCallback(
     async (id: string, changes: Partial<NewInventoryItem>): Promise<boolean> => {
-      if (!user) return false;
-      try {
-        if (isSupabaseConfigured()) {
-          const { error: err } = await supabase
-            .from("inventory_items")
-            .update(changes)
-            .eq("id", id)
-            .eq("portal_id", portalId);
-          if (err) throw err;
-        } else {
-          localUpdate(id, changes, portalId);
-        }
-        setTick((t) => t + 1);
-        toast.success("Item updated");
-        return true;
-      } catch {
-        localUpdate(id, changes, portalId);
-        setTick((t) => t + 1);
-        toast.success("Item updated locally");
-        return true;
+      if (!user || !currentPortalId) return false;
+      const { error: err } = await supabase
+        .from("inventory_items")
+        .update(changes)
+        .eq("id", id)
+        .eq("portal_id", currentPortalId);
+      if (err) {
+        toast.error(`Item not updated: ${err.message}`);
+        return false;
       }
+      setTick((t) => t + 1);
+      toast.success("Item updated");
+      return true;
     },
-    [user, portalId]
+    [user, currentPortalId]
   );
 
   const deleteItem = useCallback(
     async (id: string): Promise<boolean> => {
-      if (!user) return false;
-      try {
-        if (isSupabaseConfigured()) {
-          const { error: err } = await supabase
-            .from("inventory_items")
-            .delete()
-            .eq("id", id)
-            .eq("portal_id", portalId);
-          if (err) throw err;
-        } else {
-          localDelete(id, portalId);
-        }
-        setTick((t) => t + 1);
-        toast.success("Item deleted");
-        return true;
-      } catch {
-        localDelete(id, portalId);
-        setTick((t) => t + 1);
-        toast.success("Item deleted locally");
-        return true;
+      if (!user || !currentPortalId) return false;
+      const { error: err } = await supabase
+        .from("inventory_items")
+        .delete()
+        .eq("id", id)
+        .eq("portal_id", currentPortalId);
+      if (err) {
+        toast.error(`Item not deleted: ${err.message}`);
+        return false;
       }
+      setTick((t) => t + 1);
+      toast.success("Item deleted");
+      return true;
     },
-    [user, portalId]
+    [user, currentPortalId]
   );
 
   const refetch = useCallback(() => setTick((t) => t + 1), []);

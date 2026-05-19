@@ -84,7 +84,7 @@ const LABEL_MAP: Record<string, string> = {
   "notifiche/regole-alert": "Regole Alert",
 };
 
-interface NavItemDef { title: string; key: PageKey; icon: React.FC<any>; }
+interface NavItemDef { title: string; key: PageKey; icon: React.ComponentType<{ size?: number; className?: string }>; }
 
 const NAV_SECTIONS: { label: string; items: NavItemDef[] }[] = [
   {

@@ -1,8 +1,7 @@
 // ── useBudgetCategoryTransactions ─────────────────────────────────────────────
 //
 // Returns personal_transactions from the active portal for a budget category + month/year.
-// Falls back to portal-scoped localStorage when Supabase is unavailable.
-// Refetches automatically when the finance-updates broadcast channel fires.
+// Supabase only — refetches when the finance-updates broadcast channel fires.
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase as _supabase } from "@/lib/supabase";
@@ -11,14 +10,8 @@ const supabase = _supabase as any;
 import { subscribeToFinanceUpdates } from "@/lib/financeRealtime";
 import { useAuth } from "@/lib/authContext";
 import { usePortal } from "@/lib/portalContext";
-import { localGetAll } from "@/lib/personalTransactionStore";
 import { toPortalUUID } from "@/lib/portalUUID";
 import type { PersonalTransaction } from "@/types/finance";
-
-function isSupabaseConfigured(): boolean {
-  const url = (import.meta.env.VITE_SUPABASE_URL as string) ?? "";
-  return !!url && !url.includes("placeholder");
-}
 
 export interface BudgetCategoryTransactionsResult {
   transactions: PersonalTransaction[];
@@ -65,48 +58,38 @@ export function useBudgetCategoryTransactions(
     const lastDay  = new Date(year, month + 1, 0).getDate();
     const toDate   = `${year}-${monthStr}-${String(lastDay).padStart(2, "0")}`;
 
-    let allTxs: PersonalTransaction[] = [];
+    const { data: rawData, error } = await supabase
+      .from("personal_transactions")
+      .select("*")
+      .eq("portal_id", toPortalUUID(portalId))
+      .gte("date", fromDate)
+      .lte("date", toDate)
+      .order("date", { ascending: false });
 
-    if (isSupabaseConfigured()) {
-      const { data: rawData, error } = await supabase
-        .from("personal_transactions")
-        .select("*")
-        .eq("portal_id", toPortalUUID(portalId)) // portal-shared
-        .gte("date", fromDate)
-        .lte("date", toDate)
-        .order("date", { ascending: false });
-
-      if (error) {
-        setResult({ ...EMPTY, error: "Unable to load transactions." });
-        return;
-      }
-
-      allTxs = (rawData ?? []).map((row: Record<string, any>) => ({
-        id:                 row.id,
-        user_id:            row.user_id,
-        type:               row.type as PersonalTransaction["type"],
-        amount:             Number(row.amount),
-        currency:           row.currency ?? "EUR",
-        category:           row.category,
-        subcategory:        row.subcategory ?? undefined,
-        description:        row.description ?? "",
-        date:               row.date,
-        payment_method:     row.payment_method ?? undefined,
-        is_recurring:       row.is_recurring ?? false,
-        recurring_interval: row.recurring_interval ?? undefined,
-        tags:               row.tags ?? undefined,
-        receipt_url:        row.receipt_url ?? undefined,
-        created_at:         row.created_at,
-        updated_at:         row.updated_at,
-      }));
+    if (error) {
+      setResult({ ...EMPTY, error: "Unable to load transactions." });
+      return;
     }
 
-    // Fallback: portal-scoped localStorage
-    if (allTxs.length === 0) {
-      allTxs = localGetAll(portalId)
-        .filter((t) => t.date >= fromDate && t.date <= toDate)
-        .sort((a, b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : 0));
-    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const allTxs: PersonalTransaction[] = (rawData ?? []).map((row: Record<string, any>) => ({
+      id:                 row.id,
+      user_id:            row.user_id,
+      type:               row.type as PersonalTransaction["type"],
+      amount:             Number(row.amount),
+      currency:           row.currency ?? "EUR",
+      category:           row.category,
+      subcategory:        row.subcategory ?? undefined,
+      description:        row.description ?? "",
+      date:               row.date,
+      payment_method:     row.payment_method ?? undefined,
+      is_recurring:       row.is_recurring ?? false,
+      recurring_interval: row.recurring_interval ?? undefined,
+      tags:               row.tags ?? undefined,
+      receipt_url:        row.receipt_url ?? undefined,
+      created_at:         row.created_at,
+      updated_at:         row.updated_at,
+    }));
 
     // Filter by category variants (case-insensitive)
     const txs = allTxs.filter((t) =>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   mockSocialAccounts, mockSocialPosts, mockSocialGoals,
@@ -17,6 +17,7 @@ import {
   ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
 import { ModuleErrorBoundary } from "@/components/ui/ModuleErrorBoundary";
+import { SocialBetaBanner } from "@/components/social/SocialBetaBanner";
 
 // ── Period logic ──────────────────────────────────────────────────────────────
 
@@ -134,7 +135,7 @@ export default function SocialOverview() {
   const followerChartData = Array.from({ length: clampedDays }, (_, i) => {
     const dt = new Date(TODAY); dt.setDate(dt.getDate() - clampedDays + i + 1);
     const label = dt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    const point: Record<string, any> = { date: label, _iso: dt.toISOString() };
+    const point: Record<string, number | string> = { date: label, _iso: dt.toISOString() };
     mockSocialAccounts.forEach((a) => {
       const g = GROWTH_RATES[a.platform];
       if (g) {
@@ -151,7 +152,7 @@ export default function SocialOverview() {
   const engRateChartData = Array.from({ length: clampedDays }, (_, i) => {
     const dt = new Date(TODAY); dt.setDate(dt.getDate() - clampedDays + i + 1);
     const label = dt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    const point: Record<string, any> = { date: label };
+    const point: Record<string, number | string> = { date: label };
     mockSocialAccounts.forEach((a) => {
       const arr = ENG_BASES[a.platform];
       point[a.platform] = arr ? arr[i % arr.length] : 4.0;
@@ -162,6 +163,8 @@ export default function SocialOverview() {
   return (
     <ModuleErrorBoundary moduleName="Social Overview">
     <div style={{ paddingBottom: 40, maxWidth: 1400, margin: "0 auto" }}>
+
+      <SocialBetaBanner />
 
       {/* ── Header ── */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 32 }}>
@@ -189,7 +192,7 @@ export default function SocialOverview() {
           changePercent={agg.followerChangePct}
           sparkline={getAllSparklineData(accountIds, days, "followers")}
           accentColor="#10b981"
-          icon="👥"
+          icon="●"
           onClick={() => setActiveKpi("followers")}
         />
         <SocialKpiCard
@@ -199,7 +202,7 @@ export default function SocialOverview() {
           changePercent={agg.impressionChangePct}
           sparkline={getAllSparklineData(accountIds, days, "impressions")}
           accentColor="#6366f1"
-          icon="👁"
+          icon="○"
           onClick={() => setActiveKpi("impressions")}
         />
         <SocialKpiCard
@@ -209,7 +212,7 @@ export default function SocialOverview() {
           changePercent={12.3}
           sparkline={getAllSparklineData(accountIds, days, "reach")}
           accentColor="#3b82f6"
-          icon="📡"
+          icon="→"
           onClick={() => setActiveKpi("reach")}
         />
         <SocialKpiCard
@@ -219,7 +222,7 @@ export default function SocialOverview() {
           changePercent={agg.postsChange > 0 ? Number(((agg.postsChange / Math.max(agg.totalPosts - agg.postsChange, 1)) * 100).toFixed(1)) : 0}
           sparkline={getAllSparklineData(accountIds, days, "postsPublished")}
           accentColor="#e879f9"
-          icon="📝"
+          icon="◆"
           onClick={() => setActiveKpi("posts")}
         />
       </div>
@@ -234,7 +237,7 @@ export default function SocialOverview() {
           changePercent={pct(avgLikes, prevAvgLikes)}
           sparkline={getAllSparklineData(accountIds, days, "likes")}
           accentColor="#f43f5e"
-          icon="❤️"
+          icon="●"
           onClick={() => setActiveKpi("likes")}
         />
         <SocialKpiCard
@@ -245,7 +248,7 @@ export default function SocialOverview() {
           changePercent={pct(avgComments, prevAvgComments)}
           sparkline={getAllSparklineData(accountIds, days, "comments")}
           accentColor="#3b82f6"
-          icon="💬"
+          icon="◆"
           onClick={() => setActiveKpi("comments")}
         />
         <SocialKpiCard
@@ -257,7 +260,7 @@ export default function SocialOverview() {
           changeSuffix=" pts"
           sparkline={getAllSparklineData(accountIds, days, "engagementRate")}
           accentColor="#f59e0b"
-          icon="⚡"
+          icon="↑"
           onClick={() => setActiveKpi("engagementRate")}
         />
         <SocialKpiCard
@@ -268,7 +271,7 @@ export default function SocialOverview() {
           changePercent={pct(avgShares, prevAvgShares)}
           sparkline={getAllSparklineData(accountIds, days, "shares")}
           accentColor="#10b981"
-          icon="🔄"
+          icon="→"
           onClick={() => setActiveKpi("shares")}
         />
       </div>
@@ -282,7 +285,7 @@ export default function SocialOverview() {
           changePercent={8.9}
           sparkline={getAllSparklineData(accountIds, days, "profileVisits")}
           accentColor="#a78bfa"
-          icon="🧑"
+          icon="○"
           onClick={() => setActiveKpi("profileVisits")}
         />
         <SocialKpiCard
@@ -292,7 +295,7 @@ export default function SocialOverview() {
           changePercent={15.0}
           sparkline={getAllSparklineData(accountIds, days, "websiteClicks")}
           accentColor="#06b6d4"
-          icon="🔗"
+          icon="→"
           onClick={() => setActiveKpi("websiteClicks")}
         />
         <SocialKpiCard
@@ -303,7 +306,7 @@ export default function SocialOverview() {
           changePercent={pct(avgSaves, prevAvgSaves)}
           sparkline={getAllSparklineData(accountIds, days, "saves")}
           accentColor="#f59e0b"
-          icon="🔖"
+          icon="◆"
           onClick={() => setActiveKpi("saves")}
         />
       </div>
@@ -350,7 +353,7 @@ export default function SocialOverview() {
                   contentStyle={{ background: "#0d1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }}
                   labelStyle={{ color: "rgba(255,255,255,0.45)", fontSize: 11, marginBottom: 6, fontWeight: 600 }}
                   itemStyle={{ color: "rgba(255,255,255,0.8)", fontSize: 12, padding: "2px 0" }}
-                  formatter={(v: any, name: string) => [formatSocialNumber(Number(v)), PLATFORM_CONFIG[name as keyof typeof PLATFORM_CONFIG]?.label ?? name]}
+                  formatter={(v: number, name: string) => [formatSocialNumber(v), PLATFORM_CONFIG[name as keyof typeof PLATFORM_CONFIG]?.label ?? name]}
                   cursor={{ stroke: "rgba(255,255,255,0.1)", strokeDasharray: "4 4" }}
                 />
                 {mockSocialAccounts.map((a) => (
@@ -422,7 +425,7 @@ export default function SocialOverview() {
                   contentStyle={{ background: "#0d1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }}
                   labelStyle={{ color: "rgba(255,255,255,0.45)", fontSize: 11, marginBottom: 6, fontWeight: 600 }}
                   itemStyle={{ color: "rgba(255,255,255,0.8)", fontSize: 12, padding: "2px 0" }}
-                  formatter={(v: any, name: string) => [`${Number(v).toFixed(1)}%`, PLATFORM_CONFIG[name as keyof typeof PLATFORM_CONFIG]?.label ?? name]}
+                  formatter={(v: number, name: string) => [`${v.toFixed(1)}%`, PLATFORM_CONFIG[name as keyof typeof PLATFORM_CONFIG]?.label ?? name]}
                   cursor={{ stroke: "rgba(255,255,255,0.1)", strokeDasharray: "4 4" }}
                 />
                 {mockSocialAccounts.map((a) => (

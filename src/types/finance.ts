@@ -18,6 +18,7 @@ export const COST_CLASSIFICATION_CONFIG: Record<CostClassification, {
 
 export interface PersonalTransaction {
   id: string;
+  portal_id: string;
   user_id: string;
   type: "income" | "expense" | "transfer";
   amount: number;          // always positive; type field determines direction
