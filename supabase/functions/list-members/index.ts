@@ -17,6 +17,10 @@ const SUPABASE_SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const ALLOWED_ORIGINS = [
   Deno.env.get("FRONTEND_URL") ?? "http://localhost:8080",
+  "https://sosainc.xyz",
+  "https://www.sosainc.xyz",
+  "https://sosa-inc.vercel.app",
+  "http://localhost:8080",
   "https://iconoff.io",
   "https://www.iconoff.io",
 ];
