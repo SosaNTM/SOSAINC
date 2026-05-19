@@ -82,7 +82,7 @@ serve(async (req: Request) => {
 
   const { data: memberships, error: membershipsError } = await adminClient
     .from("portal_members")
-    .select("portal_id, user_id, role, created_at")
+    .select("portal_id, user_id, role, joined_at")
     .in("portal_id", MAIN_PORTAL_IDS);
 
   if (membershipsError) {
