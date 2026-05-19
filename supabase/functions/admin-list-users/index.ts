@@ -30,6 +30,10 @@ const ROLE_RANK: Record<string, number> = { owner: 4, admin: 3, member: 2, viewe
 
 const ALLOWED_ORIGINS = [
   Deno.env.get("FRONTEND_URL") ?? "http://localhost:8080",
+  "https://sosainc.xyz",
+  "https://www.sosainc.xyz",
+  "https://sosa-inc.vercel.app",
+  "http://localhost:8080",
   "https://iconoff.io",
   "https://www.iconoff.io",
 ];

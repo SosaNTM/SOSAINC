@@ -230,6 +230,7 @@ function CreateLoginModal({ onClose, onCreated }: { onClose: () => void; onCreat
     setSubmitting(true);
     try {
       const auth = await getAuthHeader();
+      if (!auth) { setError("Not authenticated. Please log in again."); return; }
       const res = await fetch(`${EDGE_BASE}/create-member`, {
         method: "POST",
         headers: { Authorization: auth, "Content-Type": "application/json" },
@@ -241,8 +242,10 @@ function CreateLoginModal({ onClose, onCreated }: { onClose: () => void; onCreat
           portalSlugs: portalAccess,
         }),
       });
-      const data = await res.json() as { error?: string };
-      if (!res.ok) { setError(data.error ?? "Failed to create login."); return; }
+      const text = await res.text();
+      let data: { error?: string } = {};
+      try { data = text ? JSON.parse(text) as { error?: string } : {}; } catch { /* non-JSON response */ }
+      if (!res.ok) { setError(data.error ?? `Request failed (HTTP ${res.status}): ${text.slice(0, 200)}`); return; }
       addAuditEntry({
         userId: currentUser?.id ?? "unknown",
         action: `Created login for ${name.trim()}`,
@@ -251,6 +254,10 @@ function CreateLoginModal({ onClose, onCreated }: { onClose: () => void; onCreat
         icon: "○",
       });
       onCreated(name.trim());
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(`Network error: ${msg}. Check Edge Function CORS or connectivity.`);
+      console.error("[create-member] fetch failed:", e);
     } finally {
       setSubmitting(false);
     }
